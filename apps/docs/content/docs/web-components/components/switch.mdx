@@ -1,0 +1,174 @@
+---
+title: Switch
+description: Turn a setting on or off.
+---
+
+A switch changes a setting between on and off. Keep its label the same in both states: “Airplane Mode” tells you what changes; the switch tells you whether it is on.
+
+<ComponentExample
+  name="switch/basic"
+  caption="Click Airplane Mode, or focus it and press Space, to turn it on and off."
+/>
+
+## Installation
+
+```package-install
+npm install @ui-sdk/web
+```
+
+The styled examples use the shared [example theme](../styling-and-animation#example-theme).
+
+## Anatomy
+
+```ts
+import "@ui-sdk/web/switch"
+```
+
+```html
+<label>
+  <ui-switch><ui-switch-thumb></ui-switch-thumb></ui-switch>
+  Airplane Mode
+</label>
+```
+
+`ui-switch` is the focusable control. `ui-switch-thumb` stays mounted and reflects the checked state, so CSS can slide it. The custom element participates in forms through `ElementInternals`; it does not add a hidden input.
+
+## Examples
+
+### Description
+
+Wrap the switch in `ui-field` to connect `ui-field-label` and `ui-field-description` automatically.
+
+<ComponentExample
+  name="switch/description"
+  caption="Click the label or switch. The description stays connected to the control for screen readers."
+/>
+
+### Choice Card
+
+A setting can fill a whole row. Here, the label’s pseudo-element covers the card, so clicking its empty space toggles the switch too.
+
+<ComponentExample
+  name="switch/choice-card"
+  caption="Click either card to change its setting. Each switch has its own value."
+/>
+
+### Disabled
+
+`disabled` prevents interaction and removes the switch from the Tab order. A disabled switch does not submit a value.
+
+<ComponentExample
+  name="switch/disabled"
+  caption="Try clicking Disabled. Its value stays off, and Tab skips it."
+/>
+
+### Invalid
+
+A `required` switch must be on before its form can submit. `ui-field-error` displays the validation message and connects it to the switch.
+
+<ComponentExample
+  name="switch/invalid"
+  caption="Press Continue with the switch off to show the error. Accept the terms, then submit again."
+/>
+
+<span id="behavior-and-options" />
+
+### Controlled
+
+Set the `checked` property to change the value, and listen for `checkedchange` to observe changes. Use `default-checked` for the initial value and the value a form reset restores. The element’s `api` lets another control toggle it. The [state and events guide](../state-and-events) covers the shared change callback contract.
+
+<ComponentExample
+  name="switch/controlled"
+  caption="Change Wi-Fi directly or press Toggle from outside. The readout shows the value and what caused the change."
+/>
+
+### Read Only
+
+`read-only` keeps the switch focusable and included in form submissions, while preventing changes. It works well for a setting managed elsewhere.
+
+<ComponentExample
+  name="switch/read-only"
+  caption="Focus or click Encrypt backups. It stays on because the organization manages this setting."
+/>
+
+<span id="forms" />
+
+### Form
+
+Give each switch a `name`. An on switch submits its `value`, which defaults to `"on"`; an off switch submits nothing. Use `form` to connect a switch outside the form, and Reset to restore the defaults. See [forms](../forms) for the shared validation and reset behavior.
+
+<ComponentExample
+  name="switch/form"
+  caption="Change the email settings and Join the beta, then press Save to inspect the submitted values. Reset restores the defaults and clears the result."
+/>
+
+### Saving on Toggle
+
+Call `event.preventDefault()` synchronously in `checkedchange` to keep the current value while a save runs. On success, call `api.setChecked(next, { reason: "imperative" })`. Let that reason through in the handler so the saved value can commit.
+
+This example blocks repeated changes while saving and announces the result. `aria-busy` describes the pending work; the callback is what prevents another change.
+
+<ComponentExample
+  name="switch/async"
+  caption="Toggle Automatic backups. The switch keeps its value while Saving… is shown, then changes after the save finishes."
+/>
+
+## Styling
+
+<span id="size" />
+<span id="right-to-left" />
+
+Style the track and thumb with `data-checked`, `data-unchecked`, `data-disabled`, and `data-readonly`. Validation adds `data-invalid` and `aria-invalid` to the control. The thumb receives the switch state, not the field’s validation state.
+
+The examples reverse the thumb’s translation under `dir="rtl"` and disable transitions for reduced motion. See [styling and animation](../styling-and-animation) for the shared styling contract.
+
+## Custom Rendering
+
+<span id="render-functions" />
+
+The switch itself is the interactive element. Put its visual children inside it and give it an accessible label.
+
+## API Reference
+
+Props are attributes in kebab case, like `default-checked` and `read-only`: `"false"` is false. `checked` is
+a live property and attribute. Callbacks are DOM events.
+
+### Events
+
+Events fire on their own element and don't bubble, with the new state in `event.detail.value` and the `reason` and `event` beside it. Calling `preventDefault()` cancels the change.
+
+| Member                        | On          | Description                                                               |
+| ----------------------------- | ----------- | ------------------------------------------------------------------------- |
+| `checked` property, attribute | `ui-switch` | Whether the switch is on. The attribute sets where it starts, and is live |
+| `api` property                | `ui-switch` | The [controller](#controller)                                             |
+| `checkedchange` event         | `ui-switch` | `detail: { value: checked, reason, event, source }`                       |
+
+### Reasons
+
+`event.detail.reason` says why the switch turned on or off.
+
+<ReasonTable path="../../packages/core/src/components/switch/switch.ts" name="SwitchCheckedChangeReason" />
+
+### Controller
+
+The element's `api` property has the same methods. The `checked` property reads and sets the state.
+
+Every write method takes an optional `{ reason, event }`, fires the change event like a press, and returns `false` when the change is canceled.
+
+<ControllerTable path="../../packages/core/src/components/switch/switch.ts" name="SwitchController" />
+
+### Switch
+
+<TypeTable path="../../packages/core/src/components/switch/switch.ts" name="SwitchOptions" />
+
+### State
+
+The same state shows as data attributes on each element.
+
+<StateTable path="../../packages/core/src/components/switch/switch.ts" name="SwitchState" />
+
+## Accessibility
+
+The switch follows the [WAI-ARIA switch pattern](https://www.w3.org/WAI/ARIA/apg/patterns/switch/). Every line below is an automated test.
+
+<SpecList spec="switch" />

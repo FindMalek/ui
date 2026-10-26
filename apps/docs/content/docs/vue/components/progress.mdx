@@ -1,0 +1,141 @@
+---
+title: Progress
+description: Show a task’s progress, or an indeterminate state while its progress is unknown.
+---
+
+<ComponentExample
+  name="progress/basic"
+  caption="Read the loading bar. Its label and 60% value are available both visually and to a screen reader."
+/>
+
+## Installation
+
+```bash
+pnpm add @ui-sdk/vue @ui-sdk/core
+```
+
+The examples use the [shared example theme](../styling-and-animation#example-theme).
+
+## Anatomy
+
+```vue
+<Progress value="{40}">
+  <ProgressLabel />
+  <ProgressValue />
+  <ProgressTrack>
+    <ProgressIndicator />
+  </ProgressTrack>
+</Progress>
+```
+
+- `Progress` holds the value and range.
+- `ProgressLabel` gives it a visible name. You can use `aria-label` on the root instead.
+- `ProgressValue` displays the formatted value.
+- `ProgressTrack` gives the bar its size, and `ProgressIndicator` fills it.
+
+<span id="label-and-value" />
+
+The value is already part of the root's accessible description. The visible value is hidden from screen readers to avoid reading it twice.
+
+## Examples
+
+### Indeterminate
+
+Leave out `value` when you do not know how much work is complete. Every part gets `data-indeterminate`, and the root has no `aria-valuenow`.
+
+The indicator has no inline width in this state. This example gives it a full-width pulse, with animation disabled for reduced motion.
+
+<ComponentExample
+  name="progress/indeterminate"
+  caption="Read the Connecting bar. It shows an ongoing task without announcing a percentage."
+/>
+
+<span id="behavior-and-options" />
+
+### Changing the Value
+
+Pass the latest `value` as your task progresses. The parts get `data-progressing` while the value is below `max`, and `data-complete` when it reaches the end.
+
+<ComponentExample
+  name="progress/controlled"
+  caption="Click Upload more to add 20%. At 100%, the button stops advancing the value. Click Reset to start at 0%."
+/>
+
+Progress displays your state; it has no `onValueChange` callback.
+
+### Bounds
+
+`min` and `max` default to 0 and 100. Values outside that range are clamped. A value of 3 between 1 and 5 fills half the track.
+
+<ComponentExample
+  name="progress/min-max"
+  caption="Compare step 3 of 5 with the fill. Because the range starts at 1, the value is halfway through the range."
+/>
+
+### Format and Locale
+
+Pass `Intl.NumberFormat` options to `format` for units or decimal places. A function can return custom text, such as the time remaining.
+
+<ComponentExample
+  name="progress/format"
+  caption="Compare the progress readings. They show transferred data, a precise percentage, time remaining, and a localized percentage."
+/>
+
+A percent format reports the value's position between `min` and `max`. Other formats use the value itself.
+
+`locale` controls digits and separators. If you omit it, the component reads the page's language after it mounts, with the browser's language as a fallback. The initial server and client render use English.
+
+<span id="right-to-left" />
+
+Set `dir="rtl"` on the surrounding content to fill the track from the right.
+
+### Value Label
+
+Use `getValueLabel` to give screen readers more context than the visible number. Its details include `formatted`, `percent`, `min`, and `max`. Handle a `null` value when the task can be indeterminate; `percent` is also `null` and `formatted` is empty then.
+
+<ComponentExample
+  name="progress/value-label"
+  caption="Read Copying files with a screen reader. It announces 3 of 12 files and 25%, while the visible value stays compact."
+/>
+
+Use [Meter](./meter) for a reading such as storage used, rather than a task that will finish.
+
+## Styling
+
+Give the track a height, background, and width. The indicator sets its width as an inline percentage of the track. Both styling options are shown in each example's Code tab.
+
+<DataAttributes component="progress" />
+
+The root exposes a CSS variable for positioning other content alongside the reading:
+
+<CssVariables component="progress" />
+
+<span id="render-functions" />
+
+## Custom Rendering
+
+See [Parts and Composition](../parts-and-composition) for changing a part's element or reading its state. Use `format` for text that should be shared by the visible value and screen readers.
+
+## API Reference
+
+Props are the same as below.
+
+### Progress
+
+<TypeTable path="../../packages/core/src/components/progress/progress.ts" name="ProgressOptions" />
+
+### State
+
+What render functions, state-based class names and slots receive. Every part gets the same state.
+
+<StateTable path="../../packages/core/src/components/progress/progress.ts" name="ProgressState" />
+
+`ProgressValue` adds the formatted text:
+
+<StateTable path="../../packages/core/src/components/progress/progress.ts" name="ProgressValueState" />
+
+## Accessibility
+
+Name the component with `ProgressLabel` or `aria-label`. It exposes the range and formatted value through the `progressbar` role. Use `getValueLabel` when that value needs more explanation.
+
+<SpecList spec="progress" />

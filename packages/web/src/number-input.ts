@@ -1,0 +1,57 @@
+import { numberInput, type NumberInputApi } from "@ui-sdk/core/number-input"
+import { defineParts } from "./define-element"
+
+const owner = "ui-number-input"
+
+// <ui-number-input> is form-associated: it submits the number as is, like
+// "1234.5", under its name. The input and buttons are your own elements:
+//
+// <ui-number-input name="quantity" default-value="1" min="1">
+//   <ui-number-input-decrement><button aria-label="Decrease">−</button></ui-number-input-decrement>
+//   <ui-number-input-control><input aria-label="Quantity" /></ui-number-input-control>
+//   <ui-number-input-increment><button aria-label="Increase">+</button></ui-number-input-increment>
+// </ui-number-input>
+//
+// Set `format` as a property, like `{ style: "currency", currency: "USD" }`.
+function defineNumberInputElements() {
+  defineParts(numberInput, {
+    root: {
+      tag: owner,
+      display: "block",
+      formAssociated: true,
+      state: {
+        value: {
+          get: (api: NumberInputApi) => api.getValue(),
+          set: (api: NumberInputApi, value: number | null) => api.setValue(value),
+        },
+      },
+      api: ["getValue", "setValue", "increment", "decrement", "focus"],
+      // The scrub cursor is fixed to the viewport, so it moves to the body while
+      // shown, where transformed ancestors can't offset it.
+      portal: { slots: ["scrub-area-cursor"], container: () => document.body },
+    },
+    group: { tag: "ui-number-input-group", display: "block" },
+    // These wrap your own <input> and <button>s, so they keep their native behavior.
+    control: {
+      tag: "ui-number-input-control",
+      display: "contents",
+      target: (el) => el.querySelector("input"),
+    },
+    increment: {
+      tag: "ui-number-input-increment",
+      display: "contents",
+      target: (el) => el.querySelector("button"),
+    },
+    decrement: {
+      tag: "ui-number-input-decrement",
+      display: "contents",
+      target: (el) => el.querySelector("button"),
+    },
+    // Any number of scrub areas, anywhere inside, or anywhere on the page with
+    // `for="<number input id>"`, like an icon in a toolbar.
+    "scrub-area": "ui-number-input-scrub-area",
+    "scrub-area-cursor": { tag: "ui-number-input-scrub-area-cursor", display: "block" },
+  })
+}
+
+export { defineNumberInputElements }

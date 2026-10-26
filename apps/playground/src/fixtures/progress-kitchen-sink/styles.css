@@ -1,0 +1,12 @@
+@import "tailwindcss";
+@source "./";
+
+/* An indeterminate indicator sweeps across its track. */
+@keyframes indeterminate {
+  from {
+    margin-inline-start: -33%;
+  }
+  to {
+    margin-inline-start: 100%;
+  }
+}

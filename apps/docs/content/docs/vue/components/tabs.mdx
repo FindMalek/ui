@@ -1,0 +1,327 @@
+---
+title: Tabs
+description: Switch between related panels with one tab selected at a time.
+---
+
+Use Tabs when several views share the same space, such as settings sections or a preview and its source. Each tab opens the panel with the same value.
+
+<ComponentExample
+  name="tabs/basic"
+  caption="Choose Password to show its panel. Use the left and right arrow keys to move between the tabs."
+/>
+
+## Installation
+
+```bash
+npm install @ui-sdk/vue @ui-sdk/core
+```
+
+To use the examples’ Tailwind classes, add the [example theme](../styling-and-animation#example-theme) to your global stylesheet.
+
+The icon example uses `@lucide/vue`. Install it to copy that example as shown, or use your own icons.
+
+```bash
+npm install @lucide/vue
+```
+
+## Anatomy
+
+Give each tab and its panel the same unique `value`. Give the list an accessible name. Set `default-value` to choose the initial tab; otherwise, the first enabled tab is selected.
+
+```vue
+<script setup lang="ts">
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@ui-sdk/vue/tabs"
+</script>
+
+<template>
+  <Tabs default-value="account">
+    <TabsList aria-label="Settings">
+      <TabsTab value="account">Account</TabsTab>
+      <TabsTab value="password">Password</TabsTab>
+    </TabsList>
+    <TabsPanel value="account">Manage your profile.</TabsPanel>
+    <TabsPanel value="password">Choose a new password.</TabsPanel>
+  </Tabs>
+</template>
+```
+
+Tab enters the list at the selected tab. Left and Right Arrow move between tabs and select them. Home and End move to the first and last tabs.
+
+<span id="right-to-left" />
+
+The list reads `dir="rtl"` from the page or any ancestor. Arrow directions follow the reading direction, with no provider.
+
+## Examples
+
+### Vertical
+
+Set `orientation="vertical"` to use Up and Down Arrow instead. Style the list as a column to match.
+
+<ComponentExample
+  name="tabs/vertical"
+  caption="Focus General, then press Down Arrow to choose Security. Up Arrow moves back through the vertical list."
+/>
+
+### Disabled
+
+Add `disabled` to a tab to prevent selection. Arrow keys can still focus it so people can discover it.
+
+<ComponentExample
+  name="tabs/disabled"
+  caption="Use the arrow keys to reach Reports. It can receive focus, but pressing it leaves the current panel selected."
+/>
+
+### Icons
+
+Put decorative icons in `TabsTabIcon` so they stay out of the tab’s accessible name. Add `mirror` to directional icons, such as Reply, to flip them in right-to-left text. An icon-only tab still needs an `aria-label`.
+
+<ComponentExample
+  name="tabs/icons"
+  caption="Choose Replies. Its directional icon mirrors when the surrounding page uses right-to-left text."
+/>
+
+<span id="behavior-and-options" />
+
+### Manual Activation
+
+Set `activation="manual"` when opening a panel takes time, such as a view that fetches data. Arrow keys move focus; Enter or Space selects the focused tab.
+
+```vue
+<Tabs activation="manual" />
+```
+
+A panel becomes a tab stop only when it has no focusable content. A panel with a field lets Tab go straight to the field.
+
+<ComponentExample
+  name="tabs/manual"
+  caption="Focus Preview, then press Right Arrow. Code receives focus; press Enter or Space to show its panel. Tab then moves into the Source field."
+/>
+
+### Loop
+
+Arrow keys normally wrap around at either end. Set `:loop="false"` to stop there instead.
+
+<ComponentExample
+  name="tabs/loop"
+  caption="Focus Year and press Right Arrow. Focus stays at the end because looping is off."
+/>
+
+<span id="line" />
+
+### Indicator
+
+`TabsIndicator` measures the selected tab. Position it inside a relative tab list and use its CSS variables to make a marker that follows the selection. It measures again when a tab or the list changes size.
+
+```vue
+<TabsIndicator
+  class="absolute top-(--active-tab-top) left-(--active-tab-left) h-(--active-tab-height) w-(--active-tab-width)"
+/>
+```
+
+Add transitions for the properties you animate. Skip them while `data-activation-direction="none"` to avoid animating the first placement.
+
+<ComponentExample
+  name="tabs/indicator"
+  caption="Choose Podcasts, then turn on Vertical. The same indicator measures and follows the selected tab in either layout."
+/>
+
+### Keep Mounted
+
+Panels normally unmount when another tab is selected. Add `keepMounted` to a panel to keep its content hidden in the page, preserving local state such as a draft.
+
+<ComponentExample
+  name="tabs/keep-mounted"
+  caption="Write a reply, switch to Formatting, then return to Reply. Your draft is still there."
+/>
+
+### Find in Page
+
+Add `hidden-until-found` to the tabs or a panel to keep closed content available to the browser’s Find command. A match selects its tab with the reason `find-in-page`. This also keeps the panel mounted.
+
+Server-rendered panels retain `hidden="until-found"`, so their content is available to Find before hydration.
+
+<ComponentExample
+  name="tabs/find-in-page"
+  caption="Use your browser’s Find command to search for “restocking fee”. Returns opens to reveal the match."
+/>
+
+### Animation
+
+Panels expose `data-starting-style` as they enter and `data-ending-style` as they leave. The previous panel stays mounted through its exit animation, then unmounts or hides if it is kept mounted.
+
+Use `data-activation-direction` to choose a slide direction. Put both panels in the same grid cell so they overlap during the transition, as this example does.
+
+<ComponentExample
+  name="tabs/animation"
+  caption="Move between Overview, Activity, and Settings. The panels slide in the direction you moved."
+/>
+
+### Controlled
+
+Use `v-model:value` to own the selected tab. [State and Events](../state-and-events) covers the shared pattern. Call `details.cancel()` in the change callback to reject a change.
+
+`@value-change` receives the new value and a [reason](#reasons), such as `item-press`, `list-navigation`, or `imperative`. It does not run for the initial selection. A [controller](../controllers) lets another control select a tab too.
+
+<ComponentExample
+  name="tabs/controlled"
+  caption="Choose Drafts, then press Show sent mail. The selected value and the reason for each change appear below."
+/>
+
+### Links
+
+Render a tab as a link when selection should navigate. It keeps its tab role; arrow keys follow the link when they select it. Modified clicks, such as Cmd-click, keep their normal browser behavior without selecting the tab.
+
+```vue
+<TabsTab value="activity" href="#activity">
+  <template #render="{ props }">
+    <a v-bind="props">Activity</a>
+  </template>
+</TabsTab>
+```
+
+<ComponentExample
+  name="tabs/links"
+  caption="Choose Activity. Its panel opens and the URL hash changes. Modified clicks keep the link’s usual browser behavior."
+/>
+
+## Patterns
+
+### Sync with the URL
+
+Use the URL as the source of the selected value, and validate it against your tab values. The approach depends on what the URL represents.
+
+#### Query Parameter
+
+Read the parameter on the server when possible, then pass it as the controlled value. Write changes through your router so browser navigation and the rendered page stay in sync. For a plain client page, preserve the rest of the URL when updating it:
+
+```ts
+function saveSelectedTab(value: string | null) {
+  const url = new URL(location.href)
+  if (value === null) {
+    url.searchParams.delete("tab")
+  } else {
+    url.searchParams.set("tab", value)
+  }
+  history.replaceState(null, "", url)
+}
+```
+
+Call this from `@value-change` after accepting the value. Read it again on `popstate` if your page uses browser history directly; remove that listener when the view unmounts.
+
+#### Hash
+
+A hash such as `#activity` works on a client-rendered page. Read it after mount and on `hashchange`, then select the matching tab. Setting `location.hash` adds a history entry. The server cannot read the hash, so give the page an initial tab while it loads.
+
+#### Route Tabs
+
+When each tab is a route, render links and derive the controlled value from the current path. Let navigation update the value. You do not also need a change handler that navigates to the same route.
+
+### Scrolling the Selected Tab into View
+
+If the list scrolls, selecting a tab through a controller or the URL scrolls it into view inside that list. Pointer and arrow-key selection focus the tab, so the browser reveals it as part of focusing it.
+
+## Styling
+
+Use `data-selected` and `data-disabled` to style a tab. Icon parts also provide `data-has-icon` on the tab and `data-has-icons` on the list, which can help align mixed text and icon tabs.
+
+<DataAttributes component="tabs" />
+
+### Indicator Variables
+
+The indicator’s position and size are measured from the tab list. Use the same variables for an underline, a background, or a marker beside a vertical list.
+
+<CssVariables component="tabs" />
+
+## Custom Rendering
+
+<span id="render-functions" />
+
+Use the framework’s `render` prop or slot to change a part’s element, as in the link example. [Parts and Composition](../parts-and-composition) covers the shared rendering API. Each part’s state is listed [below](#state).
+
+## API Reference
+
+Props are the same as below, and callbacks are events.
+
+### Events
+
+Events get the new value first, then the details. `v-model` only updates when `@value-change` wasn't canceled.
+
+| Binding         | On     | Receives                                                      |
+| --------------- | ------ | ------------------------------------------------------------- |
+| `v-model:value` | `Tabs` | The selected tab's value                                      |
+| `@value-change` | `Tabs` | `(value, details)`: the new value, and the [reason](#reasons) |
+
+### Reasons
+
+`details.reason` says why the selection changed.
+
+<ReasonTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsValueChangeReason" />
+
+### Controller
+
+Create one with `createTabsController()` and pass it as `controller`.
+
+Every write method takes an optional `{ reason, event }`, runs `@value-change` like a press, and returns `false` when the change is canceled.
+
+<ControllerTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsController" />
+
+### Tabs
+
+<TypeTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsOptions" />
+
+### TabsTab
+
+<TypeTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsTabProps" />
+
+### TabsTabIcon
+
+<TypeTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsTabIconProps" />
+
+### TabsPanel
+
+<TypeTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsPanelProps" />
+
+### State
+
+What render functions, state-based class names and slots receive, per part.
+
+`Tabs`:
+
+<StateTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsRootState" />
+
+`TabsList`:
+
+<StateTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsListState" />
+
+`TabsTab`:
+
+<StateTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsTabState" />
+
+`TabsTabIcon`:
+
+<StateTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsTabIconState" />
+
+`TabsPanel`:
+
+<StateTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsPanelState" />
+
+`TabsIndicator`:
+
+<StateTable path="../../packages/core/src/components/tabs/tabs.ts" name="TabsIndicatorState" />
+
+## Accessibility
+
+Tabs follow the [WAI-ARIA tabs pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/). Every line below is an automated test.
+
+<SpecList
+  spec="tabs"
+  only={["selection", "keyboard navigation", "manual activation", "vertical", "panels"]}
+/>
+
+Beyond the pattern's baseline:
+
+<SpecList spec="tabs.enhancements" />
+
+Screen readers hear the same thing in each tested framework, recorded by a virtual screen reader:
+
+<SpecList spec="tabs.sr" />

@@ -1,0 +1,78 @@
+---
+title: First Component
+description: Add a component to your app and style its state.
+---
+
+Let's add a Bookmark toggle. Press it once to turn it on, then again to turn it off.
+
+If you haven't installed the packages yet, start with [Installation](./installation).
+
+## Create the Component
+
+Create `bookmark-button.vue` next to your app component and render a `Toggle`:
+
+```vue title="bookmark-button.vue"
+<script setup lang="ts">
+import { Toggle } from "@ui-sdk/vue/toggle"
+</script>
+
+<template>
+  <Toggle>Bookmark</Toggle>
+</template>
+```
+
+`Toggle` renders a button. It keeps track of its pressed state, handles Enter and Space, and sets `aria-pressed` for screen readers.
+
+## Use It in Your App
+
+In your app component (`App.vue` here), import and render `BookmarkButton`:
+
+```vue title="App.vue"
+<script setup lang="ts">
+import BookmarkButton from "./bookmark-button.vue"
+</script>
+
+<template>
+  <BookmarkButton />
+</template>
+```
+
+Open your app. You should see a button labeled Bookmark. Next, add styles so you can tell when it is pressed.
+
+## Add Styles
+
+When the toggle is pressed, it has a `data-pressed` attribute. Use that attribute to change its appearance.
+
+With Tailwind CSS and the [example theme](./styling-and-animation#example-theme) configured in your app, add utility classes to `class`:
+
+```vue title="bookmark-button.vue"
+<script setup lang="ts">
+import { Toggle } from "@ui-sdk/vue/toggle"
+</script>
+
+<template>
+  <Toggle
+    class="inline-flex h-8 min-w-8 cursor-default items-center justify-center gap-1 rounded-2xl border border-input bg-transparent px-2.5 py-0 text-sm leading-5 font-medium whitespace-nowrap text-foreground transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 data-pressed:bg-muted motion-reduce:transition-none"
+  >
+    Bookmark
+  </Toggle>
+</template>
+```
+
+Try the styled toggle:
+
+<ComponentExample
+  name="toggle/first-component"
+  hideCode={true}
+  caption="Click Bookmark to turn it on or off. A filled background means it is on. You can also focus the button with Tab and press Enter or Space."
+/>
+
+Keep the label the same in both states. `aria-pressed` tells a screen reader whether the toggle is on.
+
+## Keep Going
+
+- [Toggle](./components/toggle) covers disabled states, controlled state, and groups of toggles.
+- [Components](./components) lists the other components you can add with the same install.
+- [Parts and Composition](./parts-and-composition) shows how to put a component with several parts together.
+- [State and Events](./state-and-events) shows how to read changes and control state from your app.
+- [Styling and Animation](./styling-and-animation) covers state attributes, CSS variables, and transitions.

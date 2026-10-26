@@ -1,0 +1,128 @@
+import * as React from "react"
+import {
+  bindDrag,
+  bindDragPreview,
+  createAutoScroll,
+  createChange,
+  definePrimitive,
+  dragThreshold,
+  type ChangeDetails,
+} from "@ui-sdk/core"
+import { createParts } from "@ui-sdk/react/primitive"
+
+type BookState = { bookmark: string | null; over: string | null }
+
+type BookOptions = {
+  onBookmarkChange?: (bookmark: string | null, details: ChangeDetails<"drag">) => void
+}
+
+const book = definePrimitive({
+  name: "book",
+  options: { onBookmarkChange: "callback" },
+  state: (_options: BookOptions): BookState => ({ bookmark: null, over: null }),
+  api: (context) => {
+    const { store } = context
+    const change = createChange(context)
+    let stop: (() => void) | undefined
+    context.onDestroy(() => stop?.())
+    return {
+      pointerdown(event: PointerEvent, el: HTMLElement) {
+        if (event.button !== 0) return
+        let preview: ReturnType<typeof bindDragPreview> | undefined
+        let pointer = { x: event.clientX, y: event.clientY }
+        const findChapter = () => {
+          const hit = document.elementFromPoint(pointer.x, pointer.y)?.closest<HTMLElement>("[data-chapter]")
+          store.set({ over: hit?.dataset.chapter ?? null })
+        }
+        const scroll = createAutoScroll({
+          edge: 48,
+          speed: 16,
+          ignore: () => preview?.el,
+          onScroll: findChapter,
+        })
+        stop?.()
+        stop = bindDrag(el, event, {
+          threshold: dragThreshold,
+          cancelOnEscape: true,
+          onStart: () => {
+            preview = bindDragPreview(el, pointer)
+          },
+          onMove: ({ x, y }) => {
+            pointer = { x, y }
+            preview?.move(x, y)
+            scroll.update(x, y)
+            findChapter()
+          },
+          onEnd: (end, canceled) => {
+            const { over } = store.get()
+            scroll.stop()
+            preview?.remove()
+            stop = undefined
+            store.set({ over: null })
+            if (preview && over && !canceled) change("bookmark", over, { reason: "drag", event: end })
+          },
+        })
+      },
+    }
+  },
+  slots: (slot) => ({
+    bookmark: slot({
+      attrs: () => ({ type: "button", style: "touch-action:none;user-select:none" }),
+      on: { pointerdown: (event, { el, api }) => api.pointerdown(event, el!) },
+    }),
+    chapters: slot({ attrs: () => ({ role: "list" }) }),
+    chapter: slot<{ value: string }>({
+      props: { value: "string" },
+      attrs: (state, part) => ({
+        role: "listitem",
+        "data-chapter": part.key,
+        "data-over": state.over === part.key ? "" : undefined,
+        "data-bookmarked": state.bookmark === part.key ? "" : undefined,
+      }),
+    }),
+  }),
+})
+
+const parts = createParts(book, { bookmark: "button", chapters: "div", chapter: "div" })
+
+const Book = parts.Root
+
+const BookBookmark = parts.Bookmark
+
+const BookChapters = parts.Chapters
+
+const BookChapter = parts.Chapter
+
+const chapters = Array.from({ length: 24 }, (_, index) => `Chapter ${index + 1}`)
+
+function Example() {
+  const [bookmark, setBookmark] = React.useState<string | null>(null)
+  return (
+    <Book onBookmarkChange={setBookmark}>
+      <div className="flex w-60 flex-col gap-2 text-sm">
+        <BookBookmark className="self-start rounded-full border border-border bg-background px-3 py-1 text-xs data-drag-preview:shadow-lg">
+          🔖 Bookmark
+        </BookBookmark>
+        <BookChapters
+          aria-label="Chapters"
+          className="flex h-44 flex-col overflow-auto rounded-xl border border-border p-1"
+        >
+          {chapters.map((chapter) => (
+            <BookChapter
+              key={chapter}
+              value={chapter}
+              className="shrink-0 rounded-md px-3 py-1.5 data-bookmarked:font-medium data-over:bg-primary/10"
+            >
+              {chapter}
+            </BookChapter>
+          ))}
+        </BookChapters>
+        <p data-bookmark className="text-xs text-muted-foreground">
+          {bookmark ? `Bookmarked ${bookmark}` : "Drag the bookmark onto a chapter."}
+        </p>
+      </div>
+    </Book>
+  )
+}
+
+export { Book, book, BookBookmark, BookChapter, BookChapters, type BookOptions, type BookState, Example }

@@ -1,0 +1,301 @@
+---
+title: Guide
+description: Build a Vite app, try the agent bridge in the console, and let ChatGPT use it through WebMCP.
+---
+
+We'll build a Select for choosing a region. First, you'll read and change it from the browser console. Then you'll give ChatGPT the same tools and ask it to choose a region for you.
+
+## Create a Vite App
+
+Start with Vite's React and TypeScript template:
+
+```bash
+npm create vite@latest agent-demo -- --template react-ts
+cd agent-demo
+npm install
+npm install @ui-sdk/react @ui-sdk/core
+```
+
+You'll need a Node.js version supported by [Vite](https://vite.dev/guide/). If the scaffolder offers to start the app, finish the files below first.
+
+## Add a Select
+
+Replace `src/App.tsx` with:
+
+```tsx title="src/App.tsx"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@ui-sdk/react/select"
+
+const regions = [
+  { value: "europe", label: "Europe" },
+  { value: "north-america", label: "North America" },
+  { value: "asia-pacific", label: "Asia Pacific" },
+]
+
+function App() {
+  return (
+    <main>
+      <h1>Project Settings</h1>
+      <Select defaultValue="europe" items={regions}>
+        <SelectLabel className="select-label">Region</SelectLabel>
+        <SelectTrigger className="select-trigger">
+          <SelectValue />
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        </SelectTrigger>
+        <SelectContent className="select-content">
+          {regions.map((region) => (
+            <SelectItem key={region.value} value={region.value} className="select-item">
+              {region.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </main>
+  )
+}
+
+export { App }
+```
+
+`SelectLabel` names the component **Region**. We'll use that name in the console and in our prompts. Passing `items` tells the Select every choice before its list renders, so the trigger shows **Europe** right away and the bridge can read the choices while the popup is closed.
+
+Replace `src/index.css` with a few neutral styles:
+
+```css title="src/index.css"
+body {
+  margin: 0;
+  background: #fff;
+  color: #171717;
+  font:
+    14px/1.5 system-ui,
+    sans-serif;
+}
+
+main {
+  max-width: 320px;
+  margin: 80px auto;
+  padding: 0 24px;
+}
+
+h1 {
+  margin: 0 0 24px;
+  font-size: 20px;
+}
+
+.select-label {
+  display: block;
+  margin-bottom: 8px;
+}
+
+.select-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+.select-content {
+  min-width: var(--anchor-width);
+  max-height: var(--available-height);
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid #d4d4d4;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.select-item {
+  padding: 8px;
+  border-radius: 4px;
+  cursor: default;
+}
+
+.select-item[data-highlighted] {
+  background: #f5f5f5;
+}
+
+.select-trigger:focus-visible,
+.select-item:focus-visible {
+  outline: 2px solid #171717;
+  outline-offset: 2px;
+}
+```
+
+## Initialize the Agent
+
+Create `src/agent.ts`:
+
+```ts title="src/agent.ts"
+import { createAgent } from "@ui-sdk/react/agent"
+
+const agent = createAgent()
+
+Object.assign(window, { agent })
+
+export { agent }
+```
+
+`Object.assign` makes the bridge available as `window.agent` in the console. It doesn't require a TypeScript declaration on `Window`.
+
+Now replace `src/main.tsx`. Import `agent.ts` before rendering the app so the bridge sees the Select as it's created:
+
+```tsx title="src/main.tsx"
+import "./agent"
+import { StrictMode } from "react"
+import { createRoot } from "react-dom/client"
+import { App } from "./App"
+import "./index.css"
+
+createRoot(document.getElementById("root")!).render(
+  <StrictMode>
+    <App />
+  </StrictMode>,
+)
+```
+
+Start the app on port 5173:
+
+```bash
+npm run dev -- --port 5173 --strictPort
+```
+
+Open [localhost:5173](http://localhost:5173). **Europe** should be selected. Open the Select and choose another region, or focus it and use the arrow keys to try it yourself.
+
+## Read It from the Console
+
+Open your browser's developer tools and select **Console**. Run:
+
+```js
+window.agent.snapshot()
+```
+
+You'll see a component with `component: "select"`, `label: "Region"`, its current `value`, and its available `actions`. Its `ref` is an identifier assigned by the bridge; we'll use the label **Region** in this guide.
+
+List its choices:
+
+```js
+await window.agent.query({ within: "Region" })
+```
+
+This returns the Region Select with its three regions under `items`, each with a `value` and `label`. To filter the list, add some text:
+
+```js
+await window.agent.query({ within: "Region", text: "Asia" })
+```
+
+## Change the Selection
+
+Run this in the same console:
+
+```js
+await window.agent.act({
+  steps: [{ ref: "Region", action: "setValue", args: ["north-america"] }],
+})
+```
+
+The Select should now show **North America**. The result includes `ok`, the changes made by each step, and the current field values.
+
+You can also pass an item's label:
+
+```js
+await window.agent.act({
+  steps: [{ ref: "Region", action: "setValue", args: ["Asia Pacific"] }],
+})
+```
+
+Choose **Europe** yourself, then run `window.agent.snapshot()` again. The bridge reads the same selection you see on the page.
+
+## Register the WebMCP Tools
+
+Replace `src/agent.ts` with this version:
+
+```ts title="src/agent.ts"
+import { createAgent, registerTools } from "@ui-sdk/react/agent"
+
+const agent = createAgent()
+
+Object.assign(window, { agent })
+
+const unregister = registerTools(agent, {
+  allow: (step) => step.action !== "press" || confirm(`Press ${step.args[0]}?`),
+})
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(unregister)
+}
+
+export { agent }
+```
+
+`registerTools` publishes `snapshot`, `query`, and `act` through WebMCP when the browser supports it. Its `allow` asks you before the browser's agent presses a button. The cleanup removes the old registration when Vite replaces the module during development.
+
+Reload the page after saving. `window.agent` is for the console exercise; WebMCP calls the bridge directly.
+
+## Open the App in ChatGPT
+
+Keep Vite running. In the **ChatGPT desktop app** on the same computer:
+
+1. Start a Work conversation with a model that supports site tools.
+2. Open the built-in browser and visit `http://localhost:5173`.
+3. Select **Site tools** in the address bar, then **Available site tools**. Look for `snapshot`, `query`, and `act`.
+
+ChatGPT discovers tools from the page open in that browser. Model and workspace availability are listed in [ChatGPT's site tools guide](https://learn.chatgpt.com/docs/webmcp).
+
+Start with a prompt that only reads the page:
+
+```text
+Find the WebMCP tools available on this page. Use snapshot to tell me
+which component is on the page and which region is selected.
+```
+
+Then ask it to read the choices:
+
+```text
+Use the page's query tool to list the choices for Region.
+```
+
+Finally, ask it to change the selection:
+
+```text
+Use the page's act tool to change Region to North America. Tell me
+the selected value returned by the tool.
+```
+
+Review any access prompt from ChatGPT, then watch the Select update. In **Site tools**, use **Recently used** to check the calls it made.
+
+You can also give it the whole task at once:
+
+```text
+Find this page's WebMCP tools, check the available regions, and select
+Asia Pacific. Use the tool result to confirm the selected value.
+```
+
+## If the Tools Don't Appear
+
+Check that you're viewing the Vite app in ChatGPT's built-in browser and that **Enable site tools** is on under **Settings → Browser → Permissions**. Open the app as the page itself; ChatGPT doesn't discover tools inside an iframe. See the [current requirements](https://learn.chatgpt.com/docs/webmcp) for supported models and workspaces.
+
+In a browser's console, you can check whether the registration API exists:
+
+```js
+typeof document.modelContext?.registerTool
+```
+
+It should return `"function"` in a browser that supports registration. If it returns `"undefined"`, the console examples still work, but that browser won't receive WebMCP tools from `registerTools`.
+
+## Keep Going
+
+[Permissions](./permissions) shows how to limit the actions an agent can run. [Observe Changes](./observe-changes) keeps it informed when you change the UI. Use the [Reference](./reference) to look up the bridge's options and results.

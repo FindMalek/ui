@@ -1,0 +1,196 @@
+---
+title: Trees
+description: Work with nested data, show open branches, and calculate checked states.
+---
+
+Use these helpers to look up parents and children, find visible rows, and calculate checked states across a tree.
+
+They work with plain data, so you can use them in components, on the server, or in tests.
+
+## A Tree's Shape
+
+### Levels and Places
+
+Give `createTreeCollection` a list of nodes, with parents before children and siblings in display order:
+
+```ts
+import { createTreeCollection } from "@ui-sdk/core"
+
+const outline = createTreeCollection([
+  { key: "basics", parent: null },
+  { key: "setup", parent: "basics" },
+  { key: "hello", parent: "basics" },
+  { key: "extras", parent: null, branch: true },
+])
+
+outline.parent("hello") // "basics".
+outline.level("hello") // 2.
+outline.position("hello") // { index: 2, size: 2 }.
+```
+
+`level` and `position` count from one, matching `aria-level`, `aria-posinset` and `aria-setsize`. A node with children is a branch. Use `branch: true` for an empty folder or children you'll load later.
+
+<ComponentExample
+  name="behaviors/tree-outline"
+  caption="Read the level and position beside each section. Setup and Hello are siblings under Basics; Extras is a branch with no loaded children."
+/>
+
+`outline.size` counts nodes, `has(key)` checks whether one exists, and `isBranch(key)` identifies branches. A node whose parent isn't in the collection is treated as a top-level node.
+
+### Open and Closed Branches
+
+Keep the open branch keys in your own state. `visible` returns the keys whose ancestors are open:
+
+```ts
+outline.visible([]) // ["basics", "extras"].
+outline.visible(["basics"]) // ["basics", "setup", "hello", "extras"].
+```
+
+It reuses the result for the same expanded array. Replace that array when the open branches change.
+
+<ComponentExample
+  name="behaviors/tree-expand"
+  caption="Open lib, then choose date.ts to see its path. Close src to hide its descendants, or use Expand all to reveal every folder."
+/>
+
+Use `children(key)` for immediate children, or `children(null)` for the top level. `descendants(key)` includes everything below a node; `ancestors(key)` returns its path from the outermost parent inward. `keys()` lists the whole collection in tree order.
+
+### Tree Data and File Paths
+
+If your data is already nested, `treeDataNodes` converts it to collection nodes:
+
+```ts
+import { createTreeCollection, treeDataNodes } from "@ui-sdk/core"
+
+const items = [{ value: "src", label: "src", children: [{ value: "index", label: "index.ts" }] }]
+const tree = createTreeCollection(treeDataNodes(items))
+```
+
+Each node keeps the original `item`. An item with `children`, even an empty array, is a branch. Leave `children` out for a leaf.
+
+For file paths, `treeFromPaths` builds the nested data for you:
+
+```ts
+import { treeFromPaths } from "@ui-sdk/core"
+
+const items = treeFromPaths(["src/index.ts", "src/lib/util.ts", "README.md", "assets/"])
+```
+
+<ComponentExample
+  name="behaviors/tree-paths"
+  caption="Edit the paths, one per line. Folders appear before files; add a trailing slash to create an empty folder."
+/>
+
+### Flat Rows
+
+You can render nested data as a flat list. `visibleTreeRows` returns each visible item with its parent, level and row index:
+
+```ts
+import { visibleTreeRows } from "@ui-sdk/core"
+
+const rows = visibleTreeRows(items, ["src"])
+```
+
+`level` starts at one; `index` starts at zero. Use them to indent rows or connect a [virtualized list](./lists#long-lists).
+
+<ComponentExample
+  name="behaviors/tree-flat"
+  caption="Open Guides to reveal its rows. The labels show each row's index and parent; Old setup remains unavailable."
+/>
+
+The helper supplies data. Your renderer decides how to handle it: this demo renders `href` items as links and an unavailable item as a non-interactive row. In a tree component, a disabled item can still receive focus while selection and activation are blocked.
+
+### Data Fields
+
+<TypeTable
+  path="../../packages/core/src/foundation/lists/tree-collection.ts"
+  name="TreeItemData"
+  events={false}
+  examples={{
+    value: "Tree Data and File Paths",
+    label: "Tree Data and File Paths",
+    children: "Tree Data and File Paths",
+    disabled: "Flat Rows",
+    href: "Flat Rows",
+  }}
+/>
+
+## Checkboxes
+
+### Check a Branch
+
+`treeCheckedStates` calculates whether each node is checked, unchecked or mixed. `toggleTreeChecked` returns the next checked value:
+
+```ts
+import { createTreeCollection, toggleTreeChecked, treeCheckedStates } from "@ui-sdk/core"
+
+const tree = createTreeCollection([
+  { key: "fruit", parent: null },
+  { key: "apple", parent: "fruit" },
+  { key: "pear", parent: "fruit" },
+])
+
+const checked = treeCheckedStates(tree, ["apple"])
+checked("fruit") // "indeterminate".
+toggleTreeChecked(tree, ["apple"], "fruit") // ["apple", "pear"].
+```
+
+Calculate the states once for a checked value, then read each node with `checked(key)`. Render `"indeterminate"` as `aria-checked="mixed"`.
+
+<ComponentExample
+  name="core/tree-checkboxes"
+  caption="Check a folder to check its contents. Uncheck one file to make its folder mixed, then change the strategy and compare the value below."
+/>
+
+### Strategies and Locked Items
+
+The strategy controls how the checked value is represented:
+
+| Strategy        | Value                                                                          |
+| --------------- | ------------------------------------------------------------------------------ |
+| `"leaf"`        | Checked leaves. This is the default.                                           |
+| `"trunk"`       | Outermost fully checked nodes, so a checked folder can stand for its contents. |
+| `"branch"`      | Every fully checked node, including branches and leaves.                       |
+| `"independent"` | Each checked node on its own, with no cascading or mixed state.                |
+
+Pass the same strategy when calculating states and toggling a node:
+
+```ts
+const checked = treeCheckedStates(tree, value, "trunk")
+const next = toggleTreeChecked(tree, value, "fruit", { strategy: "trunk" })
+```
+
+For the cascading strategies, a branch in the value stands for its leaves. That lets a value remain meaningful after changing strategies or loading children.
+
+<ComponentExample
+  name="behaviors/tree-check-strategies"
+  caption="Check Photos to select its editable files, then press it again to clear them. Try each strategy; the locked file stays unchecked."
+/>
+
+To lock nodes, pass `checkable`. A refused node keeps its state, and a refused branch protects its descendants:
+
+```ts
+toggleTreeChecked(tree, value, key, {
+  strategy,
+  checkable: (node) => !locked.includes(node),
+})
+```
+
+A folder can remain mixed because of a locked file. Pressing it again unchecks its editable files when those are already checked.
+
+## Nested Parts
+
+Events from a nested item bubble through its parents. Before a parent handles one, check that the closest tree item is its own element:
+
+```ts
+const own = (el: HTMLElement | undefined, event?: Event) =>
+  !el || !(event?.target instanceof Element) || event.target.closest('[role="treeitem"]') === el
+```
+
+Use that check in the item's handlers. For example:
+
+```ts
+press: ({ api, key, el }, event) => own(el, event) && api.press(key, event),
+```
+
+For a virtualized tree, see [rows that aren't rendered](./focus#rows-that-arent-rendered) to move focus to an item as it appears.

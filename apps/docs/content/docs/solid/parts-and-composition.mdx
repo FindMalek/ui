@@ -1,0 +1,84 @@
+---
+title: Parts and Composition
+description: Put a component's parts together and choose what each one renders.
+---
+
+A component can have several parts. A Popover has a root to hold its state, a trigger to open it, and content to show.
+
+## Put Parts Together
+
+Import the parts you need and nest them as shown in the component's Anatomy:
+
+```tsx
+import { Popover, PopoverClose, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/solid/popover"
+
+function Example() {
+  return (
+    <Popover>
+      <PopoverTrigger>Details</PopoverTrigger>
+      <PopoverContent>
+        <PopoverTitle>Project Details</PopoverTitle>
+        <p>Last updated today.</p>
+        <PopoverClose>Done</PopoverClose>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+export { Example }
+```
+
+`Popover` shares state without adding an element. Other roots, such as `Tabs`, do render an element. Parts find their root through the framework's context, so you can put your own components between them.
+
+## Choose the Element
+
+Render a menu item as a link:
+
+```tsx
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "@ui-sdk/solid/menu"
+
+function Example() {
+  return (
+    <Menu>
+      <MenuTrigger>Account</MenuTrigger>
+      <MenuContent>
+        <MenuItem
+          render={(props) => (
+            <a {...props} href="/settings">
+              Settings
+            </a>
+          )}
+        />
+      </MenuContent>
+    </Menu>
+  )
+}
+
+export { Example }
+```
+
+`render` receives the part's props and state, and returns your element, like `render={(props, state) => <a {...props} href="/settings">Settings</a>}`. A component works too. Forward the supplied props to keep the part's behavior connected.
+
+Your event handler runs first, written as a function or as Solid's bound form, `[handler, data]`. Calling `event.preventDefault()` skips the built-in handler. Keep the supplied roles, IDs, and ARIA state when rendering your own element.
+
+## Read the State
+
+The part can pass its state to its content:
+
+```tsx
+import { Toggle } from "@ui-sdk/solid/toggle"
+
+function Example() {
+  return <Toggle aria-label="Mute">{(state) => (state.pressed ? "Mute on" : "Mute off")}</Toggle>
+}
+
+export { Example }
+```
+
+Keep the accessible name stable when the content changes. Here, `aria-label="Mute"` names the toggle and `aria-pressed` reports its state.
+
+## Name the Control
+
+Use the component's label or title part, such as `FieldLabel` or `DialogTitle`. Give controls without visible text an `aria-label`.
+
+[Custom Parts](./custom-parts) covers writing a part with logic of its own.

@@ -1,0 +1,207 @@
+---
+title: Styling and Animation
+description: Style parts and their state, then add entry and exit transitions.
+---
+
+Parts render without styles. The component demos use Tailwind CSS, but the same state attributes and CSS variables work with any stylesheet.
+
+## Style a Part
+
+Every part has a `data-slot` attribute. State adds attributes such as `data-open`, `data-pressed`, or `data-disabled`:
+
+```tsx
+import { Toggle } from "@ui-sdk/react/toggle"
+
+function Example() {
+  return (
+    <Toggle className="cursor-default rounded-2xl border border-input px-2.5 py-1.5 text-sm data-pressed:bg-muted data-disabled:opacity-50">
+      Bold
+    </Toggle>
+  )
+}
+
+export { Example }
+```
+
+Most state attributes are present or absent. Others have values, such as `data-side="top"` or `data-orientation="vertical"`. Each component's Styling section lists its attributes and CSS variables. Use these rather than generated IDs, which can change.
+
+## CSS Modules
+
+Import a CSS Module and pass its class to the part. State selectors work the same way:
+
+```tsx
+import { Toggle } from "@ui-sdk/react/toggle"
+import styles from "./toggle.module.css"
+
+function Example() {
+  return <Toggle className={styles.toggle}>Bold</Toggle>
+}
+
+export { Example }
+```
+
+```css title="toggle.module.css"
+.toggle {
+  cursor: default;
+  border: 1px solid var(--input, #e5e5e5);
+  border-radius: 1.125rem;
+  background: transparent;
+  padding: 0.375rem 0.625rem;
+  color: inherit;
+  font: inherit;
+  font-size: 0.875rem;
+}
+
+.toggle[data-pressed] {
+  background: var(--muted, #f5f5f5);
+}
+
+.toggle[data-disabled] {
+  opacity: 0.5;
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--ring, #a3a3a3);
+  outline-offset: 2px;
+}
+```
+
+## Example Theme
+
+The component demos use a shared neutral theme. With Tailwind CSS 4 configured, add these variables to your app's global stylesheet. They provide classes such as `bg-primary`, `text-muted-foreground`, and `ring-ring`:
+
+```css title="app.css"
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --animate-caret-blink: caret-blink 1.25s ease-out infinite;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@keyframes caret-blink {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  50% {
+    opacity: 0;
+  }
+}
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+```
+
+Import the stylesheet once from your app's entry file. In Next.js, import it from the root layout. Add `class="dark"` to `<html>` to use the dark values.
+
+For a stylesheet without Tailwind, use the `:root`, `.dark`, and `body` rules directly and omit the Tailwind directives.
+
+## Use State in React
+
+`className` and `style` can be functions of the part's state:
+
+```tsx
+"use client"
+
+import { Toggle } from "@ui-sdk/react/toggle"
+
+function Example() {
+  return <Toggle className={(state) => (state.pressed ? "font-bold" : "font-normal")}>Bold</Toggle>
+}
+
+export { Example }
+```
+
+With Tailwind, you can also use attribute variants, such as `data-pressed:font-bold`.
+
+## Animate Opening and Closing
+
+Popup content gets `data-starting-style` before it enters and `data-ending-style` while it exits. The content stays mounted until its exit transition or animation finishes.
+
+```tsx
+import { Popover, PopoverContent, PopoverTrigger } from "@ui-sdk/react/popover"
+
+function Example() {
+  return (
+    <Popover>
+      <PopoverTrigger>Details</PopoverTrigger>
+      <PopoverContent
+        aria-label="Project details"
+        className="origin-(--transform-origin) transition-[opacity,scale] duration-150 data-starting-style:scale-96 data-starting-style:opacity-0 data-ending-style:scale-96 data-ending-style:opacity-0 motion-reduce:transition-none"
+      >
+        Last updated today.
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+export { Example }
+```
+
+Put exit styles on `data-ending-style`. `data-closed` describes the state, but doesn't keep the element around for an exit.
+
+Popups also provide `--anchor-width` and `--available-height` for sizing. If an animation library needs closed content to stay mounted, use `keepMounted`. See [Popups](./popups) for placement and mounting options.

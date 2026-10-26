@@ -1,0 +1,90 @@
+---
+title: State and Events
+description: Set an initial value, control it, and respond to changes.
+---
+
+Components manage their own state unless you pass a controlled value. A change callback lets you respond in either case.
+
+## Set the Starting Value
+
+Use a default prop to choose the starting state. Here, Bold starts pressed and changes when you click it:
+
+```vue
+<script setup lang="ts">
+import { Toggle } from "@ui-sdk/vue/toggle"
+</script>
+
+<template>
+  <Toggle default-pressed>Bold</Toggle>
+</template>
+```
+
+The prop depends on the component: `defaultPressed`, `defaultChecked`, `defaultOpen`, or `defaultValue`.
+
+## Control the Value
+
+Use `v-model` when the parent needs the current value:
+
+```vue
+<script setup lang="ts">
+import { Toggle } from "@ui-sdk/vue/toggle"
+import { ref } from "vue"
+
+const pressed = ref(false)
+</script>
+
+<template>
+  <Toggle v-model="pressed">Bold</Toggle>
+  <output>{{ pressed ? "On" : "Off" }}</output>
+</template>
+```
+
+`v-model` keeps the toggle’s `pressed` value in your ref. `v-model:pressed` works here too. Clicking Bold changes both the button and the output.
+
+The main value depends on the component: `checked` for Checkbox, `open` for Popover, and `value` for Select. Name another binding when you need it, such as `v-model:open` on Select or `v-model:query` on Combobox.
+
+If you pass `:pressed` without `v-model`, update that value yourself in `@pressed-change`. A value the parent never updates stays fixed.
+
+## Respond to a Change
+
+Events such as `@pressed-change` receive the requested value and `details`. They run before `v-model` updates.
+
+| Detail     | What It Tells You                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------ |
+| `reason`   | What requested the change, such as `press` or `outside-press`. Each component lists its reasons. |
+| `event`    | The DOM event, when there is one.                                                                |
+| `source`   | `keyboard`, `mouse`, `touch`, `pen`, `virtual`, `programmatic`, or `agent`.                      |
+| `cancel()` | Stops the requested change.                                                                      |
+
+For example, keep a popover open when someone clicks outside it:
+
+```vue
+<script setup lang="ts">
+import { Popover, PopoverClose, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/vue/popover"
+
+function keepOpen(open: boolean, details: { reason: string; cancel: () => void }) {
+  if (!open && details.reason === "outside-press") {
+    details.cancel()
+  }
+}
+</script>
+
+<template>
+  <Popover @open-change="keepOpen">
+    <PopoverTrigger>Details</PopoverTrigger>
+    <PopoverContent>
+      <PopoverTitle>Project Details</PopoverTitle>
+      <p>Last updated today.</p>
+      <PopoverClose>Done</PopoverClose>
+    </PopoverContent>
+  </Popover>
+</template>
+```
+
+The Done button still closes it. Cancellation also works when you control the value. Add `debug` to a root to log changes while you work.
+
+## Empty and Multiple Values
+
+Select, Tabs, and Radio Group report `null` when nothing is selected. A multiple Select or Combobox uses an array. Accordion and Toggle Group always use arrays.
+
+To change a component from outside its parts, use a [Controller](./controllers).

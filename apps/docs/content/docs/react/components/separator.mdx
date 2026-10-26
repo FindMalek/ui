@@ -1,0 +1,101 @@
+---
+title: Separator
+description: Divide groups of content with a horizontal or vertical line.
+---
+
+<ComponentExample
+  name="separator/basic"
+  caption="Read through the account details with a screen reader. It announces the separator between the two groups."
+/>
+
+## Installation
+
+```bash
+pnpm add @ui-sdk/react @ui-sdk/core
+```
+
+The examples use the [shared example theme](../styling-and-animation#example-theme).
+
+## Usage
+
+A separator marks a boundary between groups of content. Give it a size and a background:
+
+```tsx
+import { Separator } from "@ui-sdk/react/separator"
+
+function Account() {
+  return (
+    <section>
+      <h2>Account</h2>
+      <Separator className="h-px bg-border" />
+      <p>Manage your profile and preferences.</p>
+    </section>
+  )
+}
+
+export { Account }
+```
+
+<span id="anatomy" />
+
+It renders with `role="separator"` and `aria-orientation="horizontal"` by default. It does not receive focus or resize the content around it.
+
+## Examples
+
+### Vertical
+
+Set `orientation="vertical"` for a line between items in a row. Give the row a height and let the separator stretch to fill it.
+
+<ComponentExample
+  name="separator/vertical"
+  caption="Read across Profile, Billing, and Settings. A screen reader announces the vertical separators between them."
+/>
+
+<span id="behavior-and-options" />
+
+### Decorative
+
+Set `decorative` when the line adds no information. Here, the word “or” already describes the division, so a screen reader skips the lines.
+
+<ComponentExample
+  name="separator/decorative"
+  caption="Read through “or” with a screen reader. The decorative lines are skipped."
+/>
+
+A decorative separator gets `role="none"` and no `aria-orientation`. It still has `data-orientation` for styling.
+
+## Styling
+
+Use `data-orientation` to give horizontal lines a height and vertical lines a width. The Code tab shows both approaches in full.
+
+<span id="menu" />
+<span id="list" />
+<span id="right-to-left" />
+
+Use the same separator between menu groups or list sections. Right-to-left layouts use the surrounding element's `dir`; the separator needs no additional options.
+
+<DataAttributes component="separator" />
+
+## Custom Rendering
+
+See [Parts and Composition](../parts-and-composition) to use a different element, such as an `hr`.
+
+## API Reference
+
+Props are the same as below, as React props.
+
+### Separator
+
+<TypeTable path="../../packages/core/src/components/separator/separator.ts" name="SeparatorOptions" />
+
+### State
+
+What render functions, state-based class names and styles receive.
+
+<StateTable path="../../packages/core/src/components/separator/separator.ts" name="SeparatorState" />
+
+## Accessibility
+
+The component follows the [WAI-ARIA separator role](https://www.w3.org/TR/wai-aria-1.2/#separator). It is a static separator, so Tab moves past it. Use `decorative` only when the surrounding content already conveys the division.
+
+<SpecList spec="separator" />

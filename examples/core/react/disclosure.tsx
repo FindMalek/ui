@@ -1,0 +1,80 @@
+import * as React from "react"
+import { createChange, definePrimitive, type ChangeDetails } from "@ui-sdk/core"
+import { createParts } from "@ui-sdk/react/primitive"
+
+type DisclosureOptions = {
+  open?: boolean
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean, details: ChangeDetails<"trigger-press">) => void
+}
+
+type DisclosureState = { open: boolean }
+
+const disclosure = definePrimitive({
+  name: "disclosure",
+  options: { open: "boolean", defaultOpen: "boolean", onOpenChange: "callback" },
+  state: (options: DisclosureOptions): DisclosureState => ({
+    open: options.open ?? options.defaultOpen ?? false,
+  }),
+  sync: (options) => (options.open === undefined ? {} : { open: options.open }),
+  api: (context) => {
+    const change = createChange(context)
+    return {
+      toggle: (event?: Event) =>
+        change("open", !context.store.get().open, { reason: "trigger-press", event }),
+    }
+  },
+  slots: (slot) => ({
+    root: slot({}),
+    trigger: slot({
+      attrs: (state, { id }) => ({
+        type: "button",
+        "aria-expanded": String(state.open),
+        "aria-controls": `${id}-panel`,
+      }),
+      press: ({ api }, event) => api.toggle(event),
+    }),
+    panel: slot({
+      present: (state) => state.open,
+      attrs: (_state, { id }) => ({ id: `${id}-panel` }),
+    }),
+  }),
+})
+
+const parts = createParts(disclosure, { root: "div", trigger: "button", panel: "div" })
+
+const Disclosure = parts.Root
+
+const DisclosureTrigger = parts.Trigger
+
+const DisclosurePanel = parts.Panel
+
+function Example() {
+  const [open, setOpen] = React.useState(false)
+  return (
+    <div className="flex w-72 flex-col gap-3 text-sm">
+      <label className="flex items-center gap-2">
+        <input type="checkbox" checked={open} onChange={(event) => setOpen(event.target.checked)} />
+        Open from outside
+      </label>
+      <Disclosure open={open} onOpenChange={setOpen} className="rounded-xl border border-border">
+        <DisclosureTrigger className="w-full px-3 py-2 text-left font-medium outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+          Shipping details
+        </DisclosureTrigger>
+        <DisclosurePanel className="px-3 pb-3 text-muted-foreground">
+          Ships in two days, free over $50.
+        </DisclosurePanel>
+      </Disclosure>
+    </div>
+  )
+}
+
+export {
+  disclosure,
+  Disclosure,
+  DisclosurePanel,
+  DisclosureTrigger,
+  Example,
+  type DisclosureOptions,
+  type DisclosureState,
+}

@@ -1,0 +1,129 @@
+---
+title: Permissions
+description: Choose what an agent can change, what it can see, and when to ask the person.
+---
+
+Use `allow` to choose which actions an agent can run. Use a component's change callback to reject a value before it's applied. These checks also apply when the agent uses [WebMCP](./webmcp).
+
+The examples below use the **Region** Select from the [Guide](./guide).
+
+## Choose the Actions
+
+Without an `allow` callback, the bridge accepts supported actions. Add one to the `createAgent` call in `src/agent.ts` to let the agent change only Region:
+
+```ts
+import { createAgent } from "@ui-sdk/react/agent"
+
+const agent = createAgent({
+  allow: ({ component, label, action }) =>
+    component === "select" && label === "Region" && action === "setValue",
+})
+```
+
+Return `true` to let an action run or `false` to refuse it. On a refusal, `act` returns `ok: false` and stops. Any earlier steps stay applied.
+
+The callback also receives `ref` and `args`. If the agent asks for an item by label, the bridge resolves it to a value first. For example, `"North America"` becomes `"north-america"`. A list whose items show only while it's open has to open to resolve a label, so the callback is asked first with the label, before it opens, and then with the value.
+
+The callback runs before the step changes anything. A `press` that opens a closed menu or dialog to find its button asks before it opens, and closes it again when the answer is no.
+
+## Ask First
+
+To ask the person before changing Region, return their answer from `allow`:
+
+```ts
+import { createAgent } from "@ui-sdk/react/agent"
+
+const agent = createAgent({
+  allow: ({ component, label, action, args }) => {
+    if (component !== "select" || label !== "Region" || action !== "setValue") {
+      return false
+    }
+
+    return window.confirm(`Change Region to ${args[0]}?`)
+  },
+})
+```
+
+Try changing Region through the console or ChatGPT again. **OK** allows the change; **Cancel** refuses it.
+
+For your own confirmation UI, return a `Promise<boolean>` that resolves with the person's answer. The bridge waits before running the action. Later `act` and `query` calls on the same bridge wait too. If nobody answers within 5 minutes, the step fails and the `signal` passed to `allow` aborts, so you can close your prompt. Set `timeout` on `createAgent` to change the wait.
+
+## Mark What Needs a Person
+
+Some controls should always wait for the person, whatever your `allow` rules say. Add `data-agent-confirm` with a sentence that says what the control does:
+
+```tsx
+<Button data-agent-confirm="Charges $20 to your card for 1,000 credits" onClick={buyCredits}>
+  Buy credits
+</Button>
+```
+
+The snapshot lists the button with `confirm: "Charges $20 to your card for 1,000 credits"`, so the agent knows before it tries. Without an `allow` callback, pressing it fails with:
+
+```text
+Needs a person: "Charges $20 to your card for 1,000 credits". Ask them to press "Buy credits" themselves.
+```
+
+With `allow`, the step waits for your callback, and `step.confirm` carries the sentence. Show it to the person and return their answer:
+
+```ts
+const agent = createAgent({
+  allow: (step, { signal }) => (step.confirm ? showConfirm(step.confirm, { signal }) : true),
+})
+```
+
+If the person says no, the step fails with `The person said no to "…"`.
+
+The mark covers its element and everything inside it, for any action. Put it on a form or section to cover every control in it, or on a dialog's content to cover the buttons inside, wherever the dialog renders.
+
+## Keep Parts of the Page from the Agent
+
+Two more marks change what the agent sees:
+
+| Attribute           | What the Agent Gets                                                                                                     |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `data-agent-hidden` | Nothing. Components inside are left out of `snapshot` and `query`, and a step that names one is told to ask the person. |
+| `data-agent-secret` | The component, with its value shown as `"[redacted]"` once it's filled. The agent can still type into it.               |
+
+```tsx
+<section data-agent-hidden>
+  <RecoveryCodes />
+</section>
+
+<Field data-agent-secret>
+  <FieldLabel>Tax ID</FieldLabel>
+  <Input />
+</Field>
+```
+
+Changes inside `data-agent-hidden` still reach [Observe](./observe-changes), so your own logs see them, while `agent.subscribe` stays quiet. A secret value stays out of `snapshot`, `act` results and change events, and the field's error text reads `"[redacted]"` too. Password, card and one-time-code fields are treated as secret without a mark.
+
+In development, a misspelled mark such as `data-agent-confim` logs a warning with the name it meant.
+
+## Cancel a Value Change
+
+An agent's changes reach the same callbacks as a person's changes. Check `details.source` to tell them apart, and call `details.cancel()` to keep the current value.
+
+For example, add this prop to the Select in `src/App.tsx` to refuse an agent's request to choose Asia Pacific:
+
+```tsx
+onValueChange={(value, details) => {
+  if (details.source === "agent" && value === "asia-pacific") {
+    details.cancel()
+  }
+}}
+```
+
+You can still choose Asia Pacific yourself. To apply the rule to every change, remove the `details.source === "agent"` check.
+
+Canceling a value change can leave `act` with `ok: true` and no change for that step. Check each step's `changes` and the returned `values` to confirm what happened.
+
+Put value checks in these change callbacks. Actions such as `setValue` call the component's API directly, so checks in keyboard or pointer handlers won't run.
+
+## What `allow` Covers
+
+`allow` checks actions. Components and their actions remain visible in `snapshot()`, and the agent can still read choices with `query()`. Use `data-agent-hidden` to keep a region out of view.
+
+Finding a component or its choices can open a section or popup before the requested action is checked. `query()` may also briefly open a popup to read its choices. Use the component's `onOpenChange` or equivalent callback if you need to reject those changes too.
+
+The [Reference](./reference) lists the fields passed to `allow` and the results returned by `act`.

@@ -1,0 +1,19 @@
+{
+  "name": "tests",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./fixtures/*": "./fixtures/*"
+  },
+  "scripts": {
+    "test": "playwright test",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@guidepup/virtual-screen-reader": "^0.33.0",
+    "@playwright/test": "catalog:",
+    "@types/node": "^24.0.0",
+    "typescript": "catalog:"
+  }
+}

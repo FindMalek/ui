@@ -1,0 +1,705 @@
+// Combobox's state and API: opening and closing, the text and how it filters,
+// choosing and removing items, the create option, and what the form asks of it.
+import { type AsyncOptionsStatus } from "../../foundation/lists/async-options"
+import type {
+  ComboboxChangeOptions,
+  ComboboxContentProps,
+  ComboboxCreateProps,
+  ComboboxOpenChangeReason,
+  ComboboxOptions,
+  ComboboxQueryChangeReason,
+  ComboboxValueChangeReason,
+} from "./combobox"
+import { createComboboxKeyboard } from "./combobox-keyboard"
+import { modalityOf, restoreFocus, trackModality } from "../../foundation/kernel/modality"
+import { deriveOpen, type PopupOpener } from "../../foundation/popups/popup"
+import { createPopup, type PopupState } from "../../foundation/popups/create-popup"
+import { comboboxPreset } from "../../foundation/popups/popup-presets"
+import { normalize } from "../../foundation/text/typeahead"
+import { dispatchChange, formInternals } from "../../foundation/forms/form"
+import {
+  createListbox,
+  flattenData,
+  itemKey,
+  type ListData,
+  type ListEntry,
+} from "../../foundation/lists/listbox"
+import { keepListing, noListing, type Listing } from "../../foundation/lists/listbox-listing"
+import { isDisabled } from "../../foundation/lists/listbox-parts"
+import {
+  announceResults,
+  createLoadMore,
+  describeList,
+  type ListAnnouncement,
+  matchMode,
+  opensIntoList,
+} from "../../foundation/lists/listbox-search"
+import { announce } from "../../foundation/platform/announce"
+import { isSelectAll, optionId } from "../../foundation/lists/listbox-keys"
+import { isPromise } from "../../foundation/kernel/action"
+import type { PrimitiveContext } from "../../foundation/kernel/primitive-types"
+import { type ItemIcons } from "../../foundation/lists/item-icon"
+import { createValueSelection, listOf } from "../../foundation/lists/listbox-value"
+import { createChange } from "../../foundation/kernel/input-source"
+import { elements } from "../../foundation/kernel/elements"
+
+// The create option's key in the highlight. Never a real item's.
+const CREATE = "\u0000create"
+
+type ComboboxState = PopupState & {
+  value: unknown
+  initial: unknown
+  highlighted: string | null
+  query: string
+  // Typed since the last choice, so the list filters. A single combobox shows
+  // its value's label without filtering until the user types.
+  dirty: boolean
+  status: AsyncOptionsStatus
+  listed: boolean
+  labeled: boolean
+  // An input sits outside the content, so a trigger beside it can leave the tab order.
+  inlineInput: boolean
+  multiple: boolean
+  maxSelected: number | undefined
+  disabled: boolean
+  readOnly: boolean
+  required: boolean
+  name: string | undefined
+  form: string | undefined
+  formDisabled: boolean
+  items: ListData<unknown> | undefined
+  // A create option's Promise is running, or failed.
+  pending: boolean
+  error: unknown
+  labels: number
+  // Counts icons learned from items, so the value's icon shows once its item's icon is known.
+  icons: number
+  // Counts items mounting, so parts that depend on the list update.
+  mounts: number
+  // The content has bound and its items have registered, so an empty list is really empty.
+  settled: boolean
+  // How the list presents while open, decided as it opens.
+  presentation: "popover" | "sheet"
+  // The list is in the page, hidden, so composed items tell the value its label.
+  prepared: boolean
+  // Real focus moved into the list for a touch screen reader, instead of aria-activedescendant.
+  focusInList: boolean
+  // The groups whose label is in the page, so only those are named by it.
+  groupLabels: readonly string[]
+  // How many chips fit before the rest collapse into an overflow part, or null for all.
+  visibleChips: number | null
+  // What each item shows from the list as a whole: whether it matches, and
+  // whether it's selected or a full selection blocks it.
+  listing: Listing
+}
+
+// The parts that make up the control around the list. Presses on them don't
+// dismiss it, and focus moving among them doesn't close it.
+const controlSlots = ["input", "chips", "trigger", "clear", "label"]
+
+// The text a single combobox starts with: its value's label, which shows on
+// the server too, from `itemToLabel` or the data.
+function initialQuery(options: ComboboxOptions<any, any>, value: unknown) {
+  const first = listOf(value)[0]
+  if (first === undefined || options.multiple) return ""
+  const toKey = (item: unknown) => itemKey(item, options.itemToValue)
+  const key = toKey(first)
+  return (
+    options.itemToLabel?.(first) ??
+    (options.items && flattenData(options.items, toKey).find((entry) => entry.key === key)?.label) ??
+    (typeof first === "string" ? first : key)
+  )
+}
+
+function initialComboboxState(options: ComboboxOptions<any, any>): ComboboxState {
+  const empty = () => (options.multiple ? [] : null)
+  const value = options.value !== undefined ? options.value : (options.defaultValue ?? empty())
+  return {
+    open: options.defaultOpen ?? false,
+    mounted: options.open ?? options.defaultOpen ?? false,
+    value,
+    initial: options.defaultValue ?? empty(),
+    highlighted: null,
+    trigger: null,
+    query: options.query ?? options.defaultQuery ?? initialQuery(options, value),
+    dirty: false,
+    status: options.status ?? "idle",
+    listed: false,
+    labeled: false,
+    inlineInput: false,
+    multiple: !!options.multiple,
+    maxSelected: options.maxSelected,
+    disabled: !!options.disabled,
+    readOnly: !!options.readOnly,
+    required: !!options.required,
+    name: options.name,
+    form: options.form,
+    formDisabled: false,
+    items: options.items,
+    pending: false,
+    error: undefined,
+    labels: 0,
+    icons: 0,
+    mounts: 0,
+    settled: false,
+    presentation: "popover",
+    prepared: false,
+    focusInList: false,
+    groupLabels: [],
+    visibleChips: null,
+    listing: noListing,
+    payload: undefined,
+    titled: false,
+    described: false,
+    modal: false,
+  }
+}
+
+function syncComboboxState(options: ComboboxOptions<any, any>) {
+  return {
+    multiple: !!options.multiple,
+    maxSelected: options.maxSelected,
+    disabled: !!options.disabled,
+    readOnly: !!options.readOnly,
+    required: !!options.required,
+    name: options.name,
+    form: options.form,
+    status: options.status ?? "idle",
+    items: options.items,
+    ...(options.defaultValue === undefined ? {} : { initial: options.defaultValue }),
+    ...(options.open === undefined ? {} : { open: options.open }),
+    ...(options.value === undefined ? {} : { value: options.value }),
+    ...(options.query === undefined ? {} : { query: options.query }),
+  }
+}
+
+// Says that a value was removed, like a chip, which leaves the screen with no other trace.
+function announceRemoved(
+  label: string,
+  announcement: ((change: ListAnnouncement) => string | null | undefined) | undefined,
+) {
+  const message = (announcement ?? describeList)({ type: "removed", label })
+  if (message) announce(message)
+}
+
+function comboboxApi(context: PrimitiveContext<ComboboxOptions<any, any>, ComboboxState, string>) {
+  const { id, store, options, element } = context
+  // A controlled close clears the highlight in the same pass.
+  deriveOpen(context, ["highlighted", "focusInList"], (open) =>
+    open ? undefined : { highlighted: null, focusInList: false },
+  )
+  const change = createChange(context)
+  let mountsQueued = false
+  let openedBy: PopupOpener = "imperative"
+  // A choice is setting the value, and sets the text itself with its own reason.
+  let committing = false
+  // The highlight to place once the list has mounted, after an arrow key opened it.
+  let pendingHighlight: "first" | "last" | null = null
+
+  const toKey = (value: unknown) => itemKey(value, options().itemToValue)
+  const inputElement = () => element("input")
+  const anchorElement = () => element("chips") ?? element("input")
+  const contentElement = () => popup.element() ?? element("content")
+  const editable = () => {
+    const state = store.get()
+    return !isDisabled(state) && !state.readOnly
+  }
+
+  const maxReached = () => {
+    const { multiple, maxSelected } = store.get()
+    return multiple && maxSelected !== undefined && selection.values().length >= maxSelected
+  }
+
+  // The text the list filters by. A single combobox showing its value's label
+  // shows every item until the user types.
+  const filterQuery = () => {
+    const { query, dirty, multiple } = store.get()
+    return multiple || dirty ? query : ""
+  }
+
+  const loadMore = createLoadMore({
+    count: () => listbox.count(),
+    status: () => store.get().status,
+    onLoadMore: () => options().onLoadMore,
+  })
+
+  const listbox = createListbox({
+    store,
+    focus: () => (store.get().focusInList ? "real" : "virtual"),
+    items: () => store.get().items,
+    emptyItems: () => options().emptyItems,
+    // While the input is empty, not while it shows the value's label.
+    showEmpty: () => !store.get().query.trim(),
+    toKey,
+    filter: () => options().filter ?? "contains",
+    query: filterQuery,
+    loop: () => options().loop ?? true,
+    active: () => store.get().open,
+    blocked: (entry) => !entry.pinned && maxReached() && !selection.isSelected(entry.key, entry.value),
+    onHighlight: (key, index, event) =>
+      options().onHighlight?.(
+        key === null || key.startsWith("\u0000") ? null : (listbox.valueOf(key) ?? null),
+        {
+          index,
+          event,
+        },
+      ),
+    onLastReached: loadMore.reached,
+    container: () => element("list") ?? contentElement(),
+    // Parts that depend on the list, like the empty message, groups and
+    // aria-activedescendant, update once per batch of items mounting.
+    onRegister() {
+      if (mountsQueued) return
+      mountsQueued = true
+      queueMicrotask(() => {
+        mountsQueued = false
+        store.set({ mounts: store.get().mounts + 1 })
+      })
+    },
+  })
+  const selection = createValueSelection({ store, options, listbox, toKey })
+  keepListing(store, listbox, {
+    entry: (key, value) => (selection.isSelected(key, value) ? "s" : maxReached() ? "f" : ""),
+    inputs: () => [store.get().value, store.get().multiple, store.get().maxSelected],
+  })
+  // What the features the parts register add, like select-all to choosing.
+  // Item icons are one: their part creates the icons when it first renders.
+  const hooks: { choose?: (key: string, event?: Event) => void; icons?: ItemIcons } = {}
+
+  function ownsElement(target: Node) {
+    return controlSlots.some((slot) => elements(context, slot).some(({ el }) => el.contains(target)))
+  }
+
+  const kit = createPopup(context, {
+    preset: comboboxPreset,
+    rules: () => ({
+      trigger: anchorElement,
+      // Focus is in the input already.
+      returnFocus: false,
+      contains: (target) => ownsElement(target),
+      onOpenChange(open, closed) {
+        if (open) return
+        pendingHighlight = null
+        store.set({ highlighted: null, focusInList: false })
+        if (closed) revertQuery(closed.reason as ComboboxOpenChangeReason)
+      },
+      onShow() {
+        const el = element("content")
+        if (el) return trackModality(el, modalityOf(openedBy), () => [inputElement()])
+      },
+      open({ event, by }, open) {
+        if (!editable()) return
+        // A touch open never focuses the popup, so the on-screen keyboard stays,
+        // unless it opens a sheet, which takes focus so the keyboard stays closed.
+        openedBy = by === "touch" && presentation.resolve() !== "sheet" ? "pointer" : (by ?? "imperative")
+        // A touch screen reader's tap on a trigger moves real focus into the list,
+        // since it ignores aria-activedescendant. A tap on the input is for typing.
+        store.set({ focusInList: opensIntoList(event) && event?.target !== inputElement() })
+        open(openedBy)
+      },
+      // Unless it left, or a screen reader moved it into the list, which hands it back to the input.
+      close(_, close) {
+        const inList = store.get().focusInList && !!contentElement()?.contains(document.activeElement)
+        close()
+        const input = inputElement()
+        if (inList && input && !store.get().open) restoreFocus(input)
+      },
+    }),
+  })
+  const { control, popup } = kit.internal
+  const presentation = kit.internal.presentation
+  const { show, hide } = control
+
+  function setQuery(
+    query: string,
+    {
+      reason = "imperative",
+      event,
+      dirty = false,
+    }: { reason?: ComboboxQueryChangeReason; event?: Event; dirty?: boolean } = {},
+  ) {
+    store.set({ dirty })
+    change("query", query, { reason, event })
+  }
+
+  // Sets the value for a choice. The caller sets the text, so the value
+  // subscriber below doesn't put the label in with `imperative`.
+  function commit(value: unknown, reason: ComboboxValueChangeReason, event?: Event) {
+    committing = true
+    try {
+      setValue(value, { reason, event })
+    } finally {
+      committing = false
+    }
+  }
+
+  // Text nobody chose becomes the value, with `allowCustomValue`.
+  function commitCustom(reason: ComboboxQueryChangeReason, event?: Event) {
+    const query = store.get().query.trim()
+    if (!query) return false
+    listbox.remember(toKey(query), query, query)
+    if (store.get().multiple) {
+      if (!selection.isSelected(toKey(query), query) && !maxReached())
+        setValue([...selection.values(), query], { reason: "input-change", event })
+      if (!options().keepQuery) setQuery("", { reason, event })
+      return true
+    }
+    commit(query, "input-change", event)
+    store.set({ dirty: false })
+    return true
+  }
+
+  // Closing with text nobody chose puts the input back: the value's label, or
+  // nothing. With `allowCustomValue`, a single combobox keeps the text as its value.
+  function revertQuery(reason: ComboboxOpenChangeReason) {
+    const { dirty, multiple } = store.get()
+    if (!multiple && dirty && options().allowCustomValue && commitCustom(reason)) return
+    if (multiple) {
+      if (!options().keepQuery && store.get().query) setQuery("", { reason })
+      return
+    }
+    if (!dirty) return
+    const value = selection.values()[0]
+    setQuery(value === undefined ? "" : selection.labelOf(value), { reason })
+  }
+
+  // The element that takes part in the form: the custom element, or the hidden input.
+  const formElement = () => {
+    const root = element("root")
+    if (formInternals(root)) return root
+    return element("form-input")
+  }
+
+  function setValue(
+    value: unknown,
+    { reason = "imperative", event }: { reason?: ComboboxValueChangeReason; event?: Event } = {},
+  ) {
+    const state = store.get()
+    if (isDisabled(state) || (state.readOnly && reason !== "reset")) return false
+    const done = change("value", value, { reason, event })
+    if (done && reason !== "reset" && reason !== "restore") dispatchChange(formElement())
+    return done
+  }
+
+  // After the highlight's item leaves the list, like while filtering, nothing or the first is highlighted.
+  function settleHighlight() {
+    const list = listbox.entries()
+    const current = store.get().highlighted
+    if (options().autoHighlight && store.get().query) {
+      // An item before a select-all option, which typing doesn't look for.
+      const first = list.find((entry) => !isSelectAll(entry.key))
+      if (first && current !== first.key) listbox.highlight(first.key)
+      return
+    }
+    if (current !== null && !list.some((entry) => entry.key === current)) listbox.highlight(null)
+  }
+
+  function choose(key: string, event?: Event) {
+    if (key === CREATE) return create(event)
+    if (isSelectAll(key)) {
+      if (editable()) hooks.choose?.(key, event)
+      return
+    }
+    const entry = listbox.find(key)
+    const state = store.get()
+    if (!entry || listbox.disabled(entry) || !editable()) return
+    listbox.remember(key, entry.label, entry.value)
+    if (state.multiple) {
+      setValue(selection.toggled(key, entry.value), { reason: "item-press", event })
+      if (!options().keepQuery && state.query) setQuery("", { reason: "item-press", event })
+      else store.set({ dirty: false })
+      return
+    }
+    commit(entry.value, "item-press", event)
+    setQuery(entry.label, { reason: "item-press", event })
+    hide({ reason: "item-press", event })
+  }
+
+  function remove(value: unknown, event?: Event) {
+    if (!editable()) return
+    // A chip leaves no trace on screen, so screen readers hear it went.
+    if (setValue(selection.without(toKey(value)), { reason: "remove-press", event }))
+      announceRemoved(selection.labelOf(value), options().announcement)
+  }
+
+  // The item among `candidates` whose label is the text, ignoring case and accents.
+  function itemLabelled(query: string, candidates: ListEntry[]) {
+    const needle = normalize(query)
+    return candidates.find((entry) => !entry.pinned && normalize(entry.label) === needle)
+  }
+
+  function createProps() {
+    return (elements(context, "create")[0]?.props ?? context.props("create") ?? {}) as ComboboxCreateProps
+  }
+
+  // Whether the create option shows: there's text enough, the user typed it,
+  // and no item's label is exactly it, among all data items or the composed ones that match.
+  function createShown(state: ComboboxState, props: ComboboxCreateProps) {
+    const query = state.query.trim()
+    if (isDisabled(state) || state.readOnly) return false
+    if (query.length < Math.max(1, props.minLength ?? 1)) return false
+    if (!state.multiple && !state.dirty) return false
+    return !itemLabelled(query, listbox.dataItems() ?? listbox.entries())
+  }
+
+  function create(event?: Event) {
+    const state = store.get()
+    if (state.pending) return
+    const props = createProps()
+    if (!createShown(state, props)) return
+    const result = props.onCreate?.(state.query.trim())
+    const done = () => {
+      if (!store.get().multiple) hide({ reason: "item-press", event })
+      else if (!options().keepQuery) setQuery("", { reason: "item-press", event })
+    }
+    if (!isPromise(result)) {
+      store.set({ error: undefined })
+      return done()
+    }
+    store.set({ pending: true, error: undefined })
+    result.then(
+      () => {
+        store.set({ pending: false })
+        done()
+      },
+      (error) => store.set({ pending: false, error }),
+    )
+  }
+
+  // The user typed: the text filters, the list opens, and an emptied single combobox selects nothing.
+  function typed(text: string, event?: Event) {
+    const state = store.get()
+    if (!editable()) return
+    setQuery(text, { reason: "input-change", event, dirty: true })
+    if (!state.multiple && text === "" && selection.values().length)
+      setValue(null, { reason: "input-change", event })
+    if (!store.get().open) {
+      // Items that mount with the list get the first highlight once they have.
+      if (options().autoHighlight && text) pendingHighlight = "first"
+      show({ event, by: "keyboard", reason: "input-change" })
+    }
+    settleHighlight()
+  }
+
+  const keyboard = createComboboxKeyboard({
+    store,
+    listbox,
+    selection,
+    show,
+    hide,
+    choose,
+    create,
+    remove,
+    itemLabelled,
+    commitCustom,
+    hasCreate: () => elements(context, "create").length > 0,
+    focusInput: () => {
+      store.set({ focusInList: false })
+      inputElement()?.focus({ preventScroll: true })
+    },
+    allowCustomValue: () => !!options().allowCustomValue,
+    // Chips collapsed into an overflow part can't be reached.
+    chips: () => elements(context, "chip").flatMap(({ el }) => (el.hidden ? [] : [el])),
+    inputElement,
+    highlightOnOpen: (target) => (pendingHighlight = target),
+  })
+
+  announceResults({
+    store,
+    query: filterQuery,
+    count: () => listbox.count(),
+    loading: () => store.get().status === "loading",
+    shown: () => store.get().open,
+    silent: () => elements(context, "status").length > 0,
+    announcement: () => options().announcement,
+  })
+
+  const api = {
+    id,
+    ...kit,
+    getValue: () => store.get().value,
+    setValue: (value: unknown, { reason, event }: ComboboxChangeOptions<ComboboxValueChangeReason> = {}) => {
+      setValue(value, { reason, event })
+    },
+    clear: ({ reason = "imperative", event }: ComboboxChangeOptions<ComboboxValueChangeReason> = {}) => {
+      if (!editable()) return
+      // A canceled change keeps the value, and the input keeps its label.
+      if (listOf(store.get().value).length && !setValue(selection.empty(), { reason, event })) return
+      setQuery("", { reason: reason === "clear-press" ? "clear-press" : "imperative", event })
+    },
+    getQuery: () => store.get().query,
+    setQuery: (
+      query: string,
+      { reason = "imperative", event }: ComboboxChangeOptions<ComboboxQueryChangeReason> = {},
+    ) => {
+      setQuery(query, { reason, event, dirty: true })
+      settleHighlight()
+    },
+    focus: () => inputElement()?.focus(),
+    // Internal. Used by slots and adapters.
+    internal: {
+      options,
+      listbox,
+      selection,
+      hooks,
+      store,
+      // The icons of items, once an item icon part registers them.
+      get icons() {
+        return hooks.icons!
+      },
+      changeValue: setValue,
+      presentation,
+      contentElement,
+      // Whether a value icon rendered, which copies the selected item's icon.
+      hasValueIcon: () => context.props("value-icon") !== undefined,
+      // Renders the items hidden once, so a value learns its label and icon from its item.
+      prepare: () => store.get().prepared || store.set({ prepared: true }),
+      popup,
+      show,
+      hide,
+      choose,
+      remove,
+      create,
+      createShown: (state: ComboboxState) => createShown(state, createProps()),
+      maxReached,
+      typed,
+      onInput: (event: Event) => typed((event.target as HTMLInputElement).value, event),
+      onInputKeyDown: keyboard.onInputKeyDown,
+      onListKeyDown: keyboard.onListKeyDown,
+      onChipKeyDown: keyboard.onChipKeyDown,
+      onTriggerKeyDown: keyboard.onTriggerKeyDown,
+      loadMore,
+      limit: () => (store.get().multiple ? store.get().maxSelected : undefined),
+      matchQuery: filterQuery,
+      matchMode: () => matchMode(options().filter ?? "contains"),
+      // The pointer highlights what it moves onto. Touch never does, since a finger scrolling past isn't choosing.
+      hover(key: string, event: PointerEvent) {
+        if (event.pointerType === "touch" || !store.get().open) return
+        if (store.get().highlighted !== key) listbox.highlight(key, { event })
+      },
+      chipsElement: () => element("chips"),
+      // The chips in the page, in order.
+      chipElements: () => elements(context, "chip").map(({ el }) => el),
+      setVisibleChips: (visibleChips: number | null) =>
+        store.get().visibleChips !== visibleChips && store.set({ visibleChips }),
+      ownsElement,
+      inputElement,
+      controlElement: inputElement,
+      anchorElement,
+      arrowElement: () => element("arrow"),
+      filterQuery,
+      keyOf: toKey,
+      isSelected: selection.isSelected,
+      labelOf: selection.labelOf,
+      labels: selection.labels,
+      queueLabels: selection.queueLabels,
+      // Before the items mount, like on the server, the adapter finds the
+      // value's labels among its children, and the input shows the label.
+      learnLabels(find: Parameters<typeof selection.learn>[0]) {
+        if (selection.learn(find)) showArrivedLabel()
+      },
+      serialized: selection.keys,
+      // Where focus goes once the list opens: it stays in the input, unless a
+      // screen reader's tap moved it into the list, to the selected item or the first.
+      initialFocus() {
+        const target = pendingHighlight
+        pendingHighlight = null
+        if (!store.get().focusInList) {
+          if (target) listbox.move(target)
+          // In a sheet the input moved into its header, and loses focus on
+          // the way if the sheet showed later. It takes focus back here.
+          return store.get().presentation === "sheet" ? inputElement() : undefined
+        }
+        const list = listbox.entries().filter((entry) => !entry.pinned)
+        const item = list.find((entry) => selection.isSelected(entry.key, entry.value)) ?? list[0]
+        if (!item) return contentElement()
+        listbox.highlight(item.key, { focus: false })
+        return listbox.element(item.key) ?? contentElement()
+      },
+      // Whether no item matches. Composed items register once the content binds, so until then it's not known.
+      isEmpty: (state: ComboboxState) => (!!state.items || state.settled) && listbox.count() === 0,
+      // How many items match, leaving out the create and select-all options.
+      itemCount: () => listbox.count(),
+      itemProps: (key: string) => context.props("item", key) as ComboboxItemMeta | undefined,
+      contentProps: (key?: string) => kit.internal.contentProps(key) as ComboboxContentProps,
+      // The id aria-activedescendant points at, once that element is in the page.
+      // None while real focus is in the list.
+      activeDescendant(state: ComboboxState) {
+        const { highlighted } = state
+        if (!state.open || state.focusInList || highlighted === null) return undefined
+        if (!listbox.element(highlighted)?.isConnected) return undefined
+        return optionId(id, highlighted)
+      },
+      // Web components read `default-value` as keys when items come later. Once
+      // they arrive, a value that still names them takes their values, with no
+      // change: it's still the default.
+      adoptValue: (value: unknown) => store.set({ value }),
+      reset() {
+        const initial = store.get().initial
+        setValue(initial, { reason: "reset" })
+        const first = listOf(initial)[0]
+        setQuery(store.get().multiple || first === undefined ? "" : selection.labelOf(first), {
+          reason: "reset",
+        })
+      },
+      setFormDisabled(formDisabled: boolean) {
+        store.set({ formDisabled })
+      },
+      restore(saved: string) {
+        setValue(selection.restored(saved), { reason: "restore" })
+      },
+    },
+  }
+
+  // A label that arrives after the value, like from items that mount later,
+  // replaces the raw value an uncontrolled input showed.
+  function showArrivedLabel() {
+    const { value, multiple, dirty, query } = store.get()
+    const first = listOf(value)[0]
+    if (multiple || dirty || first === undefined || options().query !== undefined) return
+    const label = selection.labelOf(first)
+    if (query === toKey(first) && label !== query) store.set({ query: label })
+  }
+
+  // A value set from outside, like a controller or a controlled prop, shows
+  // its label in a single combobox's input, unless the user is typing.
+  let previousValue = store.get().value
+  let previousLabels = store.get().labels
+  store.subscribe(() => {
+    const { value, multiple, dirty, labels } = store.get()
+    if (labels !== previousLabels) {
+      previousLabels = labels
+      showArrivedLabel()
+    }
+    if (value === previousValue) return
+    previousValue = value
+    // Values whose items never mounted, like from a controller: mount them hidden so they say their labels.
+    if (selection.needsItems(false) && !store.get().items && !options().itemToLabel && !store.get().prepared)
+      store.set({ prepared: true })
+    if (multiple || dirty || committing) return
+    const first = listOf(value)[0]
+    const label = first === undefined ? "" : selection.labelOf(first)
+    if (store.get().query !== label) setQuery(label, { reason: "imperative" })
+  })
+
+  return api
+}
+
+// What an item part registers with: its props, and the group it's in.
+type ComboboxItemMeta = {
+  value: unknown
+  label?: string
+  keywords?: string[]
+  disabled?: boolean
+  group?: string
+  index?: number
+}
+
+/**
+ * `combobox`'s api, which its slots and controller call.
+ * Adapters expose it as `api`.
+ * @stable
+ */
+type ComboboxApi = ReturnType<typeof comboboxApi>
+
+export { type ComboboxApi, comboboxApi, type ComboboxState, CREATE, initialComboboxState, syncComboboxState }

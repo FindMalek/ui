@@ -1,0 +1,587 @@
+// @vitest-environment jsdom
+// The blocks under what apps rebuild most: long lists, grids, cells edited in
+// place, logs that follow their end, items moved between lists, 2D values and
+// undo. Through the public entry only; `bind` from the kernel stands in for
+// an adapter.
+import { afterEach, describe, expect, test, vi } from "vitest"
+import {
+  createArea,
+  createGridFocus,
+  createHistory,
+  createInlineEdit,
+  createStickToBottom,
+  createTransfer,
+  createVirtualizer,
+  definePrimitive,
+  bindDragPreview,
+  matchesShortcut,
+  transferMessage,
+  type AreaReason,
+  type AreaValue,
+  type GridCell,
+  type TransferDraft,
+  type TransferLists,
+} from "../src/index"
+import { bind } from "../src/foundation/kernel/part"
+
+let cleanups: (() => void)[] = []
+afterEach(() => {
+  cleanups.forEach((cleanup) => cleanup())
+  cleanups = []
+  document.body.innerHTML = ""
+})
+
+const key = (key: string, init: KeyboardEventInit = {}) =>
+  new KeyboardEvent("keydown", { key, cancelable: true, bubbles: true, ...init })
+
+const pointer = (type: string, clientX: number, clientY: number) =>
+  new PointerEvent(type, { clientX, clientY, button: 0, isPrimary: true, bubbles: true, cancelable: true })
+
+// Pointer moves land once a frame.
+const frame = () => new Promise((resolve) => requestAnimationFrame(resolve))
+
+// An element at a fixed place, as jsdom has no layout.
+function rectBox(left: number, top: number, width: number, height: number, parent: Element = document.body) {
+  const el = document.createElement("div")
+  el.getBoundingClientRect = () =>
+    ({ left, top, width, height, right: left + width, bottom: top + height, x: left, y: top }) as DOMRect
+  parent.append(el)
+  return el
+}
+
+// A scroller of a fixed size whose scroll position can be set, as jsdom has no layout.
+function scroller(height: number, contentHeight: () => number) {
+  const el = document.createElement("div")
+  let top = 0
+  Object.defineProperties(el, {
+    clientHeight: { get: () => height },
+    clientWidth: { get: () => 300 },
+    scrollHeight: { get: () => Math.max(height, contentHeight()) },
+    scrollTop: {
+      get: () => top,
+      set: (value: number) => {
+        top = Math.max(0, Math.min(value, Math.max(0, contentHeight() - height)))
+      },
+    },
+  })
+  el.scrollTo = ((options: ScrollToOptions) => {
+    el.scrollTop = options.top ?? top
+  }) as typeof el.scrollTo
+  document.body.append(el)
+  return el
+}
+
+describe("createVirtualizer", () => {
+  test("renders only the rows in view and the overscan, in a box as tall as every row", () => {
+    const rows = createVirtualizer({ count: () => 1000, estimate: () => 20, overscan: 2 })
+    const el = scroller(100, () => rows.size())
+    cleanups.push(rows.connect(el))
+    expect(rows.size()).toBe(20000)
+    // Five rows show, and two more past the bottom.
+    expect(rows.items().map((item) => item.index)).toEqual([0, 1, 2, 3, 4, 5, 6])
+    el.scrollTop = 1000
+    el.dispatchEvent(new Event("scroll"))
+    const indexes = rows.items().map((item) => item.index)
+    expect(indexes[0]).toBe(48)
+    expect(indexes.at(-1)).toBe(56)
+    expect(rows.items()[2]).toMatchObject({ index: 50, start: 1000, size: 20 })
+  })
+
+  test("items keeps its identity until something changes, and subscribers hear changes", () => {
+    const rows = createVirtualizer({ count: () => 100, estimate: () => 20 })
+    const el = scroller(100, () => rows.size())
+    cleanups.push(rows.connect(el))
+    const listener = vi.fn()
+    rows.subscribe(listener)
+    const first = rows.items()
+    expect(rows.items()).toBe(first)
+    el.scrollTop = 400
+    el.dispatchEvent(new Event("scroll"))
+    expect(listener).toHaveBeenCalled()
+    expect(rows.items()).not.toBe(first)
+  })
+
+  test("a measured row moves every row after it, and keeps its size by key", () => {
+    const keys = ["a", "b", "c", "d"]
+    const rows = createVirtualizer({ count: () => keys.length, estimate: () => 20, key: (i) => keys[i] })
+    const el = scroller(200, () => rows.size())
+    cleanups.push(rows.connect(el))
+    const row = document.createElement("div")
+    row.getBoundingClientRect = () => ({ height: 50, width: 300 }) as DOMRect
+    cleanups.push(rows.measure(1, row))
+    expect(rows.items().map((item) => item.start)).toEqual([0, 20, 70, 90])
+    expect(rows.size()).toBe(110)
+    // "b" sorts first; its size goes with it.
+    keys.reverse()
+    rows.refresh()
+    expect(rows.items().find((item) => item.key === "b")).toMatchObject({ index: 2, size: 50 })
+  })
+
+  test("keep renders a row out of view, and scrollToIndex brings one in", () => {
+    const rows = createVirtualizer({ count: () => 1000, estimate: () => 20, overscan: 0, keep: () => [500] })
+    const el = scroller(100, () => rows.size())
+    cleanups.push(rows.connect(el))
+    expect(rows.items().map((item) => item.index)).toContain(500)
+    rows.scrollToIndex(900)
+    expect(el.scrollTop).toBe(900 * 20 + 20 - 100)
+    rows.scrollToIndex(10, { align: "start" })
+    expect(el.scrollTop).toBe(200)
+  })
+
+  test("scrollToIndex puts a row below scrollMargin, as under a sticky header", () => {
+    const rows = createVirtualizer({ count: () => 1000, estimate: () => 20, scrollMargin: 40 })
+    const el = scroller(100, () => rows.size() + 40)
+    cleanups.push(rows.connect(el))
+    rows.scrollToIndex(10, { align: "start" })
+    expect(el.scrollTop).toBe(200)
+    // The middle of what shows under the header: 40 to 100.
+    rows.scrollToIndex(20, { align: "center" })
+    expect(el.scrollTop).toBe(40 + 400 + 10 - 70)
+    rows.scrollToIndex(30, { align: "end" })
+    expect(el.scrollTop).toBe(40 + 600 + 20 - 100)
+  })
+
+  test("onEnd asks for more once per count as the end comes near", async () => {
+    let count = 30
+    const onEnd = vi.fn(() => (count += 30))
+    const rows = createVirtualizer({ count: () => count, estimate: () => 20, onEnd, endThreshold: 5 })
+    const el = scroller(100, () => rows.size())
+    cleanups.push(rows.connect(el))
+    el.scrollTop = 400
+    el.dispatchEvent(new Event("scroll"))
+    await Promise.resolve()
+    expect(onEnd).toHaveBeenCalledTimes(1)
+    el.dispatchEvent(new Event("scroll"))
+    await Promise.resolve()
+    expect(onEnd).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("createGridFocus", () => {
+  type GridState = { active: GridCell | null }
+  const grid = definePrimitive({
+    name: "grid",
+    options: { disabled: "value" },
+    state: (_options: { disabled?: (cell: GridCell) => boolean }): GridState => ({ active: null }),
+    api: (context) => {
+      const reveal = vi.fn()
+      const moves: { cell: GridCell; shift: boolean }[] = []
+      const focus = createGridFocus<GridState>(context, {
+        key: "active",
+        rows: () => 100,
+        cols: () => 4,
+        pageSize: () => 10,
+        disabled: (cell) => context.options().disabled?.(cell) ?? false,
+        reveal,
+        onMove: (cell, { shift }) => moves.push({ cell, shift }),
+      })
+      return { focus, reveal, moves }
+    },
+    slots: (slot) => ({
+      cell: slot<{ row: number; col: number }>({ props: { row: "number", col: "number" } }),
+    }),
+  })
+
+  test("the first cell has the tab stop, then arrows, Home, End and pages move it", () => {
+    const instance = grid({ id: "g" })
+    cleanups.push(() => instance.destroy())
+    const { focus } = instance.api
+    expect(focus.tabIndex(instance.get(), { row: 0, col: 0 })).toBe("0")
+    expect(focus.tabIndex(instance.get(), { row: 0, col: 1 })).toBe("-1")
+    focus.keydown(key("ArrowRight"))
+    expect(instance.get().active).toEqual({ row: 0, col: 1 })
+    focus.keydown(key("End"))
+    expect(instance.get().active).toEqual({ row: 0, col: 3 })
+    focus.keydown(key("PageDown"))
+    expect(instance.get().active).toEqual({ row: 10, col: 3 })
+    focus.keydown(key("End", { ctrlKey: true }))
+    expect(instance.get().active).toEqual({ row: 99, col: 3 })
+    focus.keydown(key("Home", { ctrlKey: true }))
+    expect(instance.get().active).toEqual({ row: 0, col: 0 })
+    focus.keydown(key("ArrowUp"))
+    expect(instance.get().active).toEqual({ row: 0, col: 0 })
+  })
+
+  test("skips disabled cells, reveals the target and reports Shift", () => {
+    const instance = grid({ id: "g", disabled: (cell) => cell.row === 1 })
+    cleanups.push(() => instance.destroy())
+    const { focus, reveal, moves } = instance.api
+    focus.focus({ row: 0, col: 2 })
+    focus.keydown(key("ArrowDown", { shiftKey: true }))
+    expect(instance.get().active).toEqual({ row: 2, col: 2 })
+    expect(reveal).toHaveBeenLastCalledWith({ row: 2, col: 2 })
+    expect(moves.at(-1)).toEqual({ cell: { row: 2, col: 2 }, shift: true })
+  })
+
+  test("focus lands on a cell that binds after it was moved to", async () => {
+    const instance = grid({ id: "g" })
+    cleanups.push(() => instance.destroy())
+    instance.api.focus.focus({ row: 50, col: 1 })
+    const el = document.createElement("div")
+    el.tabIndex = -1
+    document.body.append(el)
+    cleanups.push(instance.api.focus.bind(el, { row: 50, col: 1 }))
+    await Promise.resolve()
+    expect(document.activeElement).toBe(el)
+  })
+})
+
+describe("createInlineEdit", () => {
+  type EditState = { editing: string | null; values: Record<string, string> }
+  const table = definePrimitive({
+    name: "table",
+    options: { valid: "value" },
+    state: (_options: { valid?: (text: string) => boolean }): EditState => ({
+      editing: null,
+      values: { a: "Alpha", b: "Beta" },
+    }),
+    api: (context) => {
+      const edit = createInlineEdit<EditState>(context, {
+        key: "editing",
+        value: (id) => context.store.get().values[id],
+        commit: (id, text) => {
+          if (context.options().valid && !context.options().valid!(text)) return false
+          context.store.set({ values: { ...context.store.get().values, [id]: text } })
+          return true
+        },
+      })
+      return { edit }
+    },
+    slots: (slot) => ({ cell: slot<{ value: string }>({ props: { value: "string" } }) }),
+  })
+
+  function mount(options: { valid?: (text: string) => boolean } = {}) {
+    const instance = table({ id: "t", ...options })
+    cleanups.push(() => instance.destroy())
+    const cell = document.createElement("div")
+    cell.tabIndex = 0
+    const input = document.createElement("input")
+    document.body.append(cell, input)
+    cell.focus()
+    return { instance, cell, input }
+  }
+
+  test("Enter starts with the text selected, Enter saves and focus goes back", async () => {
+    const { instance, cell, input } = mount()
+    const { edit } = instance.api
+    expect(edit.keydown(key("Enter"), "a")).toBe(true)
+    expect(edit.editing(instance.get())).toBe("a")
+    edit.bindInput(input)
+    expect(input.value).toBe("Alpha")
+    expect(document.activeElement).toBe(input)
+    input.value = "Alpha 2"
+    edit.inputKeydown(key("Enter"))
+    expect(instance.get().values.a).toBe("Alpha 2")
+    expect(instance.get().editing).toBeNull()
+    // The adapter takes the input out once editing ends.
+    input.remove()
+    await Promise.resolve()
+    expect(document.activeElement).toBe(cell)
+  })
+
+  test("typing starts over with the character, and Escape puts the text back", () => {
+    const { instance, input } = mount()
+    const { edit } = instance.api
+    edit.keydown(key("x"), "b")
+    edit.bindInput(input)
+    expect(input.value).toBe("x")
+    edit.inputKeydown(key("Escape"))
+    expect(instance.get().values.b).toBe("Beta")
+    expect(instance.get().editing).toBeNull()
+  })
+
+  test("text that doesn't save keeps editing", () => {
+    const { instance, input } = mount({ valid: (text) => text.length > 0 })
+    const { edit } = instance.api
+    edit.start("a")
+    edit.bindInput(input)
+    input.value = ""
+    expect(edit.end("enter-key")).toBe(false)
+    expect(instance.get().editing).toBe("a")
+  })
+})
+
+describe("createStickToBottom", () => {
+  test("starts at the end, stops following when scrolled up, and follows again from scrollToBottom", () => {
+    const el = scroller(100, () => 500)
+    const log = createStickToBottom()
+    cleanups.push(log.connect(el))
+    expect(el.scrollTop).toBe(400)
+    // The reader scrolls up.
+    el.dispatchEvent(new WheelEvent("wheel", { deltaY: -50 }))
+    el.scrollTop = 200
+    el.dispatchEvent(new Event("scroll"))
+    expect(log.get()).toMatchObject({ following: false, atBottom: false })
+    log.scrollToBottom()
+    expect(log.get().following).toBe(true)
+    expect(el.scrollTop).toBe(400)
+  })
+
+  test("content that pushes the end out of view while not following is unseen", async () => {
+    let content = 500
+    const el = scroller(100, () => content)
+    const log = createStickToBottom()
+    cleanups.push(log.connect(el))
+    log.release()
+    expect(log.get()).toMatchObject({ following: false, atBottom: true, unseen: false })
+    content = 600
+    el.append(document.createElement("p"))
+    await Promise.resolve()
+    expect(log.get()).toMatchObject({ atBottom: false, unseen: true })
+  })
+
+  test("prepend keeps the distance from the end", () => {
+    let content = 500
+    const el = scroller(100, () => content)
+    const log = createStickToBottom({ initial: false })
+    cleanups.push(log.connect(el))
+    el.scrollTop = 100
+    el.dispatchEvent(new Event("scroll"))
+    log.prepend()
+    content = 800
+    // Older messages arrive as children; the mutation observer reads the new height.
+    el.append(document.createElement("p"))
+    return Promise.resolve().then(() => {
+      expect(el.scrollTop).toBe(400)
+    })
+  })
+})
+
+describe("createTransfer", () => {
+  type BoardState = { lists: TransferLists; moving: TransferDraft | null }
+  const board = definePrimitive({
+    name: "kanban",
+    options: { lists: "value", limit: "number" },
+    state: (options: { lists: TransferLists; limit?: number }): BoardState => ({
+      lists: options.lists,
+      moving: null,
+    }),
+    api: (context) => {
+      const set = vi.fn((value: TransferLists, _details: object) => {
+        context.store.set({ lists: value })
+        return true
+      })
+      const transfer = createTransfer<BoardState>(context, {
+        key: "lists",
+        draft: "moving",
+        set,
+        accepts: (_key, list) => {
+          const limit = context.options().limit
+          return limit === undefined || context.store.get().lists[list].length < limit
+        },
+      })
+      return { transfer, set }
+    },
+    slots: (slot) => ({ card: slot<{ value: string }>({ props: { value: "string" } }) }),
+  })
+
+  test("Space picks up, arrows move within and across lists, Space drops in one change", () => {
+    const instance = board({ id: "k", lists: { todo: ["a", "b"], doing: ["c"], done: [] } })
+    cleanups.push(() => instance.destroy())
+    const { transfer, set } = instance.api
+    transfer.keydown(key(" "), "a")
+    expect(instance.get().moving).toMatchObject({ key: "a", from: "todo" })
+    transfer.keydown(key("ArrowDown"), "a")
+    expect(transfer.lists(instance.get()).todo).toEqual(["b", "a"])
+    transfer.keydown(key("ArrowRight"), "a")
+    expect(transfer.lists(instance.get())).toEqual({ todo: ["b"], doing: ["c", "a"], done: [] })
+    transfer.keydown(key("ArrowRight"), "a")
+    expect(transfer.lists(instance.get()).done).toEqual(["a"])
+    expect(set).not.toHaveBeenCalled()
+    transfer.keydown(key(" "), "a")
+    expect(set).toHaveBeenCalledTimes(1)
+    expect(set.mock.calls[0][1]).toMatchObject({
+      key: "a",
+      from: "todo",
+      to: "done",
+      index: 0,
+      reason: "move-key",
+    })
+    expect(instance.get().lists).toEqual({ todo: ["b"], doing: ["c"], done: ["a"] })
+  })
+
+  test("Escape puts it back, and a full list is skipped", () => {
+    const instance = board({ id: "k", lists: { todo: ["a"], doing: ["c"], done: [] }, limit: 1 })
+    cleanups.push(() => instance.destroy())
+    const { transfer, set } = instance.api
+    transfer.keydown(key("Enter"), "a")
+    transfer.keydown(key("ArrowRight"), "a")
+    // Doing is full, so it goes on to Done.
+    expect(transfer.lists(instance.get()).done).toEqual(["a"])
+    transfer.keydown(key("Escape"), "a")
+    expect(instance.get().moving).toBeNull()
+    expect(instance.get().lists.todo).toEqual(["a"])
+    expect(set).not.toHaveBeenCalled()
+  })
+
+  test("move commits at once, and the messages name the list", () => {
+    const instance = board({ id: "k", lists: { todo: ["a"], done: [] } })
+    cleanups.push(() => instance.destroy())
+    expect(instance.api.transfer.move("a", "done", 0)).toBe(true)
+    expect(instance.get().lists).toEqual({ todo: [], done: ["a"] })
+    expect(
+      transferMessage({ type: "drop", key: "a", label: "Write tests", list: "Done", position: 1, total: 3 }),
+    ).toBe("Dropped Write tests in Done, position 1 of 3.")
+  })
+
+  test("a pointer drag shows a copy over the page, moves the item between lists, and drops once", async () => {
+    const instance = board({ id: "k", lists: { todo: ["a", "b"], doing: ["c"] } })
+    cleanups.push(() => instance.destroy())
+    const { transfer, set } = instance.api
+    const todo = rectBox(0, 0, 100, 200)
+    const doing = rectBox(120, 0, 100, 200)
+    cleanups.push(transfer.bindList(todo, "todo"), transfer.bindList(doing, "doing"))
+    const cards = {
+      a: rectBox(0, 0, 100, 40, todo),
+      b: rectBox(0, 50, 100, 40, todo),
+      c: rectBox(120, 0, 100, 40, doing),
+    }
+    cards.a.id = "card-a"
+    for (const [value, el] of Object.entries(cards)) cleanups.push(transfer.bindItem(el, value))
+
+    // Nothing under the pointer scrolls, as jsdom has no layout.
+    document.elementsFromPoint = () => []
+    cleanups.push(() => delete (document as Partial<Document>).elementsFromPoint)
+    transfer.pointerdown(pointer("pointerdown", 50, 20), "a")
+    document.dispatchEvent(pointer("pointermove", 60, 20))
+    await frame()
+    const preview = document.querySelector<HTMLElement>("[data-drag-preview]")!
+    expect(preview).not.toBeNull()
+    expect(preview.id).toBe("")
+    // The copy follows the pointer while the item waits where it would drop.
+    document.dispatchEvent(pointer("pointermove", 170, 60))
+    await frame()
+    expect(preview.style.translate).toBe("120px 40px")
+    expect(transfer.lists(instance.get())).toEqual({ todo: ["b"], doing: ["c", "a"] })
+    expect(set).not.toHaveBeenCalled()
+
+    document.dispatchEvent(pointer("pointerup", 170, 60))
+    expect(document.querySelector("[data-drag-preview]")).toBeNull()
+    expect(set).toHaveBeenCalledTimes(1)
+    expect(instance.get().lists).toEqual({ todo: ["b"], doing: ["c", "a"] })
+  })
+})
+
+describe("bindDragPreview", () => {
+  test("copies the element without ids, hidden from screen readers and the pointer, and follows it", () => {
+    const el = rectBox(10, 20, 100, 40)
+    el.id = "card"
+    el.innerHTML = '<span id="title">Card</span>'
+    el.tabIndex = 0
+    el.style.color = "rgb(255, 0, 0)"
+    const preview = bindDragPreview(el, { x: 15, y: 25 })
+    const copy = preview.el
+    expect(copy.isConnected).toBe(true)
+    expect(copy.textContent).toBe("Card")
+    expect(copy.querySelector("[id]")).toBeNull()
+    expect(copy.hasAttribute("id")).toBe(false)
+    expect(copy.getAttribute("aria-hidden")).toBe("true")
+    expect(copy.hasAttribute("data-drag-preview")).toBe(true)
+    expect(copy.hasAttribute("tabindex")).toBe(false)
+    expect(copy.inert).toBe(true)
+    expect(copy.style).toMatchObject({
+      position: "fixed",
+      left: "10px",
+      top: "20px",
+      width: "100px",
+      height: "40px",
+      pointerEvents: "none",
+      color: "rgb(255, 0, 0)",
+    })
+    // The element stays where it was.
+    expect(el.isConnected).toBe(true)
+
+    preview.move(45, 35)
+    expect(copy.style.translate).toBe("30px 10px")
+    preview.remove()
+    expect(copy.isConnected).toBe(false)
+  })
+})
+
+describe("createArea", () => {
+  type PadState = { value: AreaValue }
+  const pad = definePrimitive({
+    name: "pad",
+    state: (): PadState => ({ value: { x: 0.5, y: 0.5 } }),
+    api: (context) => {
+      const changes: AreaReason[] = []
+      const commits: AreaReason[] = []
+      const area = createArea<PadState>(context, {
+        value: (state) => state.value,
+        set: (value, { reason }) => {
+          changes.push(reason)
+          context.store.set({ value })
+          return true
+        },
+        onCommit: (_value, { reason }) => commits.push(reason),
+        x: () => ({ step: 0.1, label: "Saturation" }),
+        y: () => ({ step: 0.1, label: "Brightness" }),
+      })
+      return { area, changes, commits }
+    },
+    slots: (slot) => ({ area: slot({}) }),
+  })
+
+  test("arrows step each axis without float noise, Shift ten steps, clamped", () => {
+    const instance = pad({ id: "p" })
+    cleanups.push(() => instance.destroy())
+    const { area } = instance.api
+    area.keydown(key("ArrowRight"))
+    area.keydown(key("ArrowUp"))
+    area.keydown(key("ArrowUp"))
+    expect(instance.get().value).toEqual({ x: 0.6, y: 0.7 })
+    area.keydown(key("ArrowDown", { shiftKey: true }))
+    expect(instance.get().value.y).toBe(0)
+    area.keydown(key("End"))
+    expect(instance.get().value.x).toBe(1)
+  })
+
+  test("a press jumps to the point, with y from the bottom, and the thumb names both axes", () => {
+    const instance = pad({ id: "p" })
+    cleanups.push(() => instance.destroy())
+    const surface = document.createElement("div")
+    surface.getBoundingClientRect = () => ({ left: 0, top: 0, width: 200, height: 100 }) as DOMRect
+    document.body.append(surface)
+    cleanups.push(bind(instance.part("area", {}), surface))
+    instance.api.area.pointerdown(
+      new PointerEvent("pointerdown", { clientX: 50, clientY: 20, button: 0 }),
+      surface,
+    )
+    expect(instance.get().value).toEqual({ x: 0.3, y: 0.8 })
+    expect(instance.api.area.thumbAttrs(instance.get())).toMatchObject({
+      role: "slider",
+      "aria-valuetext": "Saturation 30%, Brightness 80%",
+    })
+    expect(instance.api.area.thumbStyle(instance.get())).toContain("top:20")
+  })
+
+  test("reports a press as track-press, a drag as drag and a key as step-key, like a slider", async () => {
+    const instance = pad({ id: "p" })
+    cleanups.push(() => instance.destroy())
+    const surface = rectBox(0, 0, 200, 100)
+    const { area, changes, commits } = instance.api
+    area.pointerdown(pointer("pointerdown", 50, 20), surface)
+    document.dispatchEvent(pointer("pointerup", 50, 20))
+    area.pointerdown(pointer("pointerdown", 50, 20), surface)
+    document.dispatchEvent(pointer("pointermove", 150, 80))
+    await frame()
+    document.dispatchEvent(pointer("pointerup", 150, 80))
+    area.keydown(key("ArrowRight"))
+    expect(changes).toEqual(["track-press", "drag", "step-key"])
+    expect(commits).toEqual(["track-press", "drag", "step-key"])
+  })
+})
+
+describe("createHistory", () => {
+  test("undo and redo walk the recorded states, and mod+z matches per platform", () => {
+    const history = createHistory({ a: 1 })
+    history.record({ a: 2 })
+    history.record({ a: 3 })
+    expect(history.undo()).toEqual({ a: 2 })
+    expect(history.redo()).toEqual({ a: 3 })
+    expect(history.canRedo()).toBe(false)
+    expect(matchesShortcut(key("z", { metaKey: true }), "mod+z", true)).toBe(true)
+    expect(matchesShortcut(key("z", { ctrlKey: true }), "mod+z", false)).toBe(true)
+    expect(matchesShortcut(key("z", { ctrlKey: true, shiftKey: true }), "mod+z", false)).toBe(false)
+  })
+})

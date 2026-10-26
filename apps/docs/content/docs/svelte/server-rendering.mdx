@@ -1,0 +1,49 @@
+---
+title: Server Rendering
+description: Render initial HTML on the server and add interactions in the browser.
+---
+
+ui-sdk parts render HTML with Svelte's server renderer. Their initial attributes include ARIA state and the group's tab stop.
+
+## Render the Initial State
+
+```svelte
+<script lang="ts">
+  import { Toggle } from "@ui-sdk/svelte/toggle"
+</script>
+
+<Toggle defaultPressed>Bold</Toggle>
+```
+
+The server sends a button with `aria-pressed="true"`. It can toggle after hydration. Native HTML behavior, such as submitting a form, can work before hydration.
+
+## Read Browser Values After Mount
+
+The server does not know the browser’s language. Start with the same placeholder on the server and client, then read the language after mount:
+
+```svelte
+<script lang="ts">
+  import { onMount } from "svelte"
+
+  let language = $state("")
+  onMount(() => {
+    language = navigator.language
+  })
+</script>
+
+<p>{language || "Loading language…"}</p>
+```
+
+Both initial renders show “Loading language…”. Once mounted, the paragraph shows the browser’s language. Read other browser-only values in the same place, or in an event handler.
+
+## Keep IDs and Values Consistent
+
+Use the same initial component values on the server and client. For example, do not render an open dialog on the server and a closed one for the first client render.
+
+Parts generate IDs for relationships such as a Dialog trigger’s `aria-controls` and a Field label’s `for`. You usually do not need to supply them.
+
+Pass an explicit `id` when something outside the component needs to refer to a part. On the server, render order matters: if a Field label renders before a control with your ID, the label initially uses the generated ID. Hydration updates the reference to yours. The same applies to Dialog triggers, titles, and descriptions.
+
+Use classes or data attributes for styling, rather than generated IDs.
+
+Popups render in place, so your server layout doesn't need a portal root. [Popups](./popups) covers containers; [Forms](./forms) covers submission and validation.

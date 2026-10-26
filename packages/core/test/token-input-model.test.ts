@@ -1,0 +1,223 @@
+import { describe, expect, test } from "vitest"
+import { createHistory } from "../src/foundation/kernel/history"
+import type { Token } from "../src/foundation/text/text-editor"
+import {
+  defaultCodec,
+  fromText,
+  lineBoundary,
+  normalizeValue,
+  offsetOfToken,
+  offsetText,
+  removedTokens,
+  replaceRange,
+  sliceValue,
+  toLabel,
+  toText,
+  tokenAt,
+  valueLength,
+  wordBoundary,
+  type TokenInputValue,
+} from "../src/components/token-input/token-input-model"
+
+const alice: Token = { type: "mention", value: "alice", label: "@Alice", id: "a" }
+const file: Token = { type: "file", value: "src/a.ts", label: "a.ts", id: "f" }
+
+describe("values and offsets", () => {
+  test("normalizing merges strings, drops empty ones and gives tokens ids", () => {
+    const value = normalizeValue(["a", "", "b", { type: "x", value: "1", label: "One" }, "", "c"])
+    expect(value).toHaveLength(3)
+    expect(value[0]).toBe("ab")
+    expect((value[1] as Token).id).toMatch(/^t\d+$/)
+    expect(normalizeValue([alice])[0]).toBe(alice)
+  })
+
+  test("a token counts as one offset", () => {
+    const value = normalizeValue(["hi ", alice, " and ", file])
+    expect(valueLength(value)).toBe(10)
+    expect(offsetText(value)).toBe("hi \uFFFC and \uFFFC")
+    expect(tokenAt(value, 3)).toBe(alice)
+    expect(offsetOfToken(value, "f")).toBe(9)
+  })
+
+  test("slicing keeps whole tokens", () => {
+    const value = normalizeValue(["hi ", alice, "!"])
+    expect(sliceValue(value, 2, 4)).toEqual([" ", alice])
+    expect(sliceValue(value, 4)).toEqual(["!"])
+  })
+
+  test("an edit over a token removes all of it, and edits before it shift it", () => {
+    const value = normalizeValue(["ab", alice, "cd"])
+    expect(replaceRange(value, { start: 1, end: 3 }, ["X"])).toEqual(["aXcd"])
+    const shifted = replaceRange(value, { start: 0, end: 0 }, ["zz"])
+    expect(offsetOfToken(shifted, "a")).toBe(4)
+    expect(removedTokens(value, replaceRange(value, { start: 2, end: 3 }, []))).toEqual([alice])
+  })
+
+  test("word deletion stops at tokens, and removes just the token when it's next", () => {
+    const value = normalizeValue(["one ", alice, "two three"])
+    expect(wordBoundary(value, 14, -1)).toBe(9)
+    expect(wordBoundary(value, 8, -1)).toBe(5)
+    expect(wordBoundary(value, 5, -1)).toBe(4)
+    expect(wordBoundary(value, 4, -1)).toBe(0)
+    expect(wordBoundary(value, 4, 1)).toBe(5)
+  })
+
+  test("line deletion goes to the start of the line", () => {
+    const value = normalizeValue(["one\ntwo"])
+    expect(lineBoundary(value, 7, -1)).toBe(4)
+    expect(lineBoundary(value, 4, -1)).toBe(3)
+    expect(lineBoundary(value, 0, 1)).toBe(3)
+  })
+})
+
+describe("codec", () => {
+  test("tokens are written as links and labels as text", () => {
+    const value = normalizeValue(["Summarize ", file, " for ", alice])
+    expect(toText(value)).toBe("Summarize [@a.ts](file:src/a.ts) for [@@Alice](mention:alice)")
+    expect(toLabel(value)).toBe("Summarize a.ts for @Alice")
+  })
+
+  test("labels and values with brackets and parentheses round-trip", () => {
+    const token: Token = { type: "file", value: "a (copy).ts", label: "[draft] a\\b", id: "x" }
+    expect(fromText(toText([token]))).toEqual([
+      { type: "file", value: "a (copy).ts", label: "[draft] a\\b", id: expect.any(String) },
+    ])
+  })
+
+  test("text that looks like a token stays text", () => {
+    const value = normalizeValue(["see [@x](y:z) and \\[@q](r:s)"])
+    const text = toText(value)
+    expect(fromText(text)).toEqual(value)
+  })
+
+  test("malformed links are text", () => {
+    expect(fromText("[@open](type:val")).toEqual(["[@open](type:val"])
+    expect(fromText("[@a](b c:d)")).toEqual(["[@a](b c:d)"])
+  })
+
+  // fromText(toText(value)) is the value, without ids, statuses and data.
+  test("any value round-trips through the codec", () => {
+    let seed = 42
+    const random = () => (seed = (seed * 1103515245 + 12345) % 2 ** 31) / 2 ** 31
+    const alphabet = ["a", "b", " ", "\n", "[", "]", "(", ")", "@", "\\", ":", "é", "山", "[@", "\\[@"]
+    const text = () =>
+      Array.from(
+        { length: Math.floor(random() * 8) },
+        () => alphabet[Math.floor(random() * alphabet.length)],
+      ).join("")
+    const types = ["mention", "file", "skill-run", "a_b"]
+    for (let run = 0; run < 3000; run++) {
+      const segments: (string | Token)[] = []
+      for (let index = Math.floor(random() * 6); index > 0; index--)
+        segments.push(
+          random() < 0.5
+            ? text()
+            : {
+                type: types[Math.floor(random() * types.length)],
+                value: text(),
+                label: text(),
+                status: random() < 0.3 ? "pending" : undefined,
+                data: random() < 0.3 ? { run: "running" } : undefined,
+              },
+        )
+      const value = normalizeValue(segments)
+      const strip = (input: TokenInputValue) =>
+        input.map((segment) =>
+          typeof segment === "string"
+            ? segment
+            : { type: segment.type, value: segment.value, label: segment.label },
+        )
+      expect(strip(fromText(toText(value))), JSON.stringify(value)).toEqual(strip(value))
+    }
+  })
+
+  test("a custom codec writes and reads its own format", () => {
+    const slack = {
+      format: (token: Token) => `<@${token.value}>`,
+      parse: (text: string) =>
+        normalizeValue(
+          text.split(/(<@\w+>)/).map((part) => {
+            const match = /^<@(\w+)>$/.exec(part)
+            return match ? { type: "mention", value: match[1], label: `@${match[1]}` } : part
+          }),
+        ),
+    }
+    const value = normalizeValue(["hi ", alice])
+    expect(toText(value, slack)).toBe("hi <@alice>")
+    expect(toText(fromText("hi <@bob>", slack), slack)).toBe("hi <@bob>")
+    expect(defaultCodec.escape).toBeTypeOf("function")
+  })
+})
+
+describe("history", () => {
+  test("typing within the delay joins one entry", () => {
+    const history = createHistory("")
+    history.record("a", { group: "insert", time: 0 })
+    history.record("ab", { group: "insert", time: 100 })
+    history.record("abc", { group: "insert", time: 200 })
+    expect(history.undo()).toBe("")
+    expect(history.canUndo()).toBe(false)
+  })
+
+  test("a pause starts a new entry", () => {
+    const history = createHistory("")
+    history.record("a", { group: "insert", time: 0 })
+    history.record("ab", { group: "insert", time: 700 })
+    expect(history.undo()).toBe("a")
+  })
+
+  test("another kind of edit starts a new entry, and an edit without a group is its own", () => {
+    const history = createHistory("")
+    history.record("ab", { group: "insert", time: 0 })
+    history.record("a", { group: "delete", time: 10 })
+    history.record("a@x", { time: 20 })
+    history.record("a@xy", { group: "insert", time: 30 })
+    expect(history.undo()).toBe("a@x")
+    expect(history.undo()).toBe("a")
+    expect(history.undo()).toBe("ab")
+  })
+
+  test("sealing ends the group", () => {
+    const history = createHistory("")
+    history.record("a", { group: "insert", time: 0 })
+    history.seal()
+    history.record("ab", { group: "insert", time: 10 })
+    expect(history.undo()).toBe("a")
+  })
+
+  test("redo walks forward, and a new edit drops what was undone", () => {
+    const history = createHistory("")
+    history.record("a")
+    history.record("b")
+    expect(history.undo()).toBe("a")
+    expect(history.redo()).toBe("b")
+    history.undo()
+    history.record("c")
+    expect(history.canRedo()).toBe(false)
+  })
+
+  test("options given as a getter apply when they change after creation", () => {
+    let options: { limit?: number } | undefined
+    const history = createHistory(0, () => options)
+    options = { limit: 1 }
+    history.record(1)
+    history.record(2)
+    expect(history.undo()).toBe(1)
+    expect(history.canUndo()).toBe(false)
+  })
+
+  test("the limit drops the oldest entries", () => {
+    const history = createHistory(0, { limit: 2 })
+    for (let value = 1; value <= 5; value++) history.record(value)
+    expect(history.undo()).toBe(4)
+    expect(history.undo()).toBe(3)
+    expect(history.undo()).toBeUndefined()
+  })
+
+  test("map rewrites every entry without adding one", () => {
+    const history = createHistory("a")
+    history.record("b")
+    history.map((state) => state.toUpperCase())
+    expect(history.undo()).toBe("A")
+  })
+})

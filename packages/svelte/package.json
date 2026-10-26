@@ -1,0 +1,380 @@
+{
+  "name": "@ui-sdk/svelte",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "exports": {
+    ".": {
+      "svelte": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./accordion": "./src/accordion.ts",
+    "./alert-dialog": "./src/alert-dialog.ts",
+    "./async-options": "./src/async-options.ts",
+    "./autocomplete": "./src/autocomplete.ts",
+    "./avatar": "./src/avatar.ts",
+    "./button": "./src/button.ts",
+    "./calendar": "./src/calendar.ts",
+    "./carousel": "./src/carousel.ts",
+    "./checkbox": "./src/checkbox.ts",
+    "./collapsible": "./src/collapsible.ts",
+    "./combobox": "./src/combobox.ts",
+    "./command": "./src/command.ts",
+    "./date": "./src/date.ts",
+    "./date-picker": "./src/date-picker.ts",
+    "./dialog": "./src/dialog.ts",
+    "./drawer": "./src/drawer.ts",
+    "./field": "./src/field.ts",
+    "./file-input": "./src/file-input.ts",
+    "./gesture": "./src/gesture.ts",
+    "./hover-card": "./src/hover-card.ts",
+    "./input": "./src/input.ts",
+    "./listbox": "./src/listbox.ts",
+    "./menu": "./src/menu.ts",
+    "./menubar": "./src/menubar.ts",
+    "./meter": "./src/meter.ts",
+    "./navigation-menu": "./src/navigation-menu.ts",
+    "./number-input": "./src/number-input.ts",
+    "./otp-input": "./src/otp-input.ts",
+    "./overlays": "./src/overlays.ts",
+    "./pagination": "./src/pagination.ts",
+    "./password-input": "./src/password-input.ts",
+    "./popover": "./src/popover.ts",
+    "./primitive": "./src/primitive.ts",
+    "./progress": "./src/progress.ts",
+    "./radio": "./src/radio.ts",
+    "./resizable": "./src/resizable.ts",
+    "./scroll-area": "./src/scroll-area.ts",
+    "./select": "./src/select.ts",
+    "./separator": "./src/separator.ts",
+    "./shortcuts": "./src/shortcuts.ts",
+    "./slider": "./src/slider.ts",
+    "./switch": "./src/switch.ts",
+    "./tabs": "./src/tabs.ts",
+    "./text-match": "./src/text-match.ts",
+    "./agent": "./src/agent.ts",
+    "./observe": "./src/observe.ts",
+    "./timeline": "./src/timeline.ts",
+    "./textarea": "./src/textarea.ts",
+    "./toast": "./src/toast.ts",
+    "./toggle": "./src/toggle.ts",
+    "./token-input": "./src/token-input.ts",
+    "./toolbar": "./src/toolbar.ts",
+    "./tooltip": "./src/tooltip.ts",
+    "./tree": "./src/tree.ts",
+    "./trigger-menu": "./src/trigger-menu.ts"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "docs"
+  ],
+  "publishConfig": {
+    "types": "./dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "svelte": "./dist/index.js",
+        "default": "./dist/index.js"
+      },
+      "./accordion": {
+        "types": "./dist/accordion.d.ts",
+        "svelte": "./dist/accordion.js",
+        "default": "./dist/accordion.js"
+      },
+      "./alert-dialog": {
+        "types": "./dist/alert-dialog.d.ts",
+        "svelte": "./dist/alert-dialog.js",
+        "default": "./dist/alert-dialog.js"
+      },
+      "./async-options": {
+        "types": "./dist/async-options.d.ts",
+        "svelte": "./dist/async-options.js",
+        "default": "./dist/async-options.js"
+      },
+      "./autocomplete": {
+        "types": "./dist/autocomplete.d.ts",
+        "svelte": "./dist/autocomplete.js",
+        "default": "./dist/autocomplete.js"
+      },
+      "./avatar": {
+        "types": "./dist/avatar.d.ts",
+        "svelte": "./dist/avatar.js",
+        "default": "./dist/avatar.js"
+      },
+      "./button": {
+        "types": "./dist/button.d.ts",
+        "svelte": "./dist/button.js",
+        "default": "./dist/button.js"
+      },
+      "./calendar": {
+        "types": "./dist/calendar.d.ts",
+        "svelte": "./dist/calendar.js",
+        "default": "./dist/calendar.js"
+      },
+      "./carousel": {
+        "types": "./dist/carousel.d.ts",
+        "svelte": "./dist/carousel.js",
+        "default": "./dist/carousel.js"
+      },
+      "./checkbox": {
+        "types": "./dist/checkbox.d.ts",
+        "svelte": "./dist/checkbox.js",
+        "default": "./dist/checkbox.js"
+      },
+      "./collapsible": {
+        "types": "./dist/collapsible.d.ts",
+        "svelte": "./dist/collapsible.js",
+        "default": "./dist/collapsible.js"
+      },
+      "./date": {
+        "types": "./dist/date.d.ts",
+        "svelte": "./dist/date.js",
+        "default": "./dist/date.js"
+      },
+      "./date-picker": {
+        "types": "./dist/date-picker.d.ts",
+        "svelte": "./dist/date-picker.js",
+        "default": "./dist/date-picker.js"
+      },
+      "./dialog": {
+        "types": "./dist/dialog.d.ts",
+        "svelte": "./dist/dialog.js",
+        "default": "./dist/dialog.js"
+      },
+      "./drawer": {
+        "types": "./dist/drawer.d.ts",
+        "svelte": "./dist/drawer.js",
+        "default": "./dist/drawer.js"
+      },
+      "./combobox": {
+        "types": "./dist/combobox.d.ts",
+        "svelte": "./dist/combobox.js",
+        "default": "./dist/combobox.js"
+      },
+      "./command": {
+        "types": "./dist/command.d.ts",
+        "svelte": "./dist/command.js",
+        "default": "./dist/command.js"
+      },
+      "./field": {
+        "types": "./dist/field.d.ts",
+        "svelte": "./dist/field.js",
+        "default": "./dist/field.js"
+      },
+      "./file-input": {
+        "types": "./dist/file-input.d.ts",
+        "svelte": "./dist/file-input.js",
+        "default": "./dist/file-input.js"
+      },
+      "./gesture": {
+        "types": "./dist/gesture.d.ts",
+        "svelte": "./dist/gesture.js",
+        "default": "./dist/gesture.js"
+      },
+      "./hover-card": {
+        "types": "./dist/hover-card.d.ts",
+        "svelte": "./dist/hover-card.js",
+        "default": "./dist/hover-card.js"
+      },
+      "./input": {
+        "types": "./dist/input.d.ts",
+        "svelte": "./dist/input.js",
+        "default": "./dist/input.js"
+      },
+      "./listbox": {
+        "types": "./dist/listbox.d.ts",
+        "svelte": "./dist/listbox.js",
+        "default": "./dist/listbox.js"
+      },
+      "./menu": {
+        "types": "./dist/menu.d.ts",
+        "svelte": "./dist/menu.js",
+        "default": "./dist/menu.js"
+      },
+      "./menubar": {
+        "types": "./dist/menubar.d.ts",
+        "svelte": "./dist/menubar.js",
+        "default": "./dist/menubar.js"
+      },
+      "./meter": {
+        "types": "./dist/meter.d.ts",
+        "svelte": "./dist/meter.js",
+        "default": "./dist/meter.js"
+      },
+      "./navigation-menu": {
+        "types": "./dist/navigation-menu.d.ts",
+        "svelte": "./dist/navigation-menu.js",
+        "default": "./dist/navigation-menu.js"
+      },
+      "./number-input": {
+        "types": "./dist/number-input.d.ts",
+        "svelte": "./dist/number-input.js",
+        "default": "./dist/number-input.js"
+      },
+      "./otp-input": {
+        "types": "./dist/otp-input.d.ts",
+        "svelte": "./dist/otp-input.js",
+        "default": "./dist/otp-input.js"
+      },
+      "./overlays": {
+        "types": "./dist/overlays.d.ts",
+        "svelte": "./dist/overlays.js",
+        "default": "./dist/overlays.js"
+      },
+      "./pagination": {
+        "types": "./dist/pagination.d.ts",
+        "svelte": "./dist/pagination.js",
+        "default": "./dist/pagination.js"
+      },
+      "./password-input": {
+        "types": "./dist/password-input.d.ts",
+        "svelte": "./dist/password-input.js",
+        "default": "./dist/password-input.js"
+      },
+      "./popover": {
+        "types": "./dist/popover.d.ts",
+        "svelte": "./dist/popover.js",
+        "default": "./dist/popover.js"
+      },
+      "./primitive": {
+        "types": "./dist/primitive.d.ts",
+        "svelte": "./dist/primitive.js",
+        "default": "./dist/primitive.js"
+      },
+      "./progress": {
+        "types": "./dist/progress.d.ts",
+        "svelte": "./dist/progress.js",
+        "default": "./dist/progress.js"
+      },
+      "./radio": {
+        "types": "./dist/radio.d.ts",
+        "svelte": "./dist/radio.js",
+        "default": "./dist/radio.js"
+      },
+      "./resizable": {
+        "types": "./dist/resizable.d.ts",
+        "svelte": "./dist/resizable.js",
+        "default": "./dist/resizable.js"
+      },
+      "./scroll-area": {
+        "types": "./dist/scroll-area.d.ts",
+        "svelte": "./dist/scroll-area.js",
+        "default": "./dist/scroll-area.js"
+      },
+      "./select": {
+        "types": "./dist/select.d.ts",
+        "svelte": "./dist/select.js",
+        "default": "./dist/select.js"
+      },
+      "./separator": {
+        "types": "./dist/separator.d.ts",
+        "svelte": "./dist/separator.js",
+        "default": "./dist/separator.js"
+      },
+      "./slider": {
+        "types": "./dist/slider.d.ts",
+        "svelte": "./dist/slider.js",
+        "default": "./dist/slider.js"
+      },
+      "./switch": {
+        "types": "./dist/switch.d.ts",
+        "svelte": "./dist/switch.js",
+        "default": "./dist/switch.js"
+      },
+      "./tabs": {
+        "types": "./dist/tabs.d.ts",
+        "svelte": "./dist/tabs.js",
+        "default": "./dist/tabs.js"
+      },
+      "./textarea": {
+        "types": "./dist/textarea.d.ts",
+        "svelte": "./dist/textarea.js",
+        "default": "./dist/textarea.js"
+      },
+      "./toast": {
+        "types": "./dist/toast.d.ts",
+        "svelte": "./dist/toast.js",
+        "default": "./dist/toast.js"
+      },
+      "./toggle": {
+        "types": "./dist/toggle.d.ts",
+        "svelte": "./dist/toggle.js",
+        "default": "./dist/toggle.js"
+      },
+      "./toolbar": {
+        "types": "./dist/toolbar.d.ts",
+        "svelte": "./dist/toolbar.js",
+        "default": "./dist/toolbar.js"
+      },
+      "./tooltip": {
+        "types": "./dist/tooltip.d.ts",
+        "svelte": "./dist/tooltip.js",
+        "default": "./dist/tooltip.js"
+      },
+      "./tree": {
+        "types": "./dist/tree.d.ts",
+        "svelte": "./dist/tree.js",
+        "default": "./dist/tree.js"
+      },
+      "./trigger-menu": {
+        "types": "./dist/trigger-menu.d.ts",
+        "svelte": "./dist/trigger-menu.js",
+        "default": "./dist/trigger-menu.js"
+      },
+      "./token-input": {
+        "types": "./dist/token-input.d.ts",
+        "svelte": "./dist/token-input.js",
+        "default": "./dist/token-input.js"
+      },
+      "./shortcuts": {
+        "types": "./dist/shortcuts.d.ts",
+        "svelte": "./dist/shortcuts.js",
+        "default": "./dist/shortcuts.js"
+      },
+      "./text-match": {
+        "types": "./dist/text-match.d.ts",
+        "svelte": "./dist/text-match.js",
+        "default": "./dist/text-match.js"
+      },
+      "./agent": {
+        "types": "./dist/agent.d.ts",
+        "svelte": "./dist/agent.js",
+        "default": "./dist/agent.js"
+      },
+      "./observe": {
+        "types": "./dist/observe.d.ts",
+        "svelte": "./dist/observe.js",
+        "default": "./dist/observe.js"
+      },
+      "./timeline": {
+        "types": "./dist/timeline.d.ts",
+        "svelte": "./dist/timeline.js",
+        "default": "./dist/timeline.js"
+      },
+      "./package.json": "./package.json"
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/build/build-svelte-package.mjs",
+    "typecheck": "svelte-check --tsconfig ./tsconfig.json --fail-on-warnings",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@ui-sdk/core": "workspace:^",
+    "svelte": ">=5.33"
+  },
+  "devDependencies": {
+    "@sveltejs/package": "^2.5.8",
+    "@sveltejs/vite-plugin-svelte": "catalog:",
+    "@types/node": "^24.0.0",
+    "@ui-sdk/core": "workspace:*",
+    "jsdom": "^30.1.2",
+    "svelte": "catalog:",
+    "svelte-check": "catalog:",
+    "typescript": "catalog:",
+    "vite": "catalog:",
+    "vitest": "^5.0.3"
+  }
+}

@@ -1,0 +1,285 @@
+---
+title: File Input
+description: Choose, drop, or paste files, validate them, and submit them with a form.
+---
+
+<ComponentExample
+  name="file-input/basic"
+  caption="Choose or drop a few files, then remove one. You can also paste files while focus is inside the drop zone."
+/>
+
+## Installation
+
+```bash
+pnpm add @ui-sdk/vue @ui-sdk/core
+```
+
+The examples use the [shared example theme](../styling-and-animation#example-theme).
+
+<a id="anatomy" />
+
+## Usage
+
+Start with a trigger. Add a drop zone or list when the workflow needs one.
+
+```vue
+<script setup lang="ts">
+import { FileInput, FileInputTrigger } from "@ui-sdk/vue/file-input"
+</script>
+
+<template>
+  <FileInput name="attachment">
+    <FileInputTrigger>Choose a file</FileInputTrigger>
+  </FileInput>
+</template>
+```
+
+## Parts
+
+- `FileInput` holds the files and applies validation.
+- `FileInputTrigger` opens the picker.
+- `FileInputDropzone` accepts drops and pastes. Pair it with a trigger for keyboard access.
+- `FileInputList` repeats its item template for each file. An item’s state contains its `file` and `index`.
+- `FileInputItemRemove` removes its file.
+
+## Examples
+
+### Upload Button
+
+A trigger is enough when you only need the system file picker. The component holds `File` objects; uploading them to a server is up to your app.
+
+<ComponentExample
+  name="file-input/trigger"
+  caption="Choose Upload a file and select a file. Its name appears beside the button."
+/>
+
+### Accept
+
+`accept` takes MIME types, wildcards, and extensions, such as `image/*,.pdf`. It checks files from the picker, drops, and pastes. An extension matches the filename, even if the operating system reports an unexpected MIME type.
+
+<ComponentExample
+  name="file-input/accept"
+  caption="Add an image or PDF, then try a text file. The unsupported file is rejected and the message explains why."
+/>
+
+### Limits
+
+Use `maxFiles` to limit the total count, and `minSize` or `maxSize` for bytes per file. When too many files arrive, the component accepts the first ones that pass the other checks until the list is full.
+
+<ComponentExample
+  name="file-input/limits"
+  caption="Add up to three files, then try another or one larger than 5 MB. Remove a file to make room."
+/>
+
+### One File
+
+Without `multiple`, a new file replaces the current one. A rejected file leaves the current value unchanged. With `multiple`, accepted files are added to the list.
+
+<ComponentExample
+  name="file-input/single"
+  caption="Choose a PDF, then choose another. The second file replaces the first."
+/>
+
+### List
+
+The list has one Tab stop. Arrow keys, Home, and End move between files; Delete or Backspace removes the focused file. Remove buttons are named for their file and stay outside the Tab order.
+
+This example creates an object URL for each image preview and revokes it when the preview is removed.
+
+<ComponentExample
+  name="file-input/list"
+  caption="Add a few images. Tab to the list, use the arrow keys to move, and press Delete or Backspace to remove the focused image."
+/>
+
+### Attachments
+
+Combine a drop zone with a textarea to attach files to a message. File pastes inside the zone are accepted; text pastes keep their normal behavior. `pasteTarget` can also point to another element or `"document"`.
+
+<ComponentExample
+  name="file-input/prompt"
+  caption="Type a message and attach a file. With the message empty, press Backspace to remove the last attachment. Send clears this local demo."
+/>
+
+### Page-Wide
+
+Set `target="document"` to accept files dropped anywhere on the page. `data-dragging` lets you show an overlay while a file is over the window. A drop on another zone stays with that zone.
+
+<ComponentExample
+  name="file-input/page"
+  caption="Drag a file over this page to see the overlay, then drop it outside the other drop zones. Remove it from the list afterward."
+/>
+
+### Folders
+
+`directory` enables folder selection and multiple files. Dropped folders are read recursively, up to 1,000 files, skipping system files such as `.DS_Store`. `relativePath(file)` returns the path inside the folder.
+
+<ComponentExample
+  name="file-input/folder"
+  caption="Choose or drop a folder. The list shows each file with its path inside the folder."
+/>
+
+### Camera
+
+Use `capture="environment"` to request the rear camera, or `"user"` for the front camera. The picker offered depends on the device and browser.
+
+<ComponentExample
+  name="file-input/camera"
+  caption="Choose Take a photo. A supported mobile browser can offer the camera; other browsers open a file picker."
+/>
+
+### Disabled
+
+`disabled` prevents picking, dropping, and pasting files. It also excludes the value from form submission.
+
+<ComponentExample
+  name="file-input/disabled"
+  caption="Try Browse or drop a file on the zone. The disabled input keeps its value unchanged."
+/>
+
+### Avatar
+
+Use a single image value to replace a profile photo. Keep the preview URL separate from the file and revoke it when the file changes or the example unmounts.
+
+<ComponentExample
+  name="file-input/avatar"
+  caption="Upload an image or drop one on the avatar. Replace it or choose Remove to clear the preview."
+/>
+
+## Behavior and Options
+
+### Controlled
+
+Use `v-model` for the files and `@value-change` for change details. `details` includes the `reason`, `added`, `removed`, and `rejected` files. Call `details.cancel()` to cancel the change. The `@reject` event reports rejected files even when none were accepted.
+
+<ComponentExample
+  name="file-input/controlled"
+  caption="Add a file, remove one with its remove button, then try Remove last. The example keeps the files in application state."
+/>
+
+### Validation
+
+Add `validate` for app-specific checks. Return a reason string to reject a file, or `null` to accept it. This runs after the built-in type and size checks. Validate uploads on your server too.
+
+<ComponentExample
+  name="file-input/validate"
+  caption="Add a file, then try another file with the same name. The custom check rejects the duplicate."
+/>
+
+### Announcements
+
+The component announces accepted, removed, and rejected files. Use `announcement` to change the message, or return `null` to skip it.
+
+<ComponentExample
+  name="file-input/announcement"
+  caption="With a screen reader, add and remove images. The announcement includes their names. Try another file type to hear the rejection."
+/>
+
+### Controller
+
+Create a controller with `createFileInputController()` and pass it to `FileInput`. Use it to open the picker, add or remove files, clear the value, or read the files. Open the picker from a user action, such as a button press, so the browser allows it.
+
+<ComponentExample
+  name="file-input/controller"
+  caption="Choose Add a note to create a local text file, then Clear. Open the picker uses the same controller."
+/>
+
+### Outside the Zone
+
+While a file drop zone is mounted, dropping a file outside all zones does not navigate away from the page. Drops onto native file inputs and ordinary text drops keep their behavior.
+
+## Forms
+
+With `name`, the component submits its files through a native file input. A form reset returns to `defaultValue`. The server-rendered file input can submit before hydration. `form` connects a file input to a form elsewhere on the page. Rejected files never submit.
+
+<ComponentExample
+  name="file-input/form"
+  caption="Choose Send to inspect the filenames that would submit. Add or remove files, then Reset to restore the starting file. Nothing is uploaded."
+/>
+
+### Field
+
+Wrap the file input in a [Field](./field) to connect its label, description, and validation message. The trigger becomes the field’s control; pressing the label opens the picker. `required` prevents submission with no file.
+
+<ComponentExample
+  name="file-input/field"
+  caption="Choose Continue with no file to see the required error. Add a scan, submit again, then Reset."
+/>
+
+## Styling
+
+Use `data-dragging`, `data-drag-accept`, and `data-drag-reject` on the drop zone. Drag acceptance reflects the file information the browser exposes before a drop. A Field also adds attributes such as `data-invalid` to the trigger.
+
+<DataAttributes component="file-input" />
+
+## Custom Rendering
+
+Item state exposes `file` and `index` for filenames, sizes, and previews. See [Parts and Composition](../parts-and-composition) for changing the rendered element.
+
+## API Reference
+
+Props are the same as below. `onValueChange` is `@value-change` and `v-model:value`, and `onReject` is
+`@reject`.
+
+### FileInput
+
+<TypeTable path="../../packages/core/src/components/file-input/file-input.ts" name="FileInputOptions" />
+
+### FileInputDropzone
+
+<TypeTable path="../../packages/core/src/components/file-input/file-input.ts" name="FileInputDropzoneProps" />
+
+### FileInputItem
+
+<TypeTable path="../../packages/core/src/components/file-input/file-input.ts" name="FileInputItemProps" />
+
+### State
+
+The root's, the trigger's and the list's state:
+
+<StateTable path="../../packages/core/src/components/file-input/file-input.ts" name="FileInputState" />
+
+A drop zone's:
+
+<StateTable
+  path="../../packages/core/src/components/file-input/file-input.ts"
+  name="FileInputDropzoneState"
+/>
+
+An item's:
+
+<StateTable path="../../packages/core/src/components/file-input/file-input.ts" name="FileInputItemState" />
+
+A remove button's:
+
+<StateTable
+  path="../../packages/core/src/components/file-input/file-input.ts"
+  name="FileInputItemRemoveState"
+/>
+
+### Reasons
+
+<ReasonTable
+  path="../../packages/core/src/components/file-input/file-input.ts"
+  name="FileInputValueChangeReason"
+/>
+
+Rejected files carry one or more of these reasons, or a reason from your `validate`: `file-type`, `file-too-large`, `file-too-small` and `too-many-files`.
+
+### Controller
+
+Create one with `createFileInputController()` and pass it as `controller`.
+
+<ControllerTable
+  path="../../packages/core/src/components/file-input/file-input.ts"
+  name="FileInputController"
+/>
+
+## Accessibility
+
+Keep a trigger available alongside a drop zone for people using a keyboard or screen reader. Changes are announced through a polite live region, and the file list supports keyboard navigation and removal.
+
+<SpecList spec="file-input" />
+
+<SpecList spec="file-input.list" />
+
+<SpecList spec="file-input.a11y" />

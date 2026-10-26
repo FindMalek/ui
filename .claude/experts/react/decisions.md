@@ -1,0 +1,33 @@
+# React expert: decisions
+
+What's already decided about `@ui-sdk/react`, and what's known and open. The expert never re-raises a **Settled** item as a finding.
+
+No review has run in this repository yet: pass `--base` to `scripts/expert-scope.mjs` until the first review adds a `Last reviewed:` line here.
+
+
+## Settled
+
+- **A handle has no `slot` or `present`.** A custom part renders through `usePart` or `renderElement`; the package's own markup uses the internal `slotIn` and `presentIn`.
+- **`render` is the only way to render your own element.** No `as`, no `asChild`.
+- **No `useSyncExternalStore`.** Parts subscribe in effects plus a layout-effect check before paint, so store updates can join a transition. A part that mounted during a store change can render one value behind until that check.
+- **Instances are kept only at commit** (`unwatched`, `keep`, `release` in the kernel). StrictMode's thrown-away initializer and abandoned transitions never register.
+- **`<Activity>` keeps hidden state.** With an element in the page, destroyed once it leaves; without one, once collected (`FinalizationRegistry`).
+- **`React.useLayoutEffect` on the server**, no isomorphic shim: React 19 doesn't warn.
+- **React 19 only** (`react >=19`). No `forwardRef`, refs are props.
+- **Form component dropped.** Don't review or suggest Form; users bring react-hook-form or TanStack Form.
+
+## Known and open (don't report again, check whether fixed)
+
+- **Hidden popup's later siblings**: the hidden-tree bridge tracks the nodes a portal appends when it mounts, so an element a popup's `render` adds beside it later, or a text or SVG node, stays shown in a hidden `<Activity>`.
+- **Api reads in custom parts**: `handle.state` shows the preview, `handle.api` reads committed state.
+- **Split `use-primitive.tsx`** (~920 lines) into previews and lifecycle modules.
+- **Activity without elements**: a removed instance with no element waits for collection to free its behaviors' listeners.
+- **React Compiler bailouts**: `usePrimitive` (`this` in the handle), `usePartState` (memo dependencies), generated parts (hooks in loops), `CalendarGrid`, `SelectValue`.
+- **Wide change types**: Tabs' `onValueChange` passes `string | null`, Checkbox's `boolean | "indeterminate"`.
+- **Controller on two instances**: no dev warning since controllers attach at commit.
+- **Author id in a later Suspense boundary**: an id inside a boundary that hydrates after the parts pointing at it gives a hydration attribute warning. Documented; not fixable while ids are taken at render.
+- **Payload types**: a popup content's payload type is asserted by the user, not tied to the controller's type.
+
+## Revisit
+
+Nothing yet.

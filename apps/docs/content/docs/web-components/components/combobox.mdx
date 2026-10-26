@@ -1,0 +1,578 @@
+---
+title: Combobox
+description: Search a list of options and choose one or several values.
+---
+
+Use a Combobox when people need to find a choice by typing. Start with an input and a list, then add chips, server results, or the option to create something new as you need them.
+
+<ComponentExample
+  name="combobox/demo"
+  caption="Type “sv” to find SvelteKit. Press Down Arrow to highlight it, then Enter to choose it."
+/>
+
+## Installation
+
+```bash
+npm install @ui-sdk/web @ui-sdk/core
+```
+
+Import the element definitions once in your application:
+
+```ts
+import "@ui-sdk/web/combobox"
+```
+
+To use the examples’ Tailwind classes, add the [example theme](../styling-and-animation#example-theme) to your global stylesheet.
+
+The examples use `lucide` for icons. Install it to copy them as shown, or use your own icons.
+
+```bash
+npm install lucide
+```
+
+## Anatomy
+
+Name the input, give each option a unique value, and put the options in a list inside the popup. `ui-combobox-input` wraps a native input. The label names the input; choosing an option puts its label in the input.
+
+```html
+<ui-combobox>
+  <ui-combobox-label>Fruit</ui-combobox-label>
+  <ui-combobox-input><input placeholder="Search fruits" /></ui-combobox-input>
+  <ui-combobox-content>
+    <ui-combobox-list>
+      <ui-combobox-item value="apple">Apple</ui-combobox-item>
+      <ui-combobox-item value="banana">Banana</ui-combobox-item>
+    </ui-combobox-list>
+  </ui-combobox-content>
+</ui-combobox>
+```
+
+Typing filters the options. Arrow keys move the highlight; Enter chooses it and Escape closes the list. Focus usually stays in the input while `aria-activedescendant` identifies the highlighted option. A touch screen-reader trigger can move real focus into the list, and a sheet has its own [focus behavior](#presentation).
+
+## Examples
+
+### Clear Button
+
+`ui-combobox-clear` clears both the selection and the query, then keeps focus in the input. It appears while either has a value. Clearing the text by hand also clears a single selection.
+
+<ComponentExample
+  name="combobox/clear"
+  caption="Choose a framework, then press the clear button. The selection and text clear, and focus stays in the input."
+/>
+
+### Disabled
+
+A disabled combobox cannot be focused or changed and submits nothing. A read-only one remains focusable and submits its value, but does not open or accept changes. A disabled option can be highlighted but not chosen.
+
+<ComponentExample
+  name="combobox/disabled"
+  caption="Try the Disabled and Read-only fields, then open Disabled item. Denmark can be highlighted but cannot be chosen."
+/>
+
+### Auto Highlight
+
+Add `auto-highlight` to highlight the first match while typing, so Enter can choose it immediately.
+
+<ComponentExample
+  name="combobox/auto-highlight"
+  caption="Type “sw” and press Enter. The first matching country is already highlighted."
+/>
+
+### Highlight Matches
+
+`ui-combobox-item-text` marks the matching text. Matching ignores case and accents using the current locale, while the label keeps its original spelling. Its state also exposes segments if you want to render the marks yourself.
+
+<ComponentExample
+  name="combobox/highlight"
+  caption="Type “an”. Matching letters are marked while each country keeps its original spelling."
+/>
+
+### Keywords
+
+Use `keywords` for text that should match without appearing in the label, such as a username or a country’s local name.
+
+<ComponentExample
+  name="combobox/keywords"
+  caption="Type “deutschland”. Germany matches through a keyword even though its displayed label is different."
+/>
+
+### Filter
+
+`filter` accepts `"contains"` (the default), `"startsWith"`, `"fuzzy"`, a function of the item and query, or `false` for results already filtered by a server. Assign a custom function to the `filter` property.
+
+<ComponentExample
+  name="combobox/filter"
+  caption="Type “an” and compare Contains with Starts with. Choose Fuzzy and type “swd” to match Sweden."
+/>
+
+### Groups
+
+Use `ui-combobox-group` and `ui-combobox-group-label` to name groups. Filtering hides empty groups and separators as their items disappear.
+
+<ComponentExample
+  name="combobox/groups"
+  caption="Type “chic”. Chicago remains in Americas; groups with no matches disappear."
+/>
+
+### Recent Items
+
+`emptyItems` supplies suggestions while the query is empty. Pair it with `items` for the full searchable collection. The template renders whichever collection is active.
+
+<ComponentExample
+  name="combobox/recent"
+  caption="Open the empty input to see Recent. Start typing to search all countries; clear the text to return to Recent."
+/>
+
+### Items as Data
+
+You can map an array into parts with your markup and classes, as below. Each item’s `label` supplies the text for filtering and the input; `keywords` and `disabled` work the same as with handwritten items.
+
+<ComponentExample
+  name="combobox/data"
+  caption="Search the fruits or choose one from Citrus. Orange is disabled, and typing “red” finds Cherry through its keyword."
+/>
+
+Pass `items` when the combobox needs the whole collection, such as recent items, server results, or virtualization. Assign it as a property and use a `<template>` to style the generated parts. [Lists and Menus](../lists-and-menus) covers the `ListData` format.
+
+Items can change while the list is open. Selection and highlight stay on their items; removing the highlighted item clears the highlight.
+
+### Custom Items
+
+Show useful context beside a label, such as a username or role. Set `label` explicitly so filtering and the input use the intended text, and put extra search terms in `keywords`.
+
+<ComponentExample
+  name="combobox/custom-items"
+  caption="Search for a person’s name or username. Choose a result to put that person’s name in the input."
+/>
+
+### Icons
+
+`ui-combobox-item-icon` keeps decorative icons out of accessible names, filtering, and match marks. `ui-combobox-value-icon` projects the selected item’s icon next to the input; it takes no children and is only for a single selection.
+
+Wrap the input and icon together, then use that wrapper as the popup’s `anchor`. Add `mirror` for directional icons. An icon-only option still needs an `aria-label`.
+
+<ComponentExample
+  name="combobox/icons"
+  caption="Choose Done. Its icon appears next to the input as well as in the list."
+/>
+
+### Object Values
+
+Use `itemToValue` for an object’s string identity and form value, `itemToLabel` for its displayed text, and `isItemEqualToValue` when two different objects can represent the same option.
+
+<ComponentExample
+  name="combobox/object-values"
+  caption="Choose a reviewer. The displayed selection retains the person’s object, while the form value uses their ID."
+/>
+
+### Multiple
+
+Add `multiple` to make the value an array. Choosing an option toggles it, keeps the list open, and clears the query. Put `ui-combobox-value` and the input inside `ui-combobox-chips`, then render each value as a chip with a removal button.
+
+Backspace in an empty input removes the last chip. Arrow keys move between chips. Supply `itemToLabel` when starting with values whose labels are not yet known from rendered items.
+
+<ComponentExample
+  name="combobox/multiple"
+  caption="Choose several frameworks. Remove one with its chip button, or press Backspace in the empty input to remove the last chip."
+/>
+
+### Select All
+
+`ui-combobox-select-all` toggles every matching, enabled option. Inside a group, it affects only that group. It joins keyboard navigation and reports a mixed state while some of its options are selected.
+
+<ComponentExample
+  name="combobox/select-all"
+  caption="Open the list and choose a group’s select-all option. Type to narrow the matches, then use the main select-all option on those results."
+/>
+
+### Chips That Collapse
+
+Add `ui-combobox-chips-overflow` to keep chips on one line. It measures which chips fit, hides the rest, and exposes their count and labels. Separately, `ui-combobox-value` can use `max` to show a short text summary of the selection.
+
+<ComponentExample
+  name="combobox/chips-overflow"
+  caption="Add or remove countries. Chips that no longer fit are replaced by an overflow count; the summary below lists the first two."
+/>
+
+### Max Selected
+
+`max-selected` limits a multiple selection. Once the limit is reached, other options become disabled; their `maxReached` state explains why.
+
+<ComponentExample
+  name="combobox/max-selected"
+  caption="Choose a third label. Other unselected labels become unavailable until you remove one."
+/>
+
+### Keep Query
+
+Add `keep-query` to a multiple combobox to choose several matches without retyping the query.
+
+<ComponentExample
+  name="combobox/keep-query"
+  caption="Type “d”, then choose Design and Documentation. The query stays in the input between choices."
+/>
+
+### Async Search
+
+Use [async options](../utilities/async-options) to debounce a search and discard stale results. Pass its `items` and `status` to the combobox, set `filter` to `false`, and send query changes to the loader.
+
+`ui-combobox-status` and `ui-combobox-empty` provide loading, error, and empty messages. Without a custom status, the combobox announces the result count once typing pauses.
+
+<ComponentExample
+  name="combobox/async"
+  caption="Replace “the” with another movie title. The status shows the pending search, then the latest results."
+/>
+
+### Load More
+
+The `loadmore` event runs when scrolling or highlighting reaches the last option, once per page and not while a page loads. Connect it to the async loader’s `loadMore()`; return `{ items, hasMore }` from each page.
+
+<ComponentExample
+  name="combobox/infinite"
+  caption="Open the movies and scroll or arrow to the last result. Another page loads while the existing results stay available."
+/>
+
+### Create Option
+
+`ui-combobox-create` offers the query when no label matches it exactly and it meets `min-length`. Handle its `create` event and pass a promise to `event.detail.waitUntil(promise)` for asynchronous work. Creation does not change the selection itself: add the new item and select it after saving.
+
+While saving, the option reports `data-pending` and `aria-busy`. A rejected promise is available through its error state.
+
+<ComponentExample
+  name="combobox/create"
+  caption="Type a new label and choose Create. It becomes a selected chip after saving; a label longer than 20 characters shows an error."
+/>
+
+### Custom Value
+
+Use `allow-custom-value` when suggestions are optional, like a datalist. Unmatched text becomes the value on Enter with nothing highlighted, or when the list closes. This does not create a new item in the collection.
+
+<ComponentExample
+  name="combobox/custom-value"
+  caption="Type a job title that is not suggested, then press Enter without a highlighted option or leave the field. The text becomes the value."
+/>
+
+### Input in the Popup
+
+The input can live inside the popup, opened by a button showing the current value. The button then stays in the tab order. Anchor the content to it, clear the query when opening, and return focus to it after closing, as this example does.
+
+<ComponentExample
+  name="combobox/popup"
+  caption="Press Country to open the search field inside the popup. Choose a country; closing the popup returns focus to the button."
+/>
+
+### Virtualized
+
+Supply `items` so filtering and keyboard navigation know about every option, even when only a few rows render. The list’s `state.items` contains matches, `highlight` reports the row to reveal, and each rendered item’s `index` gives its position in the full list to screen readers.
+
+This example windows 10,000 items. Keep the actual row height aligned with your virtualizer’s measurement, and use the scroller’s visible height when revealing a row.
+
+<ComponentExample
+  name="combobox/virtualized"
+  caption="Search 10,000 items or move through them with the arrow keys. Only the nearby rows render."
+/>
+
+### Invalid
+
+A [Field](./field) supplies the input’s accessible name, description, and error. Submitting this required field without a selection sets `aria-invalid` and `data-invalid`.
+
+<ComponentExample
+  name="combobox/invalid"
+  caption="Press Continue without choosing a country. The error appears and describes the input; choose a country to complete the form."
+/>
+
+### Forms
+
+A combobox submits the selected value under `name`, rather than the query text. Multiple values submit as separate entries. `required` prevents empty submissions, reset restores the default selection and its label, and `form` associates a field outside the form.
+
+The custom element participates in forms once its definition loads. [Forms](../forms) covers the shared integration.
+
+<ComponentExample
+  name="combobox/form"
+  caption="Choose a country and interests, then submit. The result includes their values and the City field outside the form. Reset restores the defaults."
+/>
+
+### Presentation
+
+Use `presentation="sheet"` for a sheet, or `"auto"` to choose a sheet on small touch screens each time the list opens. The input moves into the sheet’s header; there is still one input and one query.
+
+A touch opening leaves the keyboard closed. Tapping the header input opens the keyboard and grows the sheet; closing the keyboard keeps the query. Choosing an item closes the sheet unless `multiple` is set. Swiping down closes it with the reason `swipe`.
+
+Keep the options inside `ui-combobox-list` so the header stays outside the listbox. Give sheet content a height, style it with `data-presentation`, and leave its `translate` for the sheet behavior. `--sheet-backdrop` controls the backdrop. The sheet is modal unless you set `modal` to false; mouse and keyboard openings keep input focus as it moves.
+
+<ComponentExample
+  name="combobox/presentation"
+  caption="Open the field to see a sheet. On touch, tap the search field in its header to bring up the keyboard, or swipe down to close it."
+/>
+
+## State and Popup Options
+
+### Controlled
+
+The selection, text, and popup have separate values:
+
+| Value   | Change notification | Meaning                                        |
+| ------- | ------------------- | ---------------------------------------------- |
+| `value` | `valuechange`       | One value or `null`; an array with `multiple`. |
+| `query` | `querychange`       | The input’s text.                              |
+| `open`  | `openchange`        | Whether the popup is open.                     |
+
+Read or write the element’s properties and listen for these events. Call `preventDefault()` on a change event to reject it. Choosing an item writes its label into the input; closing without choosing restores that label unless custom values are allowed. [State and Events](../state-and-events) covers the binding pattern.
+
+### Controller
+
+Use the element’s `api`. It can read or set the value and query, open or close the list, and focus the input. `open()` resolves when the list closes with its reason and source, including `unmount`; pass an abort signal to close it on cancellation. [Controllers](../controllers) covers lifetime and setup.
+
+### Loop
+
+Arrow keys wrap by default. Set `loop="false"` to stop at the first or last option.
+
+### RTL
+
+The popup aligns to the input’s logical start edge. Setting `dir="rtl"` on an ancestor also reverses arrow-key movement between chips. Use logical spacing, such as `ps-*` and `end-*`, in your styles.
+
+### Positioning
+
+`side` and `align` place the popup around the input or chips. `anchor` can use a different element, and `ui-combobox-arrow` follows the side chosen after collision handling. [Popups](../popups#place-the-content) covers offsets and available space.
+
+### Modal
+
+The page remains usable by default. `modal="pointer"` makes an outside press only dismiss the list; `modal` also locks scrolling and makes the rest of the page inert. These options govern the page outside the popup; input, screen-reader, and sheet focus behavior still applies. See [Modals and Sheets](../popups#modals-and-sheets).
+
+### Container
+
+The popup uses the top layer and renders in place. Use `container` when its DOM belongs elsewhere, such as a shadow root. [Mounting and Containers](../popups#hidden-content-and-containers) covers the shared options.
+
+### Animation
+
+Animate `data-starting-style` and `data-ending-style`; `openchangecomplete` runs after opening or closing finishes. `keep-mounted` keeps closed content hidden in the page, and can keep an item indicator mounted for a selection animation.
+
+### Custom Rendering
+
+Use [Parts and Composition](../parts-and-composition) to change a part’s element or render from its state. The examples keep SDK parts and their styles together; each part’s state is listed [below](#state).
+
+## Styling
+
+Use `data-highlighted` for the active option and `data-selected` for chosen values. Because keyboard highlight usually moves without DOM focus leaving the input, use the content’s `data-modality="keyboard"` to style a keyboard highlight. Real focus can move into the list for touch screen readers or into the sheet.
+
+<DataAttributes component="combobox" />
+
+`--anchor-width` follows the input or chips. `--available-height` does not inherit: when a nested scroller needs it, copy it to a custom property on the content, such as `--list-height: var(--available-height)`, then use that property on the scroller.
+
+<CssVariables component="combobox" />
+
+## API Reference
+
+Props are attributes in kebab case, like `default-value`, `max-selected` and `auto-highlight`: `"false"` is
+false, and numbers are numbers. `filter` takes `contains`, `startsWith` or `false`. `items`,
+`itemToValue`, `itemToLabel` and `isItemEqualToValue` are properties. `container` and `anchor` take CSS
+selectors. Callbacks are DOM events.
+
+### Events
+
+Events fire on their own element and don't bubble, with the new state in `event.detail.value` and the `reason` and `event` beside it. Calling `preventDefault()` on a change event cancels it.
+
+| Member                     | On            | Description                                                          |
+| -------------------------- | ------------- | -------------------------------------------------------------------- |
+| `value` property           | `ui-combobox` | The selected value. Setting it selects, as a controller would        |
+| `query` property           | `ui-combobox` | The input's text                                                     |
+| `open` property, attribute | `ui-combobox` | Whether the list is open. The attribute sets where it starts         |
+| `api` property             | `ui-combobox` | The [controller](#controller-1)                                      |
+| `valuechange` event        | `ui-combobox` | `detail: { value, reason, event, source }`                           |
+| `querychange` event        | `ui-combobox` | `detail: { value: query, reason, event, source }`                    |
+| `openchange` event         | `ui-combobox` | `detail: { value: open, reason, event, source }`                     |
+| `openchangecomplete` event | `ui-combobox` | `detail: { value: open }`, after the animation                       |
+| `highlight` event          | `ui-combobox` | `detail: { value, index, event }`                                    |
+| `loadmore` event           | `ui-combobox` | When the last item is reached                                        |
+| `create` event             | `ui-combobox` | `detail: { value: query, waitUntil(promise) }`, from the create part |
+| `dismissattempt` event     | `ui-combobox` | `detail: { reason, event }`, when a dismissal was refused            |
+
+### Reasons
+
+`event.detail.reason` says why the value changed:
+
+<ReasonTable
+  path="../../packages/core/src/components/combobox/combobox.ts"
+  name="ComboboxValueChangeReason"
+/>
+
+Why the text changed:
+
+<ReasonTable
+  path="../../packages/core/src/components/combobox/combobox.ts"
+  name="ComboboxQueryChangeReason"
+/>
+
+And why the list opened or closed:
+
+<ReasonTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxOpenChangeReason" />
+
+With `dismissible` false, the refused dismissals `dismissattempt` reports:
+
+<ReasonTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxDismissReason" />
+
+### Controller
+
+The element's `api` property has the same methods.
+
+Every write method takes an optional `{ reason, event }`, which the change event carries.
+
+<ControllerTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxController" />
+
+### Combobox
+
+<TypeTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxOptions" />
+
+### ComboboxContent
+
+<TypeTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxContentProps" />
+
+### ComboboxItem
+
+<TypeTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxItemProps" />
+
+### ComboboxItemIndicator
+
+<TypeTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxItemIndicatorProps" />
+
+### ComboboxItemIcon
+
+<TypeTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxItemIconProps" />
+
+`ComboboxValueIcon` takes no props of its own, and no children.
+
+### ComboboxCreate
+
+<TypeTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxCreateProps" />
+
+### ComboboxChip and ComboboxChipRemove
+
+<TypeTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxChipProps" />
+
+### ComboboxClear
+
+<TypeTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxClearProps" />
+
+### ComboboxValue
+
+<TypeTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxValueProps" />
+
+### ComboboxItemText, ComboboxSelectAll and ComboboxChipsOverflow
+
+They take no props of their own. `ComboboxItemText` marks what the text matched in its item's text, `ComboboxSelectAll` covers its group's items, or every item outside a group, and `ComboboxChipsOverflow` turns collapsing on for the chips around it. `announcement` receives `{ type: "results", count, query, loading }` or `{ type: "removed", label }` and returns the words, or `null` for silence. The default is English: "3 results", "No results", "Loading" or "France removed".
+
+### Items as Data
+
+Each item in `items`. Groups are `{ type: "group", label, items }` and separators `{ type: "separator" }`.
+
+<TypeTable path="../../packages/core/src/foundation/lists/listbox.ts" name="ListItem" />
+
+The whole array is a `ListData`, or `ListData<Item>` when values are objects.
+
+### Async Options
+
+[Async Options](../utilities/async-options) has the options, the state and what the loader receives.
+
+### State
+
+The same state shows as data attributes on each element.
+
+`ComboboxInput`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxInputState" />
+
+`ComboboxTrigger`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxTriggerState" />
+
+`ComboboxContent` and `ComboboxList`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxContentState" />
+
+`ComboboxItem`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxItemState" />
+
+`ComboboxItemIndicator`:
+
+<StateTable
+  path="../../packages/core/src/components/combobox/combobox.ts"
+  name="ComboboxItemIndicatorState"
+/>
+
+`ComboboxItemIcon`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxItemIconState" />
+
+`ComboboxCreate`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxCreateState" />
+
+`ComboboxEmpty`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxEmptyState" />
+
+`ComboboxStatus`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxStatusState" />
+
+`ComboboxValue`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxValueState" />
+
+`ComboboxChip`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxChipState" />
+
+`ComboboxClear` and `ComboboxChipRemove`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxClearState" />
+
+`ComboboxArrow`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxArrowState" />
+
+`ComboboxItemText`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxItemTextState" />
+
+`ComboboxSelectAll`:
+
+<StateTable path="../../packages/core/src/components/combobox/combobox.ts" name="ComboboxSelectAllState" />
+
+`ComboboxChipsOverflow`:
+
+<StateTable
+  path="../../packages/core/src/components/combobox/combobox.ts"
+  name="ComboboxChipsOverflowState"
+/>
+
+## Accessibility
+
+The combobox follows the [WAI-ARIA combobox pattern with list autocomplete](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/). Every line below is an automated test.
+
+<SpecList spec="combobox" />
+
+Long lists stay fast and announce their size:
+
+<SpecList spec="combobox.virtual" />
+
+Also tested:
+
+<SpecList spec="combobox.enhancements" />
+
+Rows people rebuild, here and in Select:
+
+<SpecList spec="list.rows" />
+
+Match highlighting, here and in Autocomplete and Command:
+
+<SpecList spec="list.highlight" />
+
+Touch screen readers and announcements:
+
+<SpecList spec="list.touch" />
+
+Screen readers hear the same thing in each tested framework, recorded by a virtual screen reader:
+
+<SpecList spec="combobox.sr" />

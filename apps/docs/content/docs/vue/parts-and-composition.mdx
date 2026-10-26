@@ -1,0 +1,78 @@
+---
+title: Parts and Composition
+description: Put a component's parts together and choose what each one renders.
+---
+
+A component can have several parts. A Popover has a root to hold its state, a trigger to open it, and content to show.
+
+## Put Parts Together
+
+Import the parts you need and nest them as shown in the component's Anatomy:
+
+```vue
+<script setup lang="ts">
+import { Popover, PopoverClose, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/vue/popover"
+</script>
+
+<template>
+  <Popover>
+    <PopoverTrigger>Details</PopoverTrigger>
+    <PopoverContent>
+      <PopoverTitle>Project Details</PopoverTitle>
+      <p>Last updated today.</p>
+      <PopoverClose>Done</PopoverClose>
+    </PopoverContent>
+  </Popover>
+</template>
+```
+
+`Popover` shares state without adding an element. Other roots, such as `Tabs`, do render an element. Parts find their root through the framework's context, so you can put your own components between them.
+
+## Choose the Element
+
+Render a menu item as a link:
+
+```vue
+<script setup lang="ts">
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "@ui-sdk/vue/menu"
+</script>
+
+<template>
+  <Menu>
+    <MenuTrigger>Account</MenuTrigger>
+    <MenuContent>
+      <MenuItem href="/settings">
+        <template #render="{ props }">
+          <a v-bind="props">Settings</a>
+        </template>
+      </MenuItem>
+    </MenuContent>
+  </Menu>
+</template>
+```
+
+The `#render` slot receives the part's `props` and `state`. Bind the props with `v-bind="props"` to keep the part's behavior connected. It also receives `children`, the part's own content, like a slider thumb's range input: render it inside your element with `<component :is="children" />`. A component works too: the part binds to its root element, so give the component one element at its root.
+
+Your event handler runs first. Calling `event.preventDefault()` skips the built-in handler. Keep the supplied roles, IDs, and ARIA state when rendering your own element.
+
+## Read the State
+
+The part can pass its state to its content:
+
+```vue
+<script setup lang="ts">
+import { Toggle } from "@ui-sdk/vue/toggle"
+</script>
+
+<template>
+  <Toggle v-slot="{ state }" aria-label="Mute">{{ state.pressed ? "Mute on" : "Mute off" }}</Toggle>
+</template>
+```
+
+Keep the accessible name stable when the content changes. Here, `aria-label="Mute"` names the toggle and `aria-pressed` reports its state.
+
+## Name the Control
+
+Use the component's label or title part, such as `FieldLabel` or `DialogTitle`. Give controls without visible text an `aria-label`.
+
+[Custom Parts](./custom-parts) covers writing a part with logic of its own.

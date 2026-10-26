@@ -1,0 +1,67 @@
+// What the rest of core may import from kernel's files. import-layers checks every
+// import from another folder against this list. Nothing imports this file, so bundles
+// don't pay for it.
+export { type ActionDetails, announcePending, isPromise, runAction } from "./action"
+export { checkedAttrs, idPart, openAttrs } from "./attrs"
+export { flagWhileBound, keyWhileBound, settleFlag } from "./bound-keys"
+export { changeFrom, log } from "./change"
+export { createController, isControllerAttached } from "./controller"
+export { deriveFromOptions, deriveState } from "./derive"
+export {
+  type ChangeDetails,
+  type ChangeOptions,
+  type ChangeReason,
+  type ChangeSource,
+  type CommitDetails,
+  createDetails,
+  type DismissAttemptDetails,
+  type DismissAttemptReason,
+  type DismissReason,
+  isDismissal,
+  resolveSource,
+  withSource,
+} from "./details"
+export { settleDraft } from "./draft"
+export { elements } from "./elements"
+export { on, selectEvent } from "./events"
+export { createHistory, type HistoryOptions } from "./history"
+export { css } from "./inline-style"
+export { keep, release, unwatched, whenKept } from "./keep"
+export { changeSource, createChange, createCommit, inputSource } from "./input-source"
+export { applyAttrs, direct, live } from "./live"
+export {
+  isFocusFromKeyboard,
+  modalityOf,
+  moveFocus,
+  restoreFocus,
+  sourceOf,
+  trackInput,
+  trackModality,
+} from "./modality"
+export { createOrder, documentOrder, inDocumentOrder, isAfter } from "./order"
+export { aliasReferences, attrs, bind, held, onProps, partState, present, subscribe } from "./part"
+export { definePrimitive, schemaOf } from "./primitive"
+export type {
+  AgentSurface,
+  BaseSlotProps,
+  Named,
+  OptionsOf,
+  Part,
+  Primitive,
+  PrimitiveContext,
+  PrimitiveGeneric,
+  PrimitiveInstance,
+  PrimitiveOptions,
+  PropSchema,
+  PropSpec,
+  ReasonFor,
+  SlotDefinition,
+  SlotFactory,
+  SlotName,
+  WithFeatures,
+  WithGeneric,
+} from "./primitive-types"
+export { select, selects } from "./selects"
+export { sameValue, type Store, subscribeSkipping } from "./store"
+export { trusted, trustSent } from "./trusted"
+export { watchEarlier, watchers } from "./watchers"

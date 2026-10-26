@@ -1,0 +1,58 @@
+@import "tailwindcss";
+@source "./";
+
+/* Keyframes that read the measured height, like most accordion examples. */
+@keyframes ks-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--accordion-panel-height);
+  }
+}
+
+@keyframes ks-up {
+  from {
+    height: var(--accordion-panel-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+.ks-keyframes[data-open] {
+  animation: ks-down 300ms ease-out;
+}
+
+.ks-keyframes[data-closed] {
+  animation: ks-up 300ms ease-out;
+}
+
+/* The shared fixture styles size every accordion for the specs, and their
+   unlayered rules beat Tailwind's layers. These parts take their classes instead. */
+#root [data-slot="accordion-root"] {
+  display: revert-layer;
+  flex-direction: revert-layer;
+  min-width: revert-layer;
+}
+
+#root [data-slot="accordion-header"] {
+  margin: revert-layer;
+  font-size: revert-layer;
+}
+
+#root [data-slot="accordion-trigger"] {
+  display: revert-layer;
+  width: revert-layer;
+  padding: revert-layer;
+  border: revert-layer;
+  background: revert-layer;
+  font: revert-layer;
+  text-align: revert-layer;
+  color: revert-layer;
+}
+
+#root [data-slot="accordion-panel"] {
+  height: revert-layer;
+  overflow: revert-layer;
+}

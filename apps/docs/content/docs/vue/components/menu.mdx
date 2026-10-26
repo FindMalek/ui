@@ -1,0 +1,415 @@
+---
+title: Menu
+description: Choose actions and settings from a button or a context menu.
+---
+
+Start with a trigger and a few actions. Add groups, checkboxes, radio choices, or submenus as the task grows. The menu handles focus, arrow keys, typeahead, and dismissal.
+
+<ComponentExample
+  name="menu/basic"
+  caption="Open Project and choose an item. The menu closes and the readout shows its value. You can also use the arrow keys and Enter."
+/>
+
+## Installation
+
+```package-install
+npm install @ui-sdk/vue
+```
+
+The examples use the shared [example theme](../styling-and-animation#example-theme).
+
+## Anatomy
+
+```vue
+<script setup lang="ts">
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "@ui-sdk/vue/menu"
+</script>
+
+<template>
+  <Menu>
+    <MenuTrigger>Actions</MenuTrigger>
+    <MenuContent>
+      <MenuItem value="rename">Rename</MenuItem>
+      <MenuItem value="duplicate">Duplicate</MenuItem>
+    </MenuContent>
+  </Menu>
+</template>
+```
+
+Give items a `value` and handle `@action` on the menu to run the selected command. A Group and GroupLabel can organize related actions; a Separator divides them without becoming a focus stop.
+
+## Examples
+
+### Submenus
+
+Nest a Sub, SubTrigger, and SubContent to add another level. Hover or press the arrow key toward a submenu to open it. The menu lets a pointer travel diagonally into the submenu without accidentally choosing an item it passes over.
+
+<ComponentExample
+  name="menu/submenu"
+  caption="Open Edit, then Find or Transform. Use the arrows to enter and leave each level; choosing an action closes the menu tree."
+/>
+
+### Shortcuts
+
+An item’s `shortcut` displays a platform-specific hint and sets `aria-keyshortcuts`. `mod+s` reads as Command+S on Apple platforms and Control+S elsewhere.
+
+In markup, this is a hint: your app owns the key handler. [Data menus](#menus-as-data) also register their shortcuts while closed. Letters and digits match physical keys, including combinations such as Option+N.
+
+<ComponentExample
+  name="menu/shortcuts"
+  caption="Open File to see shortcut hints for your platform. Choose an item to report its action; this markup example does not register global shortcuts."
+/>
+
+### Icons
+
+Put decorative icons in ItemIcon so screen readers and typeahead ignore them. `mirror` flips a directional icon in right-to-left text. An icon-only item still needs an `aria-label`.
+
+`data-has-icon` on items and `data-has-icons` on the menu let text line up when only some items have icons.
+
+<ComponentExample
+  name="menu/icons"
+  caption="Open Share and type an item’s name. The icons do not become part of the typeahead text; Embed lines up with the items that have icons."
+/>
+
+### Checkboxes
+
+<span id="checkbox-icons" />
+
+Checkbox items toggle independently and stay open by default. Use `v-model:checked`, or `default-checked` for an uncontrolled item. An ItemIndicator renders the check; `keepMounted` preserves its space while unchecked. Style `data-checked` and `data-unchecked` for each state.
+
+<ComponentExample
+  name="menu/checkboxes"
+  caption="Open View and toggle Status bar or Minimap. The menu stays open so you can change several settings, and the readout follows the controlled items."
+/>
+
+### Radio Group
+
+<span id="radio-icons" />
+
+Radio items choose one value in their group and stay open by default. Use `v-model:value`, or `default-value` for an uncontrolled group. Give the group a `name` when it should identify itself in the menu’s value-change callback.
+
+<ComponentExample
+  name="menu/radio-group"
+  caption="Open Panel and choose its position. Only one item in each group is checked; the position readout updates while the menu remains open."
+/>
+
+### Account Switcher
+
+<span id="avatar" />
+
+A radio group can also switch accounts. These items set `closeOnSelect` so choosing an account finishes the task. The trigger’s accessible name stays Account while its initials reflect the current account.
+
+<ComponentExample
+  name="menu/avatar"
+  caption="Open Account and switch between the personal and studio accounts. The menu closes and the trigger shows the selected account’s initials."
+/>
+
+### Application Menu
+
+<span id="complex" />
+<span id="destructive" />
+
+Combine the same parts for a workspace menu: actions, an independent sidebar setting, and submenus for invitations and a theme choice. `destructive` adds `data-destructive` for apps that distinguish irreversible actions; these examples keep one neutral appearance.
+
+<ComponentExample
+  name="menu/complex"
+  caption="Open Workspace, toggle the sidebar, choose a theme in its submenu, or run an action. Checkbox and radio choices stay open; ordinary actions close the menu."
+/>
+
+### Context Menu
+
+A ContextTrigger opens at a right-click or long press. Give the area a tab stop so Shift+F10 and the context-menu key can open it from the keyboard. Right-clicking elsewhere in the same area repositions an open menu.
+
+Set `disabled` to leave that area’s native browser menu available. Context triggers can pass a payload too.
+
+<ComponentExample
+  name="menu/context-menu"
+  caption="Right-click or long-press the area, or focus it and press Shift+F10. Choose an action to see its value."
+/>
+
+## Behavior and Options
+
+### Placement
+
+<span id="right-to-left" />
+
+`side` and `align` choose the starting position. The menu flips or shifts when it does not fit; `data-side` reports where it ended up. Logical alignment and submenu keys follow the surrounding text direction. See the shared [popup guide](../popups) for the positioning contract.
+
+<ComponentExample
+  name="menu/placement"
+  caption="Choose a side and alignment, then open Placement. Move near a window edge to see the menu adjust when the requested position does not fit."
+/>
+
+### Offsets and Collision Padding
+
+`sideOffset` sets the gap, `alignOffset` shifts along the anchor, and `collisionPadding` leaves room around the viewport. This font picker also uses `--anchor-width` to match its trigger and `--available-height` to scroll a long list.
+
+<ComponentExample
+  name="menu/offsets"
+  caption="Open the font picker and scroll its options. Choose a font to update the trigger; the menu’s width and available height follow its anchor and viewport."
+/>
+
+### Modal
+
+The default `modal="pointer"` consumes an outside press while closing the menu. `true` also locks scrolling and makes the page inert. `false` lets the outside press reach its target after closing.
+
+<ComponentExample
+  name="menu/modal"
+  caption="Open each menu, then press the counter. Non-modal lets that same press increment it; the other modes consume the press."
+/>
+
+### Submenu Delay
+
+`delay` is the hover wait in milliseconds, 100 by default. It applies to the submenus directly inside that menu. Set it on a Sub to change the delay for the next level.
+
+<ComponentExample
+  name="menu/hover-delay"
+  caption="Open Instant, Default, or Slow and hover Open recent or Share. Keyboard navigation opens a submenu without waiting for the hover delay."
+/>
+
+### Keyboard Navigation
+
+Arrow keys wrap by default; `loop` false stops at the ends. Typing finds an item by name. If an item has extra descriptive text, set `label` to the text typeahead should match. `label` does not replace its accessible name; use `aria-label` for that.
+
+<ComponentExample
+  name="menu/keyboard"
+  caption="Open the status menu and use Up or Down to reach either end without wrapping. Type a status name to jump to it, then press Enter to choose it."
+/>
+
+### Disabled Items
+
+Disabled items remain focusable so people can discover them, but cannot run or open a submenu. A disabled Trigger is a native disabled button and cannot receive focus.
+
+<ComponentExample
+  name="menu/disabled"
+  caption="Open Document and move through its items with the arrow keys. Disabled actions remain discoverable but cannot run; Locked cannot open a menu."
+/>
+
+### Keeping the Menu Open
+
+Plain items close when selected; checkbox and radio items stay open. `closeOnSelect` changes either default. A selection handler can also prevent the default event to keep it open for one action.
+
+<ComponentExample
+  name="menu/close-on-select"
+  caption="Open the zoom menu and press Zoom in or Zoom out repeatedly. Reset closes it, and Fit to window is a checkbox that also closes after selection."
+/>
+
+### Container
+
+Menus render in place and use the top layer. `container` moves the popup to another element; submenus remain inside their parent popup. Pass the actual element after it exists, as the [popup guide](../popups) explains.
+
+<ComponentExample
+  name="menu/container"
+  caption="Open the menu in its chosen container and choose an action, or press Escape to close it."
+/>
+
+### Animation
+
+The menu stays mounted through an exit animation. `data-starting-style`, `data-ending-style`, `data-side`, and `--transform-origin` describe the transition. `keepMounted` leaves the closed content hidden afterward; `onOpenChangeComplete` reports when it finishes.
+
+<ComponentExample
+  name="menu/animation"
+  caption="Open Animated, then its More tools submenu. Close them and watch the readout move from Opening or Closing to the completed state."
+/>
+
+### Presentation
+
+`presentation="auto"` uses a sheet on small touch screens and a popover elsewhere; `"sheet"` always requests a sheet. The sheet keeps menu roles and keys. Submenus replace the current level, and Escape or the arrow toward the parent goes back. Context menus and menus in a menubar remain popovers.
+
+Use `data-presentation` or the content’s `presentation` state for the two layouts. Leave a sheet’s translation to the SDK. `--sheet-backdrop` sets its dimming color, and the sheet is modal unless `modal` is false. The [popup guide](../popups) covers shared presentation behavior.
+
+<ComponentExample
+  name="menu/presentation"
+  caption="Open Options as a sheet, enter Move to, then go back or choose a destination. You can drag downward to dismiss the sheet."
+/>
+
+### Controlled
+
+Use `v-model:open`. A change carries a reason, and `details.cancel()` can refuse it. A controller can open the menu from another control; see [state and events](../state-and-events) and [controllers](../controllers) for that shared pattern.
+
+<ComponentExample
+  name="menu/controlled"
+  caption="Open Actions directly, with state, or with the controller. The readout shows whether it is open and what caused the last change."
+/>
+
+### Triggers Outside the Menu
+
+Connect external triggers and one menu to a `createMenuController<File>()`. Each trigger passes its row as `payload`, which the content reads from its state. Only the active trigger is expanded and receives focus back. Code can also open with a `payload` and `anchor`; the Promise resolves when the menu closes.
+
+<ComponentExample
+  name="menu/payload"
+  caption="Open the actions for different files. One menu shows the active row; opening from code uses the same payload and reports the closing reason."
+/>
+
+### Menus as Data
+
+`items` accepts `MenuData`: actions, groups, checkboxes, radio groups, and submenus. A string is shorthand for an item whose label and value match. Data menus register their shortcuts even while closed; set `shortcuts` false to disable that.
+
+`@checked-change` reports the checkbox’s value in `details.value`; `@value-change` reports the radio group’s name in `details.group`. Either change can be canceled. This example renders its own styled parts from the same data while `items` keeps the shortcuts registered. The [lists and menus guide](../lists-and-menus) covers the data shape.
+
+<ComponentExample
+  name="menu/data"
+  caption="Open File and try actions, checkboxes, a radio group, and the Share submenu. Close it and press the Open shortcut; the same action still runs."
+/>
+
+### Links and Custom Rendering
+
+Render an item as a native link using the shared [composition API](../parts-and-composition). Enter follows the link like a click, preserving its target and modifier-key behavior. The example reserves the arrow’s space so highlighting does not move the label.
+
+<ComponentExample
+  name="menu/links"
+  caption="Open Links and choose a section with the keyboard or pointer. Each item is a native anchor and moves to that heading on this page."
+/>
+
+## Styling
+
+<DataAttributes />
+
+<CssVariables />
+
+Use `data-highlighted` for the active item, `data-disabled` for unavailable actions, and `data-checked` for selected settings. Popup sizing and motion hooks are shared with the [styling guide](../styling-and-animation).
+
+## Custom Rendering
+
+See [Links and Custom Rendering](#links-and-custom-rendering) for a native-link example. The shared [composition guide](../parts-and-composition) covers element replacement and state-based rendering.
+
+## API Reference
+
+Props are the same as below, and callbacks are events.
+
+### Events
+
+Events get the new state first, then the details. `v-model` only updates when the change event wasn't canceled.
+
+| Binding                 | On                 | Receives                                                                       |
+| ----------------------- | ------------------ | ------------------------------------------------------------------------------ |
+| `v-model:open`          | `Menu`             | Whether the menu is open                                                       |
+| `@open-change`          | `Menu`             | `(open, details)`: the new state, and the [reason](#reasons)                   |
+| `@open-change-complete` | `Menu`             | `(open)`, after the animation                                                  |
+| `@payload-change`       | `Menu`             | `(payload, details)`: the content's new payload, and the [reason](#reasons)    |
+| `@action`               | `Menu`             | `(value, { event })` for every plain item, including items in submenus         |
+| `@checked-change`       | `Menu`             | `(checked, details)`, with the item's value in `details.value`. For data menus |
+| `@value-change`         | `Menu`             | `(value, details)`, with the group's name in `details.group`. For data menus   |
+| `@dismiss-attempt`      | `Menu`             | `({ reason, event })`, when a dismissal was refused                            |
+| `@select`               | `MenuItem`         | `(event)`, before the menu closes. `event.preventDefault()` keeps it open      |
+| `v-model:checked`       | `MenuCheckboxItem` | Whether the item is checked. `@checked-change` has the details                 |
+| `v-model:value`         | `MenuRadioGroup`   | The selected value. `@value-change` has the details                            |
+
+### Reasons
+
+`details.reason` says why the menu or a submenu opened or closed.
+
+<ReasonTable path="../../packages/core/src/components/menu/menu.ts" name="MenuOpenChangeReason" />
+
+For a payload change, it says what opened the menu or took it over.
+
+<ReasonTable path="../../packages/core/src/components/menu/menu.ts" name="MenuPayloadChangeReason" />
+
+With `dismissible` false, the refused dismissals `@dismiss-attempt` reports:
+
+<ReasonTable path="../../packages/core/src/components/menu/menu.ts" name="MenuDismissReason" />
+
+Checkbox items report why they toggled, in `@checked-change`:
+
+<ReasonTable path="../../packages/core/src/components/menu/menu.ts" name="MenuCheckedChangeReason" />
+
+Radio groups report why their value changed, in `@value-change`:
+
+<ReasonTable path="../../packages/core/src/components/menu/menu.ts" name="MenuValueChangeReason" />
+
+### Controller
+
+Create one with `createMenuController<Payload>()` and pass it as `controller`, to the menu and to any
+triggers outside it. `Payload` is the type of the data triggers and `open()` pass.
+
+Every write method takes an optional `{ reason, event }`, passed to `@open-change`. `open()` also takes `focus`: `"first"`, `"last"`, `"popup"` or `"none"`.
+
+<ControllerTable path="../../packages/core/src/components/menu/menu.ts" name="MenuController" />
+
+### Menu
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuOptions" />
+
+### MenuTrigger
+
+A trigger outside the menu also takes `controller`.
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuTriggerProps" />
+
+### MenuContextTrigger
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuContextTriggerProps" />
+
+### MenuContent
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuContentProps" />
+
+### MenuItem
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuItemProps" />
+
+### MenuCheckboxItem
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuCheckboxItemProps" />
+
+### MenuRadioGroup
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuRadioGroupProps" />
+
+### MenuRadioItem
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuRadioItemProps" />
+
+### MenuItemIndicator
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuItemIndicatorProps" />
+
+### MenuItemIcon
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuItemIconProps" />
+
+### MenuSubTrigger
+
+<TypeTable path="../../packages/core/src/components/menu/menu.ts" name="MenuSubTriggerProps" />
+
+### State
+
+What render functions, state-based class names and slots receive, per part.
+
+`MenuTrigger`, `MenuContextTrigger` and `MenuSubTrigger`:
+
+<StateTable path="../../packages/core/src/components/menu/menu.ts" name="MenuTriggerState" />
+
+`MenuContent`:
+
+<StateTable path="../../packages/core/src/components/menu/menu.ts" name="MenuContentState" />
+
+`MenuItem`:
+
+<StateTable path="../../packages/core/src/components/menu/menu.ts" name="MenuItemState" />
+
+`MenuCheckboxItem` and `MenuRadioItem`:
+
+<StateTable path="../../packages/core/src/components/menu/menu.ts" name="MenuCheckboxItemState" />
+
+`MenuRadioGroup`:
+
+<StateTable path="../../packages/core/src/components/menu/menu.ts" name="MenuRadioGroupState" />
+
+`MenuItemIndicator`:
+
+<StateTable path="../../packages/core/src/components/menu/menu.ts" name="MenuItemIndicatorState" />
+
+`MenuItemIcon`:
+
+<StateTable path="../../packages/core/src/components/menu/menu.ts" name="MenuItemIconState" />
+
+## Accessibility
+
+The menu follows the [WAI-ARIA menu button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/menu-button/). Every line below is an automated test.
+
+<SpecList spec="menu" only={["trigger", "keyboard navigation", "activation", "dismissal", "submenu"]} />
+
+Screen readers hear the same thing in each tested framework, recorded by a virtual screen reader:
+
+<SpecList spec="menu.sr" />

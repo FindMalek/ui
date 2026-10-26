@@ -1,0 +1,194 @@
+---
+title: Token Input
+description: Mix editable text with tokens for files, people, tags, and other references.
+---
+
+<ComponentExample
+  name="token-input/demo"
+  caption="Type @ and choose a file with the arrow keys and Enter. Press Backspace after a token to remove it."
+/>
+
+## Token Input or Trigger Menu
+
+Token Input holds the text and tokens. [Trigger Menu](./trigger-menu) suggests what to insert when someone types `@`, `/`, or another trigger.
+
+Use Token Input on its own when your code supplies the tokens. Add a Trigger Menu for suggestions, as in the demo above. Trigger Menu also works with ordinary inputs and textareas.
+
+## Installation
+
+```bash
+pnpm add @ui-sdk/react @ui-sdk/core
+```
+
+<span id="anatomy" />
+
+## Usage
+
+A value is an array of text and tokens. Each token has a type, a value for your app, and a label for the reader:
+
+```tsx
+import { TokenInput, TokenInputEditor, type TokenInputValue } from "@ui-sdk/react/token-input"
+
+const draft: TokenInputValue = ["Explain ", { type: "file", value: "src/routes.ts", label: "routes.ts" }]
+
+function Prompt() {
+  return (
+    <TokenInput defaultValue={draft}>
+      <TokenInputEditor aria-label="Prompt" />
+    </TokenInput>
+  )
+}
+
+export { Prompt }
+```
+
+The editor manages its content, including tokens, selection, and undo. Let it render that content; use the token renderer when you want custom markup for a token. Use `renderToken` with `TokenInputToken` and `TokenInputTokenRemove`.
+
+## Examples
+
+### Prompt Input
+
+Combine file suggestions, skills, and a send action. This example marks files as pending while they load, then uses `updateToken()` to show a skill running. Enter sends; Shift+Enter adds a line. An open suggestion menu or an active input method takes precedence over sending.
+
+<ComponentExample
+  name="token-input/prompt-input"
+  caption="Type @ for files or / at the start for skills. For /search, enter a query and press Enter to insert the command. Press Enter again to send."
+/>
+
+### Deleting Tokens
+
+Choose what Backspace does at a token with `tokenDeletion`:
+
+- `whole` removes the token in one press.
+- `select` selects it first, then removes it on the next press.
+- `revert` turns it back into editable text.
+
+<ComponentExample
+  name="token-input/deletion"
+  caption="Choose a Backspace behavior, place the caret just after routes.ts, and press Backspace. Undo to try another mode."
+/>
+
+### Codec
+
+A codec converts tokens to text for the clipboard, forms, and saved drafts. The default writes `[@label](type:value)`. Copy that text into another app and paste it back to restore the token.
+
+Use `toText`, `fromText`, and `toLabel` to convert values yourself. Supply a custom codec for another format, as this example does for `<@ada>`. The default parser accepts letters, digits, `_`, and `-` in token types; other types need a custom codec.
+
+<ComponentExample
+  name="token-input/codec"
+  caption="Edit the message to compare its custom format, default format, and readable label below."
+/>
+
+### Form
+
+Give the input a `name` to submit its serialized text. `required`, `disabled`, and `readOnly` control form behavior. The `form` option associates it with a form elsewhere on the page, as shown here.
+
+<ComponentExample
+  name="token-input/form"
+  caption="Edit the prompt and submit to see its serialized value. Try Disabled and Read-only, then Reset."
+/>
+
+### Controlled
+
+Pass `value` and update it in `onValueChange`. The change details include the reason, input type, and removed tokens. The input still manages its editing history.
+
+<ComponentExample
+  name="token-input/controlled"
+  caption="Type, add a file with @, or remove a token. The text below shows the change reason and current value."
+/>
+
+### Controller
+
+Use `createTokenInputController()` to insert, update, or remove tokens from code. Pass a promise as `resolve` to mark an inserted token as pending until its data is ready.
+
+<ComponentExample
+  name="token-input/controller"
+  caption="Attach a file, rename or remove the first token, and use Undo or Clear to change the value from code."
+/>
+
+### Submit Shortcut
+
+Set `submitShortcut` to `mod+enter` for a multiline message. Enter then inserts a line, and Command or Control+Enter submits.
+
+<ComponentExample
+  name="token-input/submit-shortcut"
+  caption="Write a message. Enter adds a line; Command+Enter on a Mac or Control+Enter elsewhere sends it."
+/>
+
+## Editing
+
+Tokens are edited as a unit: the caret never stops inside one. Typing keeps the browser's spelling, autocorrect, and input-method support. Undo and redo belong to this input; typing is grouped, while pastes and token changes create their own history steps. Updating a token's status does not add a step.
+
+The remove part is a pointer shortcut. Keep its default non-focusable element; keyboard users remove tokens with Backspace. Token labels, types, and changes are announced to screen readers.
+
+## Styling
+
+The demos use the shared [example theme](../styling-and-animation#example-theme). Apply Tailwind classes directly to the editor and token parts. Token hosts expose `data-token-type`, `data-pending`, `data-unresolved`, and `data-selected`, even without a custom token renderer.
+
+<DataAttributes component="token-input" />
+
+## API Reference
+
+### Callbacks
+
+Callbacks get the new state first, then the details.
+
+| Prop            | On           | Receives                                                                         |
+| --------------- | ------------ | -------------------------------------------------------------------------------- |
+| `onValueChange` | `TokenInput` | `(value, details)`: the value, the [reason](#reasons), `inputType` and `removed` |
+| `onSubmit`      | `TokenInput` | `(value)`, on the submit shortcut                                                |
+
+### Reasons
+
+<ReasonTable
+  path="../../packages/core/src/components/token-input/token-input.ts"
+  name="TokenInputValueChangeReason"
+/>
+
+### Controller
+
+<ControllerTable
+  path="../../packages/core/src/components/token-input/token-input.ts"
+  name="TokenInputController"
+/>
+
+### TokenInput
+
+<TypeTable path="../../packages/core/src/components/token-input/token-input.ts" name="TokenInputOptions" />
+
+### TokenInputEditor
+
+<TypeTable
+  path="../../packages/core/src/components/token-input/token-input.ts"
+  name="TokenInputEditorProps"
+/>
+
+### Token
+
+<TypeTable path="../../packages/core/src/foundation/text/text-editor.ts" name="Token" />
+
+### Codec
+
+<TypeTable path="../../packages/core/src/components/token-input/token-input-model.ts" name="TokenCodec" />
+
+### State
+
+`TokenInputEditor`:
+
+<StateTable
+  path="../../packages/core/src/components/token-input/token-input.ts"
+  name="TokenInputEditorState"
+/>
+
+`TokenInputToken`:
+
+<StateTable
+  path="../../packages/core/src/components/token-input/token-input.ts"
+  name="TokenInputTokenState"
+/>
+
+## Accessibility
+
+The tests cover token editing, keyboard input, clipboard handling, and announcements.
+
+<SpecList spec="token-input" />

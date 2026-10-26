@@ -1,0 +1,25 @@
+name: Weekly
+
+on:
+  schedule:
+    # Sundays at 03:00 UTC, on the default branch. Pushes to main run Chromium
+    # and the nightly run WebKit and Firefox, so the full suite runs weekly.
+    - cron: "0 3 * * 0"
+  workflow_dispatch:
+
+# A manual run replaces one in progress. The CI workflow it calls has its own group.
+concurrency:
+  group: weekly-run-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # Typecheck, unit tests, every Playwright shard and the docs tests. Retries are
+  # on in CI, so a test that passes on retry counts as flaky, not failed: the
+  # Playwright report job lists it in its summary and annotates it with a warning.
+  suite:
+    name: Full suite
+    uses: ./.github/workflows/ci.yml
+

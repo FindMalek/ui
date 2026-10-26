@@ -1,0 +1,96 @@
+---
+title: State and Events
+description: Set an initial value, control it, and respond to changes.
+---
+
+Components manage their own state unless you pass a controlled value. A change callback lets you respond in either case.
+
+## Set the Starting Value
+
+Use a default prop to choose the starting state. Here, Bold starts pressed and changes when you click it:
+
+```tsx
+import { Toggle } from "@ui-sdk/solid/toggle"
+
+function Example() {
+  return <Toggle defaultPressed>Bold</Toggle>
+}
+
+export { Example }
+```
+
+The prop depends on the component: `defaultPressed`, `defaultChecked`, `defaultOpen`, or `defaultValue`.
+
+## Control the Value
+
+Read a signal in the prop and update it in the change callback:
+
+```tsx
+import { Toggle } from "@ui-sdk/solid/toggle"
+import { createSignal } from "solid-js"
+
+function Example() {
+  const [pressed, setPressed] = createSignal(false)
+
+  return (
+    <>
+      <Toggle pressed={pressed()} onPressedChange={setPressed}>
+        Bold
+      </Toggle>
+      <output>{pressed() ? "On" : "Off"}</output>
+    </>
+  )
+}
+
+export { Example }
+```
+
+Clicking Bold changes both the button and the output. If the callback does not update the signal, the toggle keeps its current value.
+
+Other components use `open` and `onOpenChange`, or `value` and `onValueChange`. Keep signal and prop reads reactive; read them in JSX or a getter rather than saving their current value in a variable.
+
+## Respond to a Change
+
+Callbacks such as `onPressedChange` receive the requested value and `details`.
+
+| Detail     | What It Tells You                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------ |
+| `reason`   | What requested the change, such as `press` or `outside-press`. Each component lists its reasons. |
+| `event`    | The DOM event, when there is one.                                                                |
+| `source`   | `keyboard`, `mouse`, `touch`, `pen`, `virtual`, `programmatic`, or `agent`.                      |
+| `cancel()` | Stops the requested change.                                                                      |
+
+For example, keep a popover open when someone clicks outside it:
+
+```tsx
+import { Popover, PopoverClose, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/solid/popover"
+
+function Example() {
+  function keepOpen(open: boolean, details: { reason: string; cancel: () => void }) {
+    if (!open && details.reason === "outside-press") {
+      details.cancel()
+    }
+  }
+
+  return (
+    <Popover onOpenChange={keepOpen}>
+      <PopoverTrigger>Details</PopoverTrigger>
+      <PopoverContent>
+        <PopoverTitle>Project Details</PopoverTitle>
+        <p>Last updated today.</p>
+        <PopoverClose>Done</PopoverClose>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+export { Example }
+```
+
+The Done button still closes it. Cancellation also works when you control the value. Add `debug` to a root to log changes while you work.
+
+## Empty and Multiple Values
+
+Select, Tabs, and Radio Group report `null` when nothing is selected. A multiple Select or Combobox uses an array. Accordion and Toggle Group always use arrays.
+
+To change a component from outside its parts, use a [Controller](./controllers).

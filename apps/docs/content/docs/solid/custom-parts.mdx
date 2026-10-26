@@ -1,0 +1,63 @@
+---
+title: Custom Parts
+description: Write a part with its own Solid logic and connect it to a primitive.
+---
+
+The parts from [Rendering Primitives](./rendering) are enough until one needs its own logic. You can replace just that part and keep the same `rating.ts` definition from [Compose Behaviors](../core/compose-behaviors#complete-primitive).
+
+## Write a Part by Hand
+
+Here's a replacement for the generated `RatingRoot`. `usePrimitive` creates its instance, and `usePart` connects the `root` slot:
+
+```tsx title="rating-root.tsx"
+import type { StateOf } from "@ui-sdk/core"
+import { usePart, usePrimitive, type PartProps } from "@ui-sdk/solid/primitive"
+import { omit } from "solid-js"
+import { rating, type RatingOptions } from "./rating"
+
+function RatingRoot(
+  props: RatingOptions & Omit<PartProps<"div", StateOf<typeof rating, "root">>, "defaultValue">,
+) {
+  const handle = usePrimitive(rating, () => ({
+    value: props.value,
+    defaultValue: props.defaultValue,
+    onValueChange: props.onValueChange,
+  }))
+  const rest = omit(props, "value", "defaultValue", "onValueChange")
+  return usePart(handle, "root", undefined, rest, "div")
+}
+
+export { RatingRoot }
+```
+
+Read options through a getter so they follow prop changes. `omit` keeps the remaining props reactive; destructuring would lose that connection.
+
+`usePart` renders the slot, or nothing when it isn't present, and shares the instance with the parts inside. The instance is destroyed when its owner is disposed.
+
+## Connect a Child Part
+
+Pass the primitive itself to `usePart` to find the instance shared by the root above it. This `RatingStar` works inside the manual root above or the generated `RatingRoot`:
+
+```tsx
+import { usePart, type PartProps } from "@ui-sdk/solid/primitive"
+import { omit } from "solid-js"
+import { rating } from "./rating"
+
+function RatingStar(props: { value: string } & Omit<PartProps<"button">, "value">) {
+  return usePart(rating, "star", () => ({ value: props.value }), omit(props, "value"), "button")
+}
+
+export { RatingStar }
+```
+
+Use it in place of the generated star in [Render the Rating](./rendering#render-the-rating). The `value` getter identifies the star; the remaining props go to its button. Keep it inside `RatingRoot` and give it an `aria-label`.
+
+## Merge Props
+
+`usePart` merges your props with the slot's. Slot attributes win, styles and refs combine, and your event handlers run first. Call `preventDefault()` in your handler to skip the built-in behavior.
+
+A `render` function receives the merged props and the part's state. Spread those props onto your element. Use `merge` and `omit` from `solid-js` when adding or removing props so their values stay reactive.
+
+## Compose a Popup
+
+A custom component can also use an existing Popover or Dialog. [Compose Ours](../core/behaviors/popups#compose-ours) shows that connection with an emoji picker.

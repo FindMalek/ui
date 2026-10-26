@@ -1,0 +1,66 @@
+---
+title: Custom Parts
+description: Write a part with its own Svelte logic and connect it to a primitive.
+---
+
+The parts from [Rendering Primitives](./rendering) are enough until one needs its own logic. You can replace just that part and keep the same `rating.ts` definition from [Compose Behaviors](../core/compose-behaviors#complete-primitive).
+
+## Write a Part by Hand
+
+Here's a replacement for the generated `RatingRoot`. `usePrimitive` creates its instance, and `usePart` connects the `root` slot:
+
+```svelte title="rating-root.svelte"
+<script lang="ts">
+  import type { StateOf } from "@ui-sdk/core"
+  import { Part, usePart, usePrimitive, type PartProps } from "@ui-sdk/svelte/primitive"
+  import { setContext } from "svelte"
+  import { rating, type RatingOptions } from "./rating"
+
+  let { value, defaultValue, onValueChange, ...props }: RatingOptions &
+    Omit<PartProps<"div", StateOf<typeof rating, "root">>, "defaultValue"> = $props()
+  const id = $props.id()
+  const handle = usePrimitive(rating, () => ({ id, value, defaultValue, onValueChange }))
+  setContext(rating, handle)
+  const root = usePart(handle, "root")
+</script>
+
+{#if root.present}
+  <Part tag="div" part={root} {props} />
+{/if}
+```
+
+Pass options through a getter so they follow prop changes. `$props.id()` gives the instance a stable ID across server rendering and hydration. This manual root accepts `value` and `onValueChange`; it doesn't add a `bind:value` contract.
+
+`setContext(rating, handle)` makes the instance available to child parts. A generated `createParts` root does this for you. `usePart` connects the slot, and `Part` renders it with the caller's `render` and `children` snippets. The instance is destroyed on unmount.
+
+Keep the `{#if root.present}` check: `Part` doesn't hide or remove itself when a slot isn't present.
+
+## Connect a Child Part
+
+Pass the primitive itself to `usePart` to find the instance shared by the root above it. This `RatingStar` works inside the manual root above or the generated `RatingRoot`:
+
+```svelte title="rating-star.svelte"
+<script lang="ts">
+  import { Part, usePart, type PartProps } from "@ui-sdk/svelte/primitive"
+  import { rating } from "./rating"
+
+  let { value, ...props }: { value: string } & Omit<PartProps<"button">, "value"> = $props()
+  const star = usePart(rating, "star", () => ({ value }))
+</script>
+
+{#if star.present}
+  <Part tag="button" part={star} {props} />
+{/if}
+```
+
+Use it in place of the generated star in [Render the Rating](./rendering#render-the-rating). The `value` getter identifies the star; the remaining props go to its button. Keep it inside `RatingRoot` and give it an `aria-label`.
+
+## Merge Props
+
+`Part` merges your props with the slot's. Slot attributes win, your event handlers run first, and attachments combine. Put canceling handlers in the props passed to `Part`. Calling `preventDefault()` there skips the built-in behavior; a handler on an element inside a `render` snippet runs too late to cancel it.
+
+For custom markup, `part.slot(props)` supplies the attributes and attachment. Read `part.state` in markup so Svelte tracks changes, and wrap the element in `{#if part.present}` to follow the slot's presence.
+
+## Compose a Popup
+
+A custom component can also use an existing Popover or Dialog. [Compose Ours](../core/behaviors/popups#compose-ours) shows that connection with an emoji picker.

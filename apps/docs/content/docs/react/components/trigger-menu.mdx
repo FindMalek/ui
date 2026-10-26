@@ -1,0 +1,318 @@
+---
+title: Trigger Menu
+description: "Opens suggestions at the caret when you type a trigger such as @, /, or #."
+---
+
+<ComponentExample
+  name="trigger-menu/demo"
+  caption="Type @, narrow the list with a name, and press Enter to insert the highlighted person."
+/>
+
+## Trigger Menu or Token Input
+
+Trigger Menu owns the suggestions: matching a trigger, filtering, keyboard navigation, loading items, and command arguments. [Token Input](./token-input) owns a field whose value mixes text and tokens.
+
+Use Trigger Menu with a textarea or input to insert text. Put it inside a Token Input to insert tokens. You can also connect it to another editor through an [adapter](#any-editor).
+
+## Installation
+
+```bash
+npm install @ui-sdk/react @ui-sdk/core
+```
+
+These examples use Tailwind CSS and the shared [Example Theme](../styling-and-animation#example-theme).
+
+## Anatomy
+
+```tsx
+"use client"
+
+import {
+  TriggerMenu,
+  TriggerMenuInput,
+  TriggerMenuStatus,
+  TriggerMenuContent,
+  TriggerMenuList,
+  TriggerMenuItem,
+} from "@ui-sdk/react/trigger-menu"
+
+function Example() {
+  return (
+    <TriggerMenu triggers={[{ char: "@" }]}>
+      <TriggerMenuInput aria-label="Message" placeholder="Type @ to mention someone" />
+      <TriggerMenuStatus className="sr-only" />
+      <TriggerMenuContent>
+        <TriggerMenuList>
+          <TriggerMenuItem value="ada" label="Ada Lovelace">
+            Ada Lovelace
+          </TriggerMenuItem>
+          <TriggerMenuItem value="grace" label="Grace Hopper">
+            Grace Hopper
+          </TriggerMenuItem>
+        </TriggerMenuList>
+      </TriggerMenuContent>
+    </TriggerMenu>
+  )
+}
+
+export { Example }
+```
+
+Inside a [Token Input](./token-input), leave out `TriggerMenuInput`: the menu suggests into the token input. Without a `TriggerMenuContent` among its direct children, the menu renders the current trigger's items for you.
+
+The field keeps focus while the arrow keys move the highlight. A `<textarea>` stays a textbox, which ARIA allows no other role, and points at the list with `aria-controls` and, after an arrow key, `aria-activedescendant`. An `<input>` is a combobox. Counts and states are said through a polite status, never through the field.
+
+## Examples
+
+### Triggers as Data
+
+Give each trigger a `char` and `items`. Items can be strings, objects, groups, or a loader. The same field can offer people after `@`, commands after `/`, and channels after `#`.
+
+<ComponentExample
+  name="trigger-menu/data"
+  caption="Type @ for people, / for commands, or # to load channels."
+/>
+
+### Commands with Arguments
+
+A trigger with `boundary: "start"` matches only at the start of the text, so a leading space escapes it. An item with `arguments` asks for each one in order: `TriggerMenuHint` shows what's left at the caret, Tab accepts the highlighted suggestion and moves to the next argument, Enter finishes once only optional arguments remain, and Backspace past an argument's start goes back. An argument without `items` is free text. `after: "submit"` sends the form once the item is inserted.
+
+<ComponentExample
+  name="trigger-menu/commands"
+  caption="Type /model, then use Tab to choose a model and an optional effort. Try /send to submit."
+/>
+
+### Icons
+
+Put an item's icon in a `TriggerMenuItemIcon`, before its text. Screen readers skip it, and filtering and the text a choice inserts ignore it, so an SVG's `<title>`, an icon font's glyph or an emoji never joins the item's name or the field. Items as data have no icon, so compose the items that show one.
+
+- **Icons that point a way**, like arrows and reply, flip in right-to-left text with `mirror`.
+- **Items with only an icon** need an `aria-label`, which filtering matches too. In development, one with no name warns.
+- **Lining up items.** Items with an icon get `data-has-icon`, and the list gets `data-has-icons` while any item has one, so items without an icon can leave its space: `in-data-has-icons:not-data-has-icon:ps-8`.
+
+<ComponentExample
+  name="trigger-menu/icons"
+  caption="Type / to open commands with icons. Directional icons follow the text direction."
+/>
+
+### Loading Items
+
+A trigger's `items` can be a loader, called with the query and an `AbortSignal` once typing pauses. A newer query aborts the older load, so only its results land, and the last results stay while the next ones load. The status and empty parts get `loading`.
+
+While a load runs, `aria-busy` marks the list, or the content when there's no `TriggerMenuList`, so style stale results there, like `aria-busy:opacity-60` on the list.
+
+<ComponentExample
+  name="trigger-menu/async"
+  caption="Type # and a channel name. Keep typing while results load to replace the pending request."
+/>
+
+### Custom Items
+
+Compose `TriggerMenuItem`s with any content, in groups. `label` is what's matched and inserted, and `keywords` adds words to match. A trigger's `spaces`, `pattern` and `maxLength` decide what its query may hold, `filter` how it narrows the items, and `insert` what replaces the trigger and query. An item's own `onSelect` runs first and can insert something else with `details.insert()`.
+
+<ComponentExample
+  name="trigger-menu/custom-items"
+  caption="Type @ to search people by first name, or choose here to insert a custom mention."
+/>
+
+### Input
+
+Render the input part as an `<input>` for a single line. It's a combobox with `aria-expanded`.
+
+<ComponentExample
+  name="trigger-menu/input"
+  caption="Type @ in the single-line field, then choose a person."
+/>
+
+### Positioning
+
+By default, the list follows the trigger at the caret and flips to stay on screen. Set `anchor` to position it against another element. This example anchors above the field and uses a separate `container` for the popup.
+
+<ComponentExample
+  name="trigger-menu/positioning"
+  caption="Type @ to open the popup above the field. Its anchor and container are set explicitly."
+/>
+
+### Controlled
+
+Use `open` and `onOpenChange` to own the popup state. The query callback reports the text after the trigger and the argument being edited. The example keeps a short log so you can see when each callback runs.
+
+<ComponentExample
+  name="trigger-menu/controlled"
+  caption="Type @ or / and watch the open, query, and completion callbacks below the field."
+/>
+
+### Controller
+
+Create a controller with `createTriggerMenuController()` and pass it as `controller` to open suggestions, insert text at the caret, or inspect the current match. Opening returns a Promise that resolves when the menu closes.
+
+<ComponentExample
+  name="trigger-menu/controller"
+  caption="Place the caret in the field, then use Mention, Insert date, or Toggle."
+/>
+
+### Any Editor
+
+<ComponentExample
+  name="trigger-menu/editor"
+  caption="Type @ in a textarea connected through an editor adapter."
+/>
+
+An adapter for another editor reads its text and selection, measures a rectangle at an offset, replaces a range as one undo step, and reports changes. Report changes that weren't the user's with `user: false`, like a collaborator's, and the menu never opens for them.
+
+<TypeTable path="../../packages/core/src/foundation/text/text-editor.ts" name="TextEditorAdapter" />
+
+## Undo
+
+Choosing an item preserves the native text field's undo history. Press Cmd+Z or Ctrl+Z to restore the query. Safari may combine the insertion with the preceding typing in one undo step.
+
+A custom editor adapter must make each replacement one undo step; [Token Input](./token-input) handles its own token history.
+
+## Styling
+
+<DataAttributes component="trigger-menu" />
+
+## API Reference
+
+### Callbacks
+
+Callbacks get the new state first, then the details.
+
+| Prop                   | On                               | Receives                                                                         |
+| ---------------------- | -------------------------------- | -------------------------------------------------------------------------------- |
+| `onOpenChange`         | `TriggerMenu`                    | `(open, details)`: the new state, the [reason](#reasons) and the `trigger`       |
+| `onOpenChangeComplete` | `TriggerMenu`                    | `(open)`, after the animation                                                    |
+| `onQueryChange`        | `TriggerMenu`                    | `(query, details)`: the text after the trigger, and the `argument` being typed   |
+| `onDismissAttempt`     | `TriggerMenu`                    | `({ reason, event })`, when a dismissal was refused                              |
+| `onSelect`             | `TriggerMenu`, `TriggerMenuItem` | `(value, details)`: the item, its `arguments`, `insert()` and `preventDefault()` |
+
+When `onSelect` returns a Promise and the editor takes tokens, the token is inserted at once with `data-pending`, updated with what the Promise resolves to, and removed if it rejects. The menu closes either way, so you keep typing.
+
+### Reasons
+
+Why the menu opened or closed:
+
+<ReasonTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuOpenChangeReason"
+/>
+
+With `dismissible` false, the refused dismissals `onDismissAttempt` reports:
+
+<ReasonTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuDismissReason"
+/>
+
+Why the query changed:
+
+<ReasonTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuQueryChangeReason"
+/>
+
+### Controller
+
+<ControllerTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuController"
+/>
+
+### TriggerMenu
+
+<TypeTable path="../../packages/core/src/components/trigger-menu/trigger-menu.ts" name="TriggerMenuOptions" />
+
+### Triggers
+
+<TypeTable path="../../packages/core/src/components/trigger-menu/trigger-menu.ts" name="TriggerDefinition" />
+
+### Items as Data
+
+<TypeTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuDataItem"
+/>
+
+### Arguments
+
+<TypeTable path="../../packages/core/src/components/trigger-menu/trigger-menu.ts" name="TriggerArgument" />
+
+### TriggerMenuContent
+
+<TypeTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuContentProps"
+/>
+
+### TriggerMenuItem
+
+<TypeTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuItemProps"
+/>
+
+### TriggerMenuItemIcon
+
+<TypeTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuItemIconProps"
+/>
+
+### State
+
+`TriggerMenuInput`:
+
+<StateTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuInputState"
+/>
+
+`TriggerMenuContent` and `TriggerMenuList`:
+
+<StateTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuContentState"
+/>
+
+`TriggerMenuItem`:
+
+<StateTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuItemState"
+/>
+
+`TriggerMenuItemIcon`:
+
+<StateTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuItemIconState"
+/>
+
+`TriggerMenuEmpty`:
+
+<StateTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuEmptyState"
+/>
+
+`TriggerMenuStatus`:
+
+<StateTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuStatusState"
+/>
+
+`TriggerMenuHint`:
+
+<StateTable
+  path="../../packages/core/src/components/trigger-menu/trigger-menu.ts"
+  name="TriggerMenuHintState"
+/>
+
+## Accessibility
+
+Every line below is an automated test.
+
+<SpecList spec="trigger-menu" />
+
+<SpecList spec="trigger-menu.a11y" />

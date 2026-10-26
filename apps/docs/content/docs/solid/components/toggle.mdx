@@ -1,0 +1,314 @@
+---
+title: Toggle
+description: Keep a button pressed, or group toggles with a shared value and arrow-key navigation.
+---
+
+<ComponentExample
+  name="toggle/basic"
+  caption="Press Bookmark to toggle its pressed state. The accessible name stays Bookmark in both states."
+/>
+
+## Installation
+
+```bash
+npm install @ui-sdk/solid @ui-sdk/core
+```
+
+To use the examples' Tailwind classes, add the [example theme](../styling-and-animation#example-theme) to your global stylesheet.
+
+## Usage
+
+`Toggle` renders a native button. It reports its state with `aria-pressed` and always uses `type="button"`, so pressing it does not submit a form.
+
+<span id="anatomy" />
+
+```tsx
+import { Toggle } from "@ui-sdk/solid/toggle"
+
+function Example() {
+  return <Toggle>Bookmark</Toggle>
+}
+
+export { Example }
+```
+
+Keep the label the same in both states. Screen readers announce whether the button is pressed. An icon-only toggle needs an `aria-label`, as in the first demo.
+
+## Examples
+
+### With Text
+
+Put an icon beside the label with `ToggleIcon`. It hides the icon from screen readers so only the text names the button.
+
+<ComponentExample
+  name="toggle/with-text"
+  caption="Press Italic. Its label stays the same while aria-pressed changes."
+/>
+
+### Icons
+
+Set `mirror` on a directional icon, such as Align start, to flip it in right-to-left text. A toggle with an icon gets `data-has-icon`; its group gets `data-has-icons` while any toggle has one. These attributes help align mixed icon and text content.
+
+### Disabled
+
+Set `disabled` to prevent presses and remove a standalone toggle from the tab order. A disabled toggle can still start pressed.
+
+<ComponentExample
+  name="toggle/disabled"
+  caption="Both toggles ignore clicks and are skipped by Tab. The second toggle starts pressed."
+/>
+
+<span id="right-to-left" />
+
+The layout follows an ancestor's `dir="rtl"`. Groups also [reverse their horizontal arrow keys](#right-to-left-group).
+
+## Behavior and Options
+
+### Controlled
+
+Pass `pressed` and update its signal in `onPressedChange`. Call `details.cancel()` in the callback to keep the current state.
+
+Create a controller with `createToggleController` from `@ui-sdk/solid/toggle` and pass it as `controller` to change the toggle from elsewhere. Create one controller per mounted toggle.
+
+<ComponentExample
+  name="toggle/controlled"
+  caption="Press Notifications, then Toggle from outside. The status shows whether it is pressed and why it changed."
+/>
+
+### Focusable When Disabled
+
+Set `focusableWhenDisabled` to keep a disabled toggle focusable. It uses `aria-disabled` and still ignores presses. Give it an `aria-describedby` message when you can explain why it is unavailable.
+
+<ComponentExample
+  name="toggle/focusable-when-disabled"
+  caption="Tab to Pin to top and try Enter or Space. It stays unpressed, with an explanation connected to the button."
+/>
+
+## Group
+
+Import `ToggleGroup` from the same `@ui-sdk/solid/toggle` entry.
+
+Put toggles in `ToggleGroup` to share a value and arrow-key navigation. Give the group an accessible name and each toggle a `value`.
+
+<ComponentExample
+  name="toggle/group"
+  caption="Press Bold and Italic to keep both pressed. Use Left and Right to move focus without changing either state."
+/>
+
+```tsx
+<ToggleGroup multiple aria-label="Text formatting">
+  <Toggle value="bold">Bold</Toggle>
+  <Toggle value="italic">Italic</Toggle>
+</ToggleGroup>
+```
+
+The group owns which toggles are pressed, so a toggle's own `pressed` and `defaultPressed` do not apply inside it. The group has the `group` role and its toggles remain buttons with `aria-pressed`.
+
+### Vertical
+
+Set `orientation="vertical"` to use Up and Down instead of Left and Right. The group and its toggles expose `data-orientation` for styling.
+
+<ComponentExample
+  name="toggle/group-vertical"
+  caption="Focus Bold, then use Down and Up to move through the vertical group. Enter or Space changes the focused toggle."
+/>
+
+### Disabled Group
+
+Set `disabled` on the group or on an individual toggle. In a group, disabled toggles remain reachable with the arrow keys and report `aria-disabled`, but they ignore presses.
+
+<ComponentExample
+  name="toggle/group-disabled"
+  caption="The first group is entirely disabled. In the second, use End to reach Underline; it stays unpressed when you press Space."
+/>
+
+### Font Weight
+
+<span id="custom" />
+
+Use the group's value to update other content. Here the selected weight also changes the preview text.
+
+<ComponentExample
+  name="toggle/group-custom"
+  caption="Choose a font weight to update the sample text. Pressing the selected weight keeps it selected."
+/>
+
+### Right to Left Group
+
+Set `dir="rtl"` on an ancestor. The group reads that direction from the DOM, so Left moves forward and Right moves back.
+
+<ComponentExample
+  name="toggle/group-rtl"
+  caption="Focus قائمة and press Left to move to شبكة. Space presses the focused toggle."
+/>
+
+### One or Several
+
+By default, pressing a toggle unpresses the others. Pressing it again clears the selection. Set `multiple` to allow several pressed toggles, as in the formatting group above.
+
+The value is always an array. With a single selection it holds one value or none; with multiple selections it follows the toggles' document order.
+
+<ComponentExample
+  name="toggle/group-single"
+  caption="Press Align center to replace Align left. Press Align center again to clear the selection."
+/>
+
+### Deselectable
+
+Set `deselectable` to `false` to prevent a press from clearing the last selection. It does not choose an initial value for you and is ignored when `multiple` is set.
+
+<ComponentExample
+  name="toggle/group-deselectable"
+  caption="Choose a different alignment, then press it again. One alignment stays pressed."
+/>
+
+Use [Radio](./radio) when arrow keys should select an option as they move focus. Toggle groups move focus first and wait for a press.
+
+### Keyboard
+
+A group is one tab stop. Tab initially enters on its first enabled pressed toggle, or its first enabled toggle. After you move focus within it, Tab returns to the last focused toggle.
+
+| Key                        | Action                              |
+| -------------------------- | ----------------------------------- |
+| `Tab`                      | Enter or leave the group            |
+| `ArrowRight` / `ArrowLeft` | Move focus in a horizontal group    |
+| `ArrowDown` / `ArrowUp`    | Move focus in a vertical group      |
+| `Home` / `End`             | Focus the first or last toggle      |
+| `Enter` / `Space`          | Press or unpress the focused toggle |
+
+Arrow keys wrap by default. Set `loop` to `false` to stop at the ends.
+
+<ComponentExample
+  name="toggle/group-loop"
+  caption="Focus Strikethrough and press Right: focus stays there. Home still moves to Bold."
+/>
+
+### Controlled Group
+
+Pass `value` and update its signal in `onValueChange`. A toggle's own `onPressedChange` runs before the group callback. Calling `details.cancel()` in either callback cancels the group change.
+
+Create a controller with `createToggleGroupController` from `@ui-sdk/solid/toggle` and pass it as `controller`. Its `setValue([])` method clears the group from another button.
+
+<ComponentExample
+  name="toggle/group-controlled"
+  caption="Press a formatting toggle, then Clear. The status shows the selected values and the reason for each change."
+/>
+
+See [State and Events](../state-and-events) for controlled state, cancellation and debugging.
+
+### Forms
+
+Toggles do not submit values. Use [Checkbox](./checkbox#group) for multiple form choices or [Radio](./radio) for one. If you keep a toggle group, copy its value into hidden inputs yourself.
+
+### Render Functions
+
+A render function receives the props to spread and the part's state. The group exposes its pressed values, and each toggle exposes its own `pressed` state.
+
+<ComponentExample
+  name="toggle/group-render"
+  caption="Press Like or Save. Their icons fill independently, and the group outline appears while any reaction is pressed."
+/>
+
+## Styling
+
+Style pressed and disabled states through the parts' data attributes. The demos use one visual style for standalone toggles and groups.
+
+`Toggle`:
+
+<DataAttributes component="toggle" />
+
+`ToggleGroup`:
+
+<DataAttributes component="toggle-group" />
+
+## Custom Rendering
+
+A render function receives the props to spread and the part's state. Keep the behavior props on the button itself. See [Parts and Composition](../parts-and-composition) for the rendering contract.
+
+<ComponentExample
+  name="toggle/render"
+  caption="Press Favorite to change the filled heart. The button keeps the same accessible name."
+/>
+
+## API Reference
+
+Props and callbacks are the same as below, as Solid props.
+
+### Events
+
+Callbacks get the new state or value first, then the details. `onValueChange` never runs on mount.
+
+| Prop              | On            | Receives                                                                                                                     |
+| ----------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `onPressedChange` | `Toggle`      | `(pressed, details)`: the new state, and the [reason](#reasons). In a group, it runs first and can cancel the group's change |
+| `onValueChange`   | `ToggleGroup` | `(value, details)`: the pressed toggles' values, and the [reason](#reasons)                                                  |
+
+### Reasons
+
+`details.reason` says why the toggle was pressed or unpressed.
+
+<ReasonTable path="../../packages/core/src/components/toggle/toggle.ts" name="TogglePressedChangeReason" />
+
+For a group, it says why the pressed toggles changed.
+
+<ReasonTable
+  path="../../packages/core/src/components/toggle/toggle-group.ts"
+  name="ToggleGroupValueChangeReason"
+/>
+
+### Toggle Controller
+
+Create one with `createToggleController()` and pass it as `controller`.
+
+Every write method takes an optional `{ reason, event }`, runs the change callback like a press, and returns `false` when the change is canceled.
+
+<ControllerTable path="../../packages/core/src/components/toggle/toggle.ts" name="ToggleController" />
+
+### ToggleGroup Controller
+
+Create one with `createToggleGroupController()` and pass it as `controller`.
+
+Every write method takes an optional `{ reason, event }`, runs `onValueChange` like a press, and returns `false` when the change is canceled.
+
+<ControllerTable
+  path="../../packages/core/src/components/toggle/toggle-group.ts"
+  name="ToggleGroupController"
+/>
+
+### Toggle
+
+<TypeTable path="../../packages/core/src/components/toggle/toggle.ts" name="ToggleOptions" />
+
+### ToggleIcon
+
+<TypeTable path="../../packages/core/src/components/toggle/toggle.ts" name="ToggleIconProps" />
+
+### ToggleGroup
+
+<TypeTable path="../../packages/core/src/components/toggle/toggle-group.ts" name="ToggleGroupOptions" />
+
+### State
+
+What render functions, state-based class names and slots receive.
+
+<StateTable path="../../packages/core/src/components/toggle/toggle.ts" name="ToggleState" />
+
+In a group, a toggle's `disabled` includes the group's. The group:
+
+<StateTable path="../../packages/core/src/components/toggle/toggle-group.ts" name="ToggleGroupState" />
+
+`ToggleIcon`:
+
+<StateTable path="../../packages/core/src/components/toggle/toggle.ts" name="ToggleIconState" />
+
+## Accessibility
+
+The toggle follows the toggle button in the [WAI-ARIA button pattern](https://www.w3.org/WAI/ARIA/apg/patterns/button/). Every line below is an automated test.
+
+<SpecList spec="toggle" />
+
+### Groups
+
+A group follows the keyboard of the [WAI-ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/): one tab stop, arrow keys between toggles, and Home and End. It has the `group` role, not `toolbar`, so it can sit inside a [Toolbar](./toolbar), and not `radiogroup`, since its toggles are buttons with `aria-pressed`.
+
+<SpecList spec="toggle.group" />

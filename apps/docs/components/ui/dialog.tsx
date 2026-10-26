@@ -1,0 +1,37 @@
+"use client"
+
+import { cn } from "cn"
+import { DialogBackdrop, DialogContent as DialogContentPrimitive } from "@ui-sdk/react/dialog"
+import type { ComponentProps } from "react"
+
+const backdrop =
+  "fixed inset-0 bg-black/20 transition-opacity duration-150 supports-backdrop-filter:backdrop-blur-[2px] data-starting-style:opacity-0 data-ending-style:opacity-0 dark:bg-black/50"
+
+// A panel near the top of the screen, for the search palette. `instant` drops the
+// backdrop and the transition, so it appears in place of what opened it.
+function DialogContent({
+  instant,
+  className,
+  ...props
+}: Omit<ComponentProps<typeof DialogContentPrimitive>, "className"> & {
+  instant?: boolean
+  className?: string
+}) {
+  return (
+    <>
+      {!instant && <DialogBackdrop className={backdrop} />}
+      <DialogContentPrimitive
+        className={cn(
+          "fixed top-[12vh] left-1/2 flex max-h-[min(32rem,76vh)] w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 flex-col overflow-hidden rounded-3xl bg-popover text-sm text-popover-foreground shadow-2xl ring-1 ring-foreground/5 outline-none dark:ring-foreground/10",
+          !instant &&
+            "transition-[opacity,scale] duration-150 data-starting-style:scale-[0.98] data-starting-style:opacity-0 data-ending-style:scale-[0.98] data-ending-style:opacity-0",
+          className,
+        )}
+        {...props}
+      />
+    </>
+  )
+}
+
+export { DialogContent }
+export { Dialog, DialogClose, DialogDescription, DialogTitle, DialogTrigger } from "@ui-sdk/react/dialog"

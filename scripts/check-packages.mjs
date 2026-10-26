@@ -1,0 +1,291 @@
+// Installs the packed packages in a scratch app and typechecks every public
+// entry as a strict consumer would. `pnpm typecheck` reads the sources; this
+// reads the declarations the build emits, which can break while the sources
+// pass, like a type that names something its file can't reach.
+//
+//   pnpm check:packages           Checks the current builds in packages/*/dist.
+//   pnpm check:packages --build   Runs `pnpm build` first.
+//
+// `pnpm pack` packs each package as it's published, with `publishConfig`'s
+// exports pointing at `dist`, and every tarball is unpacked into the app's
+// node_modules before any is checked. The frameworks are linked from the
+// workspace, so it never touches the network. For each package, a generated
+// file imports every subpath of its packed `exports`, except `./package.json`
+// and patterns. Every `@ui-sdk` module a packed declaration imports must be
+// an entry its package publishes: one only the workspace resolves, like
+// `@ui-sdk/core/internal/*`, fails in an app, even in a declaration no entry
+// reaches here. The consumers in `scripts/package-consumers/<package>/` are
+// checked each on its own, so a consumer sees only what its imports bring,
+// not a global another entry declares, like web's HTMLElementTagNameMap. An
+// entry whose `types` file isn't in the tarball is listed with that path: a
+// build that stopped or a wrong `publishConfig.exports` path, which look the
+// same from here.
+//
+// TypeScript runs with `strict` and `skipLibCheck: false`, so an error in a
+// shipped declaration fails here as it does in an app that checks its
+// libraries. An error prints once, under the first package that reaches it.
+// Every package is unpacked side by side, as an app installs an adapter with
+// `@ui-sdk/core` beside it. A package that needs another `@ui-sdk` package
+// takes it as a peer, never a dependency, so an app ends up with one copy.
+//
+// The release (apps/docs/scripts/release.mjs) and CI run it.
+import { execFileSync, spawnSync } from "node:child_process"
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs"
+import { tmpdir } from "node:os"
+import path from "node:path"
+import { parseArgs } from "node:util"
+import ts from "typescript"
+
+const root = path.resolve(import.meta.dirname, "..")
+const consumersDir = path.join(root, "scripts/package-consumers")
+const { values: flags } = parseArgs({ options: { build: { type: "boolean", default: false } } })
+
+// What the emitted declarations import besides @ui-sdk. Each links to the
+// workspace's copy, and TypeScript follows the link, so their own
+// dependencies, like csstype or @vue/runtime-dom, resolve from there too.
+const peers = [
+  "react",
+  "react-dom",
+  "@types/react",
+  "@types/react-dom",
+  "vue",
+  "svelte",
+  "solid-js",
+  "@solidjs/web",
+]
+
+const compilerOptions = {
+  strict: true,
+  skipLibCheck: false,
+  module: "esnext",
+  moduleResolution: "bundler",
+  target: "es2022",
+  lib: ["dom", "dom.iterable", "es2022"],
+  // Only the types a file imports, so a declaration that leans on another
+  // framework's globals fails instead of passing because they happen to load.
+  types: [],
+}
+const frameworkOptions = {
+  react: { jsx: "react-jsx" },
+  // Solid 2 ships its JSX runtime in @solidjs/web, not solid-js.
+  solid: { jsx: "preserve", jsxImportSource: "@solidjs/web" },
+}
+
+if (flags.build) {
+  const build = spawnSync("pnpm", ["build"], { cwd: root, stdio: "inherit" })
+  if (build.status !== 0) process.exit(build.status ?? 1)
+}
+
+const names = readdirSync(path.join(root, "packages")).filter((name) =>
+  existsSync(path.join(root, "packages", name, "package.json")),
+)
+const unbuilt = names.filter((name) => !existsSync(path.join(root, "packages", name, "dist")))
+if (unbuilt.length) {
+  console.error(
+    `No dist in ${unbuilt.map((name) => `packages/${name}`).join(", ")}. Run \`pnpm build\`, or pass --build.`,
+  )
+  process.exit(1)
+}
+// A missing peer would become a dangling link and a confusing TS2307.
+const uninstalled = peers.filter((peer) => !existsSync(path.join(root, "node_modules", peer)))
+if (uninstalled.length) {
+  console.error(`No ${uninstalled.join(", ")} in node_modules. Run \`pnpm install\`.`)
+  process.exit(1)
+}
+
+// Resolved, since TypeScript reports files by their real path.
+const app = realpathSync(mkdtempSync(path.join(tmpdir(), "ui-sdk-packages-")))
+// TypeScript's messages name files by their path in the app too.
+const escapedApp = app.replace(/[\\^$.*+?()[\]{}|]/g, "\\$&")
+const appPaths = new RegExp(`${escapedApp}/[^'"\\s]+`, "g")
+let errorCount = 0
+let missingCount = 0
+try {
+  for (const peer of peers) {
+    const link = path.join(app, "node_modules", peer)
+    mkdirSync(path.dirname(link), { recursive: true })
+    symlinkSync(path.join(root, "node_modules", peer), link, "dir")
+  }
+  // Every package goes in first, since each one's declarations and
+  // consumers can import any other.
+  const manifests = new Map(names.map((name) => [name, install(name)]))
+  const reported = new Set()
+  for (const [name, manifest] of manifests) {
+    const found = checkPackage(name, manifest, manifests, reported)
+    errorCount += found.errors
+    missingCount += found.missing
+  }
+} finally {
+  rmSync(app, { recursive: true, force: true })
+}
+
+if (errorCount || missingCount) {
+  const problems = [
+    ...(errorCount ? [count(errorCount, "error")] : []),
+    ...(missingCount ? [count(missingCount, "missing declaration")] : []),
+  ]
+  console.error(`\n${problems.join(" and ")} in the packed packages.`)
+  process.exit(1)
+}
+console.log("\nEvery packed entry typechecks.")
+
+// Packs a package as it's published and unpacks it into the app's node_modules.
+function install(name) {
+  const packageDir = path.join(root, "packages", name)
+  const output = execFileSync("pnpm", ["pack", "--pack-destination", path.join(app, "tarballs")], {
+    cwd: packageDir,
+    encoding: "utf8",
+  })
+  const { name: packageName } = JSON.parse(readFileSync(path.join(packageDir, "package.json"), "utf8"))
+  const target = path.join(app, "node_modules", packageName)
+  mkdirSync(target, { recursive: true })
+  execFileSync("tar", ["-xzf", output.trim().split("\n").at(-1), "-C", target, "--strip-components=1"])
+  return JSON.parse(readFileSync(path.join(target, "package.json"), "utf8"))
+}
+
+// Typechecks a package's entries and consumers and prints what it found.
+// Returns how many errors and missing declarations it printed.
+function checkPackage(name, manifest, manifests, reported) {
+  const { subpaths, missing } = listEntries(manifest)
+  const consumers = copyConsumers(name)
+  const errors = [
+    ...findBundledSiblings(name, manifest),
+    ...findUnpublishedImports(name, manifest, manifests),
+  ]
+  let repeated = 0
+  for (const file of [writeEntryImports(name, manifest.name, subpaths), ...consumers])
+    for (const diagnostic of typecheck(name, file)) {
+      const key = `${diagnostic.file?.fileName}:${diagnostic.start}:${diagnostic.code}`
+      if (reported.has(key)) repeated++
+      else errors.push(describe(diagnostic))
+      reported.add(key)
+    }
+
+  const checked = [
+    `${subpaths.length + missing.length} entries`,
+    ...(consumers.length ? [count(consumers.length, "consumer")] : []),
+  ]
+  const found = [
+    ...(missing.length ? [count(missing.length, "missing declaration")] : []),
+    count(errors.length, "error"),
+    ...(repeated ? [`${repeated} more reported above`] : []),
+  ]
+  console.log(`${manifest.name}: ${checked.join(", ")}. ${found.join(", ")}.`)
+  if (missing.length) {
+    console.log(
+      "  Declarations missing from the packed package (a build that stopped, or a wrong publishConfig.exports path):",
+    )
+    for (const { subpath, types } of missing) console.log(`    ${subpath}: ${types}`)
+  }
+  for (const error of errors) console.log(`  ${error}`)
+  return { errors: errors.length, missing: missing.length }
+}
+
+// The subpaths a consumer can import, and those whose `types` file isn't in
+// the packed package. Those are listed, not imported, since importing each
+// would only add an error in the generated file.
+function listEntries(manifest) {
+  const subpaths = []
+  const missing = []
+  for (const [subpath, target] of Object.entries(manifest.exports)) {
+    if (subpath === "./package.json" || subpath.includes("*")) continue
+    // An entry with no `types` at all is imported anyway, so TypeScript says what's wrong.
+    const types = typeof target === "string" ? target : target.types
+    if (!types || existsSync(path.join(app, "node_modules", manifest.name, types))) subpaths.push(subpath)
+    else missing.push({ subpath, types })
+  }
+  return { subpaths, missing }
+}
+
+// Each `@ui-sdk` package the packed manifest lists as a dependency, which
+// would install a second copy beside the one the app installs.
+function findBundledSiblings(name, manifest) {
+  return Object.keys(manifest.dependencies ?? {})
+    .filter((dependency) => dependency.startsWith("@ui-sdk/"))
+    .map((dependency) => `packages/${name}/package.json lists ${dependency} in dependencies; make it a peer.`)
+}
+
+// Each `@ui-sdk` module the package's declarations import that isn't an entry
+// of its package, once per file.
+function findUnpublishedImports(name, manifest, manifests) {
+  const entries = new Map([...manifests.values()].map((packed) => [packed.name, Object.keys(packed.exports)]))
+  const packageImport = /(?:\bfrom\s*|\bimport\s*\(\s*)["'](@ui-sdk\/[^/"']+)(\/[^"']+)?["']/g
+  const packageDir = path.join(app, "node_modules", manifest.name)
+  const problems = new Set()
+  for (const file of readdirSync(packageDir, { recursive: true })) {
+    if (!file.endsWith(".d.ts")) continue
+    const source = readFileSync(path.join(packageDir, file), "utf8")
+    for (const [, target, subpath = ""] of source.matchAll(packageImport))
+      if (!entries.get(target)?.includes(`.${subpath}`))
+        problems.add(`packages/${name}/${file} imports ${target}${subpath}, which ${target} doesn't publish.`)
+  }
+  return [...problems]
+}
+
+// Writes `<package>/entries.ts`, which imports each entry as a namespace and
+// exports them all, so no import goes unused.
+function writeEntryImports(name, packageName, subpaths) {
+  const file = path.join(app, name, "entries.ts")
+  const lines = subpaths.map(
+    (subpath, index) => `import * as entry${index} from "${path.posix.join(packageName, subpath)}"`,
+  )
+  lines.push(`export const entries = [${subpaths.map((_, index) => `entry${index}`).join(", ")}]`)
+  mkdirSync(path.dirname(file), { recursive: true })
+  writeFileSync(file, `${lines.join("\n")}\n`)
+  return file
+}
+
+// Copies the package's hand-written consumers next to its entries file, so
+// they import the packed package, not the workspace's sources.
+function copyConsumers(name) {
+  const source = path.join(consumersDir, name)
+  if (!existsSync(source)) return []
+  cpSync(source, path.join(app, name), { recursive: true })
+  return readdirSync(source, { recursive: true })
+    .filter((file) => /\.tsx?$/.test(file))
+    .map((file) => path.join(app, name, file))
+}
+
+// Typechecks a file in a program of its own, with what it imports.
+function typecheck(name, file) {
+  const { options, errors } = ts.convertCompilerOptionsFromJson(
+    { ...compilerOptions, ...frameworkOptions[name] },
+    app,
+  )
+  return [...errors, ...ts.getPreEmitDiagnostics(ts.createProgram([file], options))]
+}
+
+function describe(diagnostic) {
+  const message = ts
+    .flattenDiagnosticMessageText(diagnostic.messageText, "\n    ")
+    .replace(appPaths, (file) => repoPath(file))
+  if (!diagnostic.file) return `error TS${diagnostic.code}: ${message}`
+  const { line, character } = diagnostic.file.getLineAndCharacterOfPosition(diagnostic.start ?? 0)
+  return `${repoPath(diagnostic.file.fileName)}:${line + 1}:${character + 1} - error TS${diagnostic.code}: ${message}`
+}
+
+// Where a file is in the repo: a packed file is the one in `packages/<name>`,
+// and a copied consumer the one in `scripts/package-consumers`.
+function repoPath(file) {
+  const inApp = path.relative(app, file)
+  if (inApp.startsWith("..")) return path.relative(root, file)
+  const packed = inApp.match(/^node_modules\/@ui-sdk\/([^/]+)\/(.+)$/)
+  if (packed) return path.join("packages", packed[1], packed[2])
+  if (path.basename(inApp) === "entries.ts") return `${inApp} (generated)`
+  return path.join(path.relative(root, consumersDir), inApp)
+}
+
+function count(amount, noun) {
+  return `${amount} ${noun}${amount === 1 ? "" : "s"}`
+}

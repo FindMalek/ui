@@ -1,0 +1,32 @@
+node_modules
+dist
+test-results
+playwright-report
+*.tsbuildinfo
+.DS_Store
+.next
+out
+coverage
+.turbo
+*.log
+apps/*/ios
+apps/*/android
+.env*
+blob-report
+
+dist-ssr
+
+.svelte-kit*
+
+# Local decision logs from long agent runs.
+.audit/
+
+# Files the docs walkthrough tests extract from the docs.
+packages/*/test/.walkthrough/
+.vercel
+
+# The docs as Markdown each package ships, written by scripts/package-docs.mjs at release.
+packages/*/docs/
+# The web components' elements manifest and VS Code data, written with them.
+packages/web/custom-elements.json
+packages/web/html-custom-data.json

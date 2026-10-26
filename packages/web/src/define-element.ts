@@ -1,0 +1,1603 @@
+import type {
+  OptionsOf,
+  Part as InstancePart,
+  Primitive,
+  PrimitiveInstance,
+  PropSpec,
+  SlotName,
+  TypesOf,
+} from "@ui-sdk/core"
+import {
+  applyAttrs,
+  attachFormInternals,
+  attrs as partAttrs,
+  bind,
+  bindElementInternals,
+  conditional,
+  connect,
+  type Feature,
+  formCallback,
+  inDocumentOrder,
+  portalTarget,
+  present as isPresent,
+  type PrimitiveSchema,
+  renderVersion,
+  schemaOf,
+  selectedKeys,
+  subscribe,
+  warn,
+} from "@ui-sdk/core/renderer"
+import { waitList } from "./action"
+
+const autoIds = new WeakMap<Element, string>()
+let count = 0
+
+// The tags this copy of ui-sdk defined.
+const claimed = new Set<string>()
+
+/**
+ * Whether to define a tag now. Never on the server, where importing a component
+ * does nothing, and once per tag. A tag that another library or another copy
+ * of ui-sdk defined first keeps that definition, with a warning.
+ */
+function claimTag(tagName: string) {
+  if (typeof customElements === "undefined" || claimed.has(tagName)) return false
+  if (customElements.get(tagName)) {
+    warn(`<${tagName}> is already defined by another library or another copy of ui-sdk. This one is skipped.`)
+    return false
+  }
+  claimed.add(tagName)
+  return true
+}
+
+/** A stable id for any element, for parts that need a key and have none. */
+function autoId(el: Element) {
+  if (!autoIds.has(el)) autoIds.set(el, `auto-${++count}`)
+  return autoIds.get(el)!
+}
+
+/**
+ * The button or link a wrapper part holds, like the <button> in <ui-tabs-tab>,
+ * so the part binds to it and native button behavior stays.
+ * @stable
+ */
+function wrappedButton(el: HTMLElement) {
+  return (
+    el.querySelector<HTMLElement>(":scope > button, :scope > a") ??
+    (el.firstElementChild as HTMLElement | null)
+  )
+}
+
+/**
+ * A `target` for a wrapper part: its child matching `selector`, like the
+ * <input> in <ui-combobox-input>, else its first child.
+ * @stable
+ */
+const wrappedChild = (selector: string) => (el: HTMLElement) =>
+  el.querySelector<HTMLElement>(`:scope > ${selector}`) ?? (el.firstElementChild as HTMLElement | null)
+
+/**
+ * A `target` for a wrapper part that binds a button: the one written inside
+ * it, else a new one holding what the part held. `fill` fills a button that
+ * would be empty, like with an arrow or an icon.
+ */
+function ownButton(fill?: (button: HTMLButtonElement) => void) {
+  return (el: HTMLElement) => {
+    const written = wrappedButton(el)
+    if (written) return written
+    const button = el.ownerDocument.createElement("button")
+    button.append(...el.childNodes)
+    if (!button.textContent?.trim()) fill?.(button)
+    el.append(button)
+    return button
+  }
+}
+
+// The element a part, or an owner's own slot, binds: what `target` picks, like
+// a wrapped button, else its first child with as-child, else itself.
+function boundElement(el: HTMLElement, target?: (el: HTMLElement) => HTMLElement | null) {
+  if (target) return target(el)
+  return el.hasAttribute("as-child") ? (el.firstElementChild as HTMLElement | null) : el
+}
+
+const kebab = (name: string) => name.replace(/[A-Z]/g, (char) => `-${char.toLowerCase()}`)
+
+/**
+ * How an attribute becomes an option or prop. `"boolean"`: present, empty or
+ * `"true"` is true and `"false"` is false, except `disabled` and `required`,
+ * which are true whenever present, as on native controls. `"number"`: a number. `"list"`:
+ * comma-separated values. `"string"`: the value as written. A function parses
+ * anything else, like `modal`, which is a boolean or a string.
+ * @stable
+ */
+type AttributeType = "boolean" | "number" | "string" | "list" | ((value: string | null) => unknown)
+
+/**
+ * An attribute's value as an option. Missing attributes are undefined, so the
+ * component's default applies.
+ */
+function parseAttribute(type: AttributeType, value: string | null) {
+  if (value === null) return undefined
+  if (typeof type === "function") return type(value)
+  if (type === "boolean") return value !== "false"
+  if (type === "number") {
+    const number = Number(value)
+    return value.trim() === "" || Number.isNaN(number) ? undefined : number
+  }
+  if (type === "list")
+    return value
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean)
+  return value
+}
+
+// Attributes that native controls read by presence. A browser disables a
+// form-associated element with `disabled="false"`, so the option agrees.
+const presence = new Set(["disabled", "required"])
+
+// An option or prop from its attribute, undefined when it's missing.
+function readAttribute(el: HTMLElement, name: string, type: AttributeType) {
+  const value = el.getAttribute(kebab(name))
+  if (type === "boolean" && presence.has(name)) return value === null ? undefined : true
+  return parseAttribute(type, value)
+}
+
+// Options or props from an element's attributes, by schema.
+function readAttributes(el: HTMLElement, schema: Record<string, AttributeType>) {
+  const result: Record<string, unknown> = {}
+  for (const [name, type] of Object.entries(schema)) {
+    const value = readAttribute(el, name, type)
+    if (value !== undefined) result[name] = value
+  }
+  return result
+}
+
+// Boolean options that start on, like `{ loop: true }`, or whose start an
+// element decides, like a dialog's `closeOnOutsidePress`, which is on while it's modal.
+type BooleanDefaults = Record<string, boolean | ((el: HTMLElement) => boolean)>
+
+const defaultOn = (el: HTMLElement, value: BooleanDefaults[string] | undefined) =>
+  typeof value === "function" ? value(el) : value
+
+// A property for each attribute option the element doesn't have yet, which
+// reflects it, like an input's `disabled`. Booleans go by presence, so
+// `false` removes the attribute, except ones that start on, like `loop`,
+// which write "false", like `spellcheck`. A parsed attribute, like a
+// three-way `invalid`, writes "false" too. Lists join with commas.
+function reflectAttributes(
+  proto: HTMLElement,
+  schema: Record<string, AttributeType>,
+  defaults: BooleanDefaults = {},
+) {
+  for (const [name, type] of Object.entries(schema)) {
+    if (name in proto) continue
+    const attribute = kebab(name)
+    Object.defineProperty(proto, name, {
+      configurable: true,
+      get(this: HTMLElement) {
+        return (
+          readAttribute(this, name, type) ??
+          defaultOn(this, defaults[name]) ??
+          (type === "boolean" ? false : undefined)
+        )
+      },
+      set(this: HTMLElement, value: unknown) {
+        const removes = value === false && type === "boolean" && !defaultOn(this, defaults[name])
+        if (value == null || removes) this.removeAttribute(attribute)
+        else
+          this.setAttribute(
+            attribute,
+            value === true ? "" : Array.isArray(value) ? value.join(",") : String(value),
+          )
+      },
+    })
+  }
+}
+
+// A property set before the element upgraded is the element's own and hides
+// the accessor. Sets it again through the accessor.
+function upgradeProperties(el: HTMLElement, names: Iterable<string>) {
+  for (const name of names) {
+    if (!Object.prototype.hasOwnProperty.call(el, name)) continue
+    const value = el[name as keyof HTMLElement]
+    delete el[name as keyof HTMLElement]
+    ;(el as unknown as Record<string, unknown>)[name] = value
+  }
+}
+
+// Elements restoring their state, whose changes fire no events, like a
+// native control's state restored by the browser.
+const quiet = new WeakSet<HTMLElement>()
+
+// Whether a callback's only argument is a details object, like
+// onDismissAttempt's `{ reason, event }`, rather than a value.
+function detailsOnly(value: unknown, details: unknown) {
+  return (
+    details === undefined &&
+    !!value &&
+    typeof value === "object" &&
+    "reason" in value &&
+    !(typeof Event !== "undefined" && value instanceof Event)
+  )
+}
+
+// Option and prop callbacks become DOM events on `el`: onAction fires "action",
+// onOpenChange fires "openchange". Canceling an event calls the change's
+// `details.cancel()`, or cancels the event a callback receives, like onSelect's.
+// A callback that only receives details, like onDismissAttempt, puts them in
+// `detail` as they are. `silent` callbacks fire nothing, since a part element
+// already reports them, and nothing fires while the element restores its
+// state. Listeners can't return anything, so an `actions` callback's event
+// hands them `waitUntil()` (see `action.ts`).
+function withEvents<T extends object>(
+  el: HTMLElement,
+  target: T,
+  silent: string[] = [],
+  actions: string[] = [],
+) {
+  return new Proxy(target, {
+    get(target, key) {
+      if (key in target || typeof key !== "string" || !/^on[A-Z]/.test(key)) return target[key as keyof T]
+      if (silent.includes(key)) return undefined
+      return (value: unknown, details?: { cancel?: () => void; canceled?: boolean }) => {
+        if (quiet.has(el)) return
+        const only = detailsOnly(value, details)
+        const { cancel, canceled, ...rest } = ((only ? value : details) ?? {}) as {
+          cancel?: () => void
+          canceled?: boolean
+        }
+        const detail: Record<string, unknown> = only ? rest : { ...rest, value }
+        const wait = actions.includes(key) ? waitList() : undefined
+        if (wait) detail.waitUntil = wait.waitUntil
+        // Only `el` hears it, like `toggle` on <details>, so a dialog never takes
+        // the change of a dialog inside it for its own. A listener on an
+        // ancestor hears every element inside it with `{ capture: true }`.
+        // Composed, so a page that renders the element in a shadow root hears it on the host.
+        const event = new CustomEvent(key.slice(2).toLowerCase(), {
+          detail,
+          bubbles: false,
+          cancelable: true,
+          composed: true,
+        })
+        const proceed = el.dispatchEvent(event)
+        const waiting = wait?.done() ?? []
+        if (!proceed) {
+          if (typeof cancel === "function") cancel()
+          else if (value && typeof (value as Event).preventDefault === "function")
+            (value as Event).preventDefault()
+        }
+        // One Promise, as the core takes it: a token's patch is what the last one resolves to.
+        return waiting.length > 1 ? Promise.all(waiting).then((values) => values.at(-1)) : waiting[0]
+      }
+    },
+  })
+}
+
+// Each owner element's instance, kept off the element, so a page reaches
+// only its `api`: the controller's methods, never internals.
+const instances = new WeakMap<Element, PrimitiveInstance>()
+
+// The instance an owner element made, for this package's modules. The map
+// holds every primitive's instances, so the caller names the api it expects.
+function instanceOf<Api = unknown>(el: Element | null | undefined) {
+  return (el ? instances.get(el) : undefined) as (PrimitiveInstance & { api: Api }) | undefined
+}
+
+// The element's public api: only the controller's methods, never internals.
+function controllerView(api: object, methods: string[]) {
+  const view: Record<string, unknown> = {}
+  for (const name of methods) {
+    const value = (api as Record<string, unknown>)[name]
+    if (typeof value === "function") view[name] = value.bind(api)
+  }
+  return Object.freeze(view)
+}
+
+/**
+ * A part's default CSS display. `contents` keeps it out of layout, for
+ * wrappers, and the table values lay out parts that stand in for a table's
+ * elements, like a calendar's weeks and days.
+ */
+type PartDisplay =
+  "block" | "contents" | "table" | "table-header-group" | "table-row-group" | "table-row" | "table-cell"
+
+// Defaults that browsers give built-in elements but not custom ones, in the
+// lowest cascade layer with zero specificity, so any class wins.
+const display = new Map<string, PartDisplay>()
+// Parts that take an `align` prop. Chromium and WebKit map `align` on any
+// element to the legacy text alignment, so these inherit it instead.
+const aligned = new Set<string>()
+let sheet: HTMLStyleElement | undefined
+// Counts changes to the rules, so a copy of them knows it's behind.
+let rulesVersion = 0
+// The same rules for shadow roots, which the document's styles don't reach.
+// One sheet for each document, since a constructed sheet can only be adopted
+// into the document it was made for.
+const constructed = new WeakMap<Document, { sheet: CSSStyleSheet; version: number }>()
+// And for other documents an element moves into, like an iframe's.
+const copies = new WeakMap<Document, HTMLStyleElement>()
+/**
+ * Gives elements matching `selector` a default display, like a part's tag,
+ * or the elements a part generates inside it.
+ */
+function setDisplay(selector: string, value?: PartDisplay, align = false) {
+  if (align) aligned.add(selector)
+  if (!value && !align) return
+  if (value) display.set(selector, value)
+  sheet ??= styleIn(document)
+  sheet.textContent = rules()
+  rulesVersion++
+}
+
+// In its own cascade layer, declared first in the document, so it loses to
+// every other style, including utilities that frameworks like Tailwind put in layers.
+function styleIn(doc: Document) {
+  return doc.head.insertAdjacentElement("afterbegin", doc.createElement("style")) as HTMLStyleElement
+}
+
+function rules() {
+  return [
+    "@layer ui-sdk {",
+    // Parts that aren't shown stay hidden whatever display a class gives them.
+    '  :where([data-slot][hidden]:not([hidden="until-found"])) { display: none !important }',
+    // Content hidden until found is only hidden inside a box, so those keep theirs.
+    ...[...display].map(
+      ([selector, value]) =>
+        `  :where(${selector}:not([hidden]), ${selector}[hidden="until-found"]) { display: ${value} }`,
+    ),
+    ...[...aligned].map((tag) => `  :where(${tag}[align]) { text-align: inherit }`),
+    // A part with as-child hands its role to its child, so it has no box of its own.
+    "  :where([as-child]) { display: contents }",
+    "}",
+  ].join("\n")
+}
+
+// Gives the shadow root or other document an element renders in, if any,
+// the rules `setDisplay` gives this document, like hidden parts staying hidden.
+// Parts check again each time they sync, since a page can replace or change a
+// root's sheets at any time, like Lit when its styles change, and nothing
+// tells us it did.
+function adoptStyles(el: HTMLElement) {
+  const root = el.getRootNode()
+  if (!isShadowRoot(root)) return copyStyles(el.ownerDocument)
+  const shared = sharedSheet(root.ownerDocument)
+  if (!shared || root.adoptedStyleSheets.includes(shared)) return
+  root.adoptedStyleSheets = [shared, ...root.adoptedStyleSheets]
+}
+
+// By node type, since `instanceof ShadowRoot` is false for one from another document's window.
+const isShadowRoot = (node: Node): node is ShadowRoot => node.nodeType === 11 && "host" in node
+
+// The document's constructed sheet with the rules, made with its own window's
+// constructor. None for a document without a window, which renders nothing.
+function sharedSheet(doc: Document) {
+  const view = doc.defaultView
+  if (!view) return
+  let entry = constructed.get(doc)
+  if (!entry) constructed.set(doc, (entry = { sheet: new view.CSSStyleSheet(), version: -1 }))
+  // Rules defined since it was made.
+  if (entry.version !== rulesVersion) {
+    entry.sheet.replaceSync(rules())
+    entry.version = rulesVersion
+  }
+  return entry.sheet
+}
+
+function copyStyles(doc: Document) {
+  if (doc === document || !sheet) return
+  let copy = copies.get(doc)
+  if (!copy) copies.set(doc, (copy = styleIn(doc)))
+  // Rules defined since it was copied.
+  if (copy.textContent !== sheet.textContent) copy.textContent = sheet.textContent
+}
+
+type Part = {
+  slot: string
+  // The feature that ships the slot, which the owner's instance uses before it reads it.
+  feature?: Feature
+  // The element the slot binds to. A trigger binds to the button inside it.
+  el: HTMLElement
+  props: Record<string, unknown>
+  unbind?: () => void
+  // Marks where a portaled element came from, so it can go back.
+  placeholder?: Comment
+  // Undoes `connect`, which runs while the part is in the page, present or not.
+  disconnect?: () => void
+  // Its subscription to the instance, the record and the values it selects
+  // on that it depends on, and the version it last synced at.
+  unwatch?: () => void
+  record?: InstancePart
+  selected?: string
+  version?: number
+  // Whether it was present when it last synced.
+  shown?: boolean
+  // Reads its props again, for parts whose props come from their surroundings.
+  reread?: () => Record<string, unknown>
+  // Watches a native child's attributes that its props follow.
+  observer?: MutationObserver
+}
+
+// Owners whose options come from their surroundings, like a toggle's toolbar
+// group. A change to an element around one configures it again.
+const dependents = new Set<HTMLElement & { reconfigure: () => void }>()
+
+function reconfigureInside(el: HTMLElement) {
+  for (const dependent of dependents) if (dependent !== el && el.contains(dependent)) dependent.reconfigure()
+}
+
+type OwnerElement = HTMLElement & {
+  register: (part: Part) => void
+  unregister: (part: Part) => void
+  update: (part: Part, rebind: boolean) => void
+  rebind: () => void
+}
+
+// Where portaled parts went, so popups inside them can follow.
+const portals = new WeakMap<Element, Element | DocumentFragment>()
+
+// Containers that pass on what they'd hand down: a popup inside a sheet
+// renders where the sheet's viewport went, never into the viewport itself.
+const passedOn = new WeakMap<Element | DocumentFragment, Element | DocumentFragment | null>()
+
+/** Popups inside `container` inherit `to` instead, or render in place for null. */
+function passPortalOn(container: Element, to: Element | DocumentFragment | null) {
+  passedOn.set(container, to)
+}
+
+/**
+ * The container the nearest portaled part above `el` renders into. A popup
+ * inside a portaled popup renders there too, unless it names its own.
+ */
+function inheritedPortal(el: Element) {
+  for (let node: Element | null = el.parentElement; node; node = node.parentElement) {
+    const target = portals.get(node)
+    if (target) return passedOn.has(target) ? passedOn.get(target)! : target
+  }
+  return null
+}
+
+// The part elements each owner has registered, so nested lookups work after a
+// popup moves to a portal.
+const partOwners = new WeakMap<Element, OwnerElement>()
+
+// Each part element's part, so a part inside it can take its props.
+const slotParts = new WeakMap<Element, Part>()
+
+// The props of the nearest part of `slot` around `el` that has the same owner,
+// so a part of another component in between, with a slot of the same name, is skipped.
+function propsAround(el: Element, slot: string, owner?: OwnerElement) {
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    const part = slotParts.get(node)
+    if (part?.slot === slot && partOwners.get(node) === owner) return part.props
+  }
+}
+
+/**
+ * The nearest owner above `el`, or the owner of the nearest part above it.
+ * Popups may have moved to a portal, so the DOM alone can't answer. A part with
+ * `for="id"` names its owner anywhere on the page, like a trigger in a table row.
+ * Parts of other components in between are skipped, like a popover trigger
+ * inside a tooltip trigger.
+ */
+function findOwner(el: Element, selector: string) {
+  const target = el.getAttribute("for")
+  if (target) {
+    // Looked up in the element's own tree, like a native `for`, so it works in a shadow root.
+    const root = el.getRootNode() as Document | ShadowRoot
+    const owner = "getElementById" in root ? root.getElementById(target) : null
+    if (owner?.matches(selector)) return owner as OwnerElement
+  }
+  for (let node = el.parentElement; node; node = node.parentElement) {
+    if (node.matches(selector)) return node as OwnerElement
+    // A part of another kind of owner, like a field's label inside a number
+    // field's scrub area, keeps looking past that owner's parts.
+    const owner = partOwners.get(node)
+    if (owner?.matches(selector)) return owner
+  }
+}
+
+// The selector each element last warned about, so a sync on every change warns once.
+const unmatched = new WeakMap<Element, string>()
+
+/**
+ * The element `selector` matches, like a popup's `container="#id"`. Looked up
+ * in the element's own tree first, like `for`, then in each tree around it up
+ * to the document, so a popup in a shadow root can name a container outside it.
+ */
+function findContainer(el: Element, selector: string) {
+  for (let root = el.getRootNode(); ; root = root.host.getRootNode()) {
+    const container = (root as ParentNode).querySelector(selector)
+    if (container) return container
+    if (!isShadowRoot(root)) break
+  }
+  if (unmatched.get(el) !== selector)
+    warn(
+      `<${el.localName}> container="${selector}" matches no element yet, so it renders in place. A container rendered later is used from its next open.`,
+    )
+  unmatched.set(el, selector)
+  return null
+}
+
+// Runs after the current task's moves settle. A popup moving to a portal
+// disconnects and reconnects in the same task, and must stay bound.
+function whenGone(el: HTMLElement, run: () => void) {
+  queueMicrotask(() => {
+    if (!el.isConnected) run()
+  })
+}
+
+// What each form-associated element would save with its value, for a
+// reconnect to restore.
+const formStates = new WeakMap<HTMLElement, () => string>()
+
+// Binds an element's internals, keeping how to read its state.
+const bindInternals: typeof bindElementInternals = (el, internals, options) => {
+  formStates.set(el, options.state)
+  return bindElementInternals(el, internals, options)
+}
+
+// A form-associated base class: the element takes part in forms like a native
+// control, through ElementInternals. The core reports its value and validity,
+// and hears about resets, disabling fieldsets and restored state. It has the
+// members native controls have, so form code treats it like one.
+function formAssociated(Base: typeof HTMLElement) {
+  return class extends Base {
+    static formAssociated = true
+    #internals: ElementInternals
+    constructor() {
+      super()
+      this.#internals = this.attachInternals()
+      attachFormInternals(this, this.#internals, bindInternals)
+    }
+    get form() {
+      return this.#internals.form
+    }
+    get labels() {
+      return this.#internals.labels
+    }
+    get name() {
+      return this.getAttribute("name") ?? ""
+    }
+    set name(value: string) {
+      this.setAttribute("name", value)
+    }
+    get validity() {
+      return this.#internals.validity
+    }
+    get validationMessage() {
+      return this.#internals.validationMessage
+    }
+    get willValidate() {
+      return this.#internals.willValidate
+    }
+    checkValidity() {
+      return this.#internals.checkValidity()
+    }
+    reportValidity() {
+      return this.#internals.reportValidity()
+    }
+    setCustomValidity(message: string) {
+      if (!formCallback(this, "customValidity", message))
+        this.#internals.setValidity(message ? { customError: true } : {}, message)
+    }
+    formResetCallback() {
+      formCallback(this, "reset")
+    }
+    formDisabledCallback(disabled: boolean) {
+      formCallback(this, "disabled", disabled)
+    }
+    formStateRestoreCallback(state: unknown, mode: string) {
+      formCallback(this, "restore", state, mode)
+    }
+  }
+}
+
+// How `defineRootElement` defines an owner element, from what `defineParts` reads.
+type OwnerConfig<P extends Primitive> = {
+  /**
+   * Attributes, by option name in camelCase. Each is read from its kebab-case
+   * attribute, observed, and parsed by its type. `debug` is always there.
+   */
+  attributes?: Record<string, AttributeType>
+  /** Options that don't come from attributes, like a group found in the page. */
+  options?: (el: HTMLElement) => Partial<OptionsOf<P>>
+  /**
+   * Live properties for the state a user controls, like `open` or `value`.
+   * Setting one changes the state as a controller would, and fires the
+   * change event. An attribute of the same name sets the starting state, and
+   * changing it later changes the state the same way.
+   */
+  state?: Record<string, { get: (api: any) => unknown; set: (api: any, value: any) => void }>
+  /** The controller's methods, which the element's `api` property exposes. */
+  api?: string[]
+  /** Callbacks that fire no event, because part elements already report them. */
+  silent?: string[]
+  /** Callbacks whose event hands listeners `waitUntil()`, from the schema's `"action"` kind. */
+  actions?: string[]
+  /**
+   * Runs once the instance exists, and again when a property is set, with
+   * the element and its instance, which only this hook sees. Data elements
+   * render their parts here. A returned cleanup runs before the next render
+   * and once the element is gone, like a store subscription's.
+   */
+  render?: (el: HTMLElement, instance: ReturnType<P>) => void | (() => void)
+  /**
+   * Attributes for the element itself, like role="none" on wrappers that
+   * must not split a list for assistive technology.
+   */
+  host?: Record<string, string>
+  /** The element's CSS display. `contents` keeps it out of layout, for wrappers. Inline by default. */
+  display?: PartDisplay
+  /** The slot the element itself fills, like the root of a tabs widget. */
+  self?: string
+  /**
+   * Native elements inside it that fill slots, like the <fieldset> inside
+   * <ui-field-set>. They keep their native behavior, which a custom element can't
+   * have, like a fieldset disabling the controls inside it. A missing one
+   * warns, unless its slot is in `optionalChildren`, like a fieldset's legend.
+   */
+  children?: Record<string, (el: HTMLElement) => HTMLElement | null>
+  /**
+   * The element the `self` slot binds to, when it isn't the element itself,
+   * like the <button> inside <ui-button>, so native button behavior stays.
+   */
+  target?: (el: HTMLElement) => HTMLElement | null
+  /** Slots in `children` that may be missing without a warning, like a fieldset's legend. */
+  optionalChildren?: string[]
+  /**
+   * The native children's attributes that props or options follow, like an
+   * <input>'s `disabled`, `readonly` and `required`, or its `autocomplete`.
+   * A change reads `read` and the options again.
+   */
+  childProps?: { attributes: string[]; read?: (el: HTMLElement) => Record<string, unknown> }
+  /**
+   * Slots that move into a container while present, like popups. Without
+   * top layer support they move to the body. The container is asked on
+   * every sync, with the part, so a part can move while bound, like a
+   * navigation menu's content into its viewport as it opens.
+   */
+  portal?: {
+    slots: string[]
+    container: (
+      el: HTMLElement,
+      part: { slot: string; el: HTMLElement; props: Record<string, unknown> },
+    ) => Element | DocumentFragment | null
+  }
+  /**
+   * Properties, like a data menu's items or a `controller`. Each one set goes
+   * into the options, and setting one updates them and renders again.
+   */
+  properties?: string[]
+  /** Takes part in forms like a native control, like <ui-checkbox name="terms">. */
+  formAssociated?: boolean
+  /**
+   * Boolean options that start on, like `{ loop: true }`, so their
+   * properties read true without the attribute and `false` writes "false".
+   * A function decides from the element, like `closeOnOutsidePress` from `modal`.
+   */
+  defaults?: Partial<Record<keyof OptionsOf<P> & string, BooleanDefaults[string]>>
+}
+
+// The option that sets where a state key starts, like `defaultChecked` for `checked`.
+const defaultOf = (name: string) => `default${name[0].toUpperCase()}${name.slice(1)}`
+
+// Defines the element that owns a primitive instance, like <ui-menu>. Part
+// elements inside it register themselves with it. Attributes become options,
+// `state` adds live properties that fire `<name>change` events, and `api`
+// exposes the controller's methods on the element's `api` property. Does
+// nothing on the server, and once per tag.
+function defineRootElement<P extends Primitive>(tagName: string, primitive: P, config: OwnerConfig<P>) {
+  if (!claimTag(tagName)) return
+  setDisplay(tagName, config.display)
+  const schema: Record<string, AttributeType> = { debug: "boolean", ...config.attributes }
+  const state = config.state ?? {}
+  // Options from attributes and properties. A state attribute, like `open`,
+  // sets where the state starts, unless its `default-` attribute does.
+  const optionsOf = (el: HTMLElement, properties: Record<string, unknown>) => {
+    const options = readAttributes(el, schema)
+    for (const [name, value] of Object.entries(properties)) if (value !== undefined) options[name] = value
+    for (const name of Object.keys(state)) {
+      if (!(name in options)) continue
+      const fallback = defaultOf(name)
+      if (!(fallback in options)) options[fallback] = options[name]
+      delete options[name]
+    }
+    return { ...options, ...config.options?.(el) } as Partial<OptionsOf<P>>
+  }
+  customElements.define(
+    tagName,
+    class Owner extends (config.formAssociated ? formAssociated(HTMLElement) : HTMLElement) {
+      static observedAttributes = Object.keys(schema).map(kebab)
+      #view?: object
+      get #instance() {
+        return instances.get(this) as ReturnType<P> | undefined
+      }
+      // The controller's methods. Internals stay out of reach.
+      get api() {
+        if (!this.#instance) return undefined
+        return (this.#view ??= controllerView(this.#instance.api as object, config.api ?? []))
+      }
+      #parts = new Set<Part>()
+      #pending = new Set<Part>()
+      #connected = false
+      // Left the page and destroyed its instance, which a reconnect replaces.
+      #gone = false
+      #properties: Record<string, unknown> = {}
+      // State properties set while there's no live instance, like before the
+      // element connects, where the next instance starts.
+      #state: Record<string, unknown> = {}
+      // What a form-associated element reported to its form when it left,
+      // which it restores when it's back.
+      #saved?: string
+
+      static {
+        for (const [name, { get, set }] of Object.entries(state))
+          Object.defineProperty(Owner.prototype, name, {
+            get(this: Owner) {
+              if (name in this.#state) return this.#state[name]
+              return this.#instance ? get(this.#instance.api) : undefined
+            },
+            set(this: Owner, value: unknown) {
+              if (this.#instance && !this.#gone) set(this.#instance.api, value)
+              else this.#state[name] = value
+            },
+          })
+        for (const name of config.properties ?? [])
+          Object.defineProperty(Owner.prototype, name, {
+            get(this: Owner) {
+              return this.#properties[name]
+            },
+            set(this: Owner, value: unknown) {
+              this.#properties[name] = value
+              if (!this.#connected) return
+              this.#configure()
+              this.#render()
+            },
+          })
+        reflectAttributes(Owner.prototype, schema, config.defaults as BooleanDefaults)
+      }
+
+      // Options come from attributes and properties, with `defaults` over them.
+      // Re-read them into the instance.
+      #configure(defaults?: Record<string, unknown>) {
+        this.#instance?.setOptions(
+          withEvents(
+            this,
+            { ...optionsOf(this, this.#properties), ...defaults, id: this.#instance.id },
+            config.silent,
+            config.actions,
+          ),
+        )
+      }
+
+      attributeChangedCallback(name: string, previous: string | null, value: string | null) {
+        if (!this.#connected) return
+        this.#configure()
+        reconfigureInside(this)
+        // A state attribute changed after the start, like `value` set from the
+        // URL. Removing it clears the state, like removing `open` from <details>.
+        const key = name.replace(/-(\w)/g, (_, char: string) => char.toUpperCase())
+        if (!(key in state) || value === previous) return
+        const type = schema[key]
+        const cleared = type === "boolean" ? false : type === "list" ? [] : null
+        state[key].set(this.#instance!.api, value === null ? cleared : parseAttribute(type, value))
+      }
+
+      connectedCallback() {
+        // Even a move within one task can take it into a shadow root or another document.
+        adoptStyles(this)
+        if (this.#connected) return
+        upgradeProperties(this, [...Object.keys(state), ...(config.properties ?? []), ...Object.keys(schema)])
+        for (const [name, value] of Object.entries(config.host ?? {}))
+          if (!this.hasAttribute(name)) this.setAttribute(name, value)
+        // Put back after it left the page, like a view a router kept: its
+        // instance was destroyed, so a new one starts where the old one was,
+        // the way a native element keeps its state. A form-associated one
+        // starts from its defaults, which a form reset returns to, and
+        // restores its state as the browser would.
+        const restore = this.#gone && !Object.keys(this.#state).length ? this.#saved : undefined
+        const starts: Record<string, unknown> = {}
+        if (this.#gone && restore === undefined)
+          for (const [name, { get }] of Object.entries(state)) starts[name] = get(this.#instance!.api)
+        // A state property set while it was away, or before it connected, wins.
+        Object.assign(starts, this.#state)
+        this.#state = {}
+        const last = Object.fromEntries(
+          Object.entries(starts).map(([name, value]) => [defaultOf(name), value]),
+        )
+        if (this.#gone) {
+          instances.delete(this)
+          this.#view = undefined
+          this.#gone = false
+          this.#saved = undefined
+        }
+        // Attributes may have changed while it was disconnected.
+        let instance = this.#instance
+        if (instance) this.#configure()
+        else {
+          instance = primitive(
+            withEvents(
+              this,
+              {
+                ...optionsOf(this, this.#properties),
+                ...last,
+                id: this.id || `ui-sdk-${tagName.replace(/^ui-/, "")}-${++count}`,
+              },
+              config.silent,
+              config.actions,
+            ),
+          ) as ReturnType<P>
+          instances.set(this, instance)
+        }
+        // A form reset returns to the defaults the attributes give, not to
+        // where properties set before connecting started it, like a native input.
+        if (config.formAssociated && Object.keys(starts).length) {
+          const base = instance.startState(optionsOf(this, this.#properties)) as Record<string, unknown>
+          this.#configure(
+            Object.fromEntries(Object.keys(starts).map((name) => [defaultOf(name), base[name]])),
+          )
+        }
+        this.#connected = true
+        if (config.options) dependents.add(this)
+        if (config.self) {
+          const el = boundElement(this, config.target)
+          if (el) this.#registerSelf(el)
+          else warn(`<${tagName}> needs an element inside it.`)
+        }
+        for (const [slot, find] of Object.entries(config.children ?? {})) {
+          const child = find(this)
+          if (child) this.#registerChild(slot, child)
+          else if (!config.optionalChildren?.includes(slot))
+            warn(`<${tagName}> needs its native element inside it for "${slot}".`)
+        }
+        // Native children can come and go, like an avatar's <img> added once a
+        // URL is known, and so can the element the own slot binds, like the
+        // <button> inside <ui-button>.
+        if (config.children || config.target) {
+          this.#childObserver = new MutationObserver(() => {
+            this.#syncChildren()
+            this.#syncSelf()
+          })
+          this.#childObserver.observe(this, { childList: true })
+        }
+        this.#render()
+        // Once its parts bind, which reports to the form again, silently.
+        if (restore !== undefined)
+          queueMicrotask(() => {
+            quiet.add(this)
+            try {
+              formCallback(this, "restore", restore, "restore")
+            } finally {
+              quiet.delete(this)
+            }
+          })
+      }
+
+      #renderCleanup?: () => void
+
+      // Runs only while connected, when the instance exists.
+      #render() {
+        this.#renderCleanup?.()
+        this.#renderCleanup = config.render?.(this, this.#instance!) || undefined
+      }
+
+      reconfigure() {
+        if (this.#connected) this.#configure()
+      }
+
+      #childParts = new Map<string, Part>()
+      #childObserver?: MutationObserver
+      #selfPart?: Part
+
+      #registerSelf(el: HTMLElement) {
+        this.#selfPart = { slot: config.self!, el, props: {} }
+        this.register(this.#selfPart)
+      }
+
+      // The element the own slot binds was replaced: the new one binds instead.
+      #syncSelf() {
+        if (!config.self || !config.target) return
+        const el = boundElement(this, config.target)
+        if (el === this.#selfPart?.el) return
+        if (this.#selfPart) this.unregister(this.#selfPart)
+        this.#selfPart = undefined
+        // Options can come from the element, like a button's authored `type`.
+        this.#configure()
+        if (el) this.#registerSelf(el)
+      }
+
+      #registerChild(slot: string, el: HTMLElement) {
+        const part: Part = { slot, el, props: config.childProps?.read?.(el) ?? {} }
+        if (config.childProps) {
+          part.observer = new MutationObserver(() => {
+            part.props = config.childProps!.read?.(el) ?? {}
+            this.#configure()
+            this.update(part, false)
+          })
+          part.observer.observe(el, { attributeFilter: config.childProps.attributes })
+        }
+        this.#childParts.set(slot, part)
+        this.register(part)
+      }
+
+      #syncChildren() {
+        for (const [slot, find] of Object.entries(config.children ?? {})) {
+          const child = find(this)
+          const current = this.#childParts.get(slot)
+          if (current?.el === child) continue
+          if (current) {
+            this.unregister(current)
+            this.#childParts.delete(slot)
+          }
+          if (child) this.#registerChild(slot, child)
+        }
+      }
+
+      disconnectedCallback() {
+        // Moved in one go, like into a portal, it stays. Gone, it settles a
+        // pending controller `open()` and lets go of its controller, and put
+        // back later, it starts again where it was.
+        whenGone(this, () => {
+          this.#saved = formStates.get(this)?.()
+          this.#renderCleanup?.()
+          this.#renderCleanup = undefined
+          this.#childObserver?.disconnect()
+          this.#childObserver = undefined
+          this.#childParts.clear()
+          this.#selfPart = undefined
+          this.#connected = false
+          dependents.delete(this)
+          for (const part of this.#parts) this.unregister(part)
+          this.#instance?.destroy()
+          this.#gone = true
+        })
+      }
+
+      // Parts register as they upgrade, in no useful order. They sync together a
+      // microtask later in DOM order, so a trigger binds before an open popup.
+      register(part: Part) {
+        this.#parts.add(part)
+        if (!this.#pending.size) queueMicrotask(() => this.#flush())
+        this.#pending.add(part)
+      }
+
+      #flush() {
+        const parts = inDocumentOrder([...this.#pending])
+        this.#pending.clear()
+        for (const part of parts) {
+          if (!this.#parts.has(part)) continue
+          // Props from the parts around it, like an item's group, are read
+          // again, in document order, since those may have upgraded after it.
+          if (part.reread) part.props = part.reread()
+          if (part.feature) this.#instance!.use(part.feature)
+          this.#watch(part)
+          this.#sync(part)
+        }
+      }
+
+      // Syncs a part again when a change can affect it, so a highlight change
+      // reaches the two items it moves between, not every part. Live state is
+      // written by the core, so only changes to state that affects rendering
+      // apply attributes again. A part that selects on a live key, like an
+      // item on the highlight, hears that key alone, and has nothing to apply.
+      #watch(part: Part) {
+        const instance = this.#instance!
+        part.unwatch?.()
+        const record = instance.part(part.slot, part.props)
+        part.record = record
+        part.selected = selectedKeys(record)
+        part.version = renderVersion(instance)
+        part.unwatch = subscribe(record, (liveOnly) => {
+          // Presence may read live state, so it is checked on every change.
+          if (isPresent(record) !== part.shown) {
+            part.version = renderVersion(instance)
+            return this.#sync(part)
+          }
+          if (liveOnly) return
+          const version = renderVersion(instance)
+          if (version === part.version) return
+          part.version = version
+          this.#sync(part)
+        })
+      }
+
+      unregister(part: Part) {
+        part.unwatch?.()
+        part.unwatch = undefined
+        part.observer?.disconnect()
+        part.observer = undefined
+        this.#unbind(part)
+        // An element the part lets go of, like a button moved out of a tab, keeps nothing the owner wrote.
+        applyAttrs(part.el, {}, this.#channel)
+        part.disconnect?.()
+        part.disconnect = undefined
+        this.#restore(part)
+        this.#parts.delete(part)
+        this.#pending.delete(part)
+      }
+
+      // Binds every bound part again, in DOM order, for what they found when
+      // they bound, like the menubar a menu joins, which may upgrade later.
+      rebind() {
+        const parts = inDocumentOrder([...this.#parts].filter((part) => !this.#pending.has(part)))
+        for (const part of parts) this.#unbind(part)
+        for (const part of parts) this.#sync(part)
+      }
+
+      // Props changed. A new key needs a new binding. Other parts can depend on
+      // this one's props, like radio items on their group's value, or on its
+      // attributes, like toolbar items on their group's `disabled`, so they
+      // read their props again and sync too.
+      update(part: Part, rebind: boolean) {
+        if (this.#pending.has(part)) return
+        this.#rewatch(part, rebind)
+        this.#sync(part)
+        for (const other of this.#parts) {
+          if (other === part || this.#pending.has(other)) continue
+          if (other.reread) {
+            const previous = other.props
+            other.props = other.reread()
+            this.#rewatch(other, previous.value !== other.props.value)
+          }
+          this.#sync(other)
+        }
+        reconfigureInside(part.el)
+      }
+
+      #rewatch(part: Part, rebind: boolean) {
+        if (rebind) this.#unbind(part)
+        const record = this.#instance!.part(part.slot, part.props)
+        if (record !== part.record || selectedKeys(record) !== part.selected) this.#watch(part)
+      }
+
+      #sync(part: Part) {
+        adoptStyles(part.el)
+        const instance = this.#instance!
+        const record = instance.part(part.slot, part.props)
+        const channel = this.#channel
+        // A part stays in the page while it isn't present, like a closed popup's content.
+        part.disconnect ??= connect(record, part.el)
+        part.shown = isPresent(record)
+        if (part.shown) {
+          // A part that moves unbinds first, and binds again where it lands.
+          const target = this.#portalTarget(part)
+          if (target !== undefined && this.#moves(part, target)) {
+            this.#unbind(part)
+            this.#move(part, target)
+          }
+          // A part whose visibility the primitive controls owns its `hidden`, so one
+          // the server wrote goes when it shows. An author's own on any other part stays.
+          const attrs = partAttrs(record)
+          if (attrs.hidden === undefined && (conditional(record) || "hidden" in attrs))
+            part.el.removeAttribute("hidden")
+          applyAttrs(part.el, attrs, channel)
+          if (!part.unbind) this.#bind(part, record)
+        } else {
+          // A part that was shown gets its final attributes first, so it never keeps
+          // stale state like data-open. Parts never shown stay untouched.
+          if (part.unbind) {
+            applyAttrs(part.el, partAttrs(record), channel)
+            this.#unbind(part)
+          }
+          if (!part.el.hasAttribute("hidden")) part.el.setAttribute("hidden", "")
+          // The rule that keeps hidden parts hidden over an author's display
+          // classes matches `data-slot`, which a part never shown has no other way to get.
+          const slot = partAttrs(record)["data-slot"]
+          if (slot && !part.el.hasAttribute("data-slot")) part.el.setAttribute("data-slot", slot)
+          this.#restore(part)
+        }
+      }
+
+      // Binding and unbinding can change state, which syncs parts again. The part
+      // counts as bound from the start, so a nested sync never binds it twice,
+      // and as unbound from the start, so it never unbinds twice.
+      #bind(part: Part, record: InstancePart) {
+        let cleanup: (() => void) | undefined
+        let unbound = false
+        part.unbind = () => {
+          unbound = true
+          cleanup?.()
+        }
+        cleanup = bind(record, part.el)
+        if (unbound) cleanup()
+      }
+
+      #unbind(part: Part) {
+        const unbind = part.unbind
+        part.unbind = undefined
+        unbind?.()
+      }
+
+      // Where a portaled slot's part belongs: a container, or null for in
+      // place. Undefined for slots that never move.
+      #portalTarget(part: Part) {
+        if (!config.portal?.slots.includes(part.slot)) return undefined
+        return portalTarget(config.portal.container(this, part))
+      }
+
+      #moves(part: Part, target: Element | DocumentFragment | null) {
+        return target ? part.el.parentNode !== target : !!part.placeholder
+      }
+
+      // Moves a part into its container, or back in place for null.
+      #move(part: Part, target: Element | DocumentFragment | null) {
+        this.#restore(part)
+        if (!target) return
+        part.placeholder = document.createComment(`${tagName} ${part.slot}`)
+        part.el.replaceWith(part.placeholder)
+        target.appendChild(part.el)
+        portals.set(part.el, target)
+      }
+
+      // What the owner writes on its parts' elements. By host, not instance, so
+      // one put back on the page replaces what its last instance wrote, like its parts' ids.
+      get #channel() {
+        return `render:${autoId(this)}`
+      }
+
+      #restore(part: Part) {
+        if (!part.placeholder) return
+        part.placeholder.replaceWith(part.el)
+        part.placeholder = undefined
+        portals.delete(part.el)
+      }
+    },
+  )
+}
+
+// How `definePartElement` defines a part element, from what `defineParts` reads.
+type SlotConfig = {
+  /** The owner primitive's slot this element fills. */
+  slot: string
+  /** Owner elements this part can belong to. */
+  owner: string
+  /** Attributes read as props, by name in camelCase, each with its type. */
+  props?: Record<string, AttributeType>
+  /** Props that come from the surroundings, like the group a radio item is in. */
+  context?: (el: HTMLElement) => Record<string, unknown>
+  /**
+   * Props that, left out, come from a prop of the nearest part around it of
+   * the slot named, like a handle's `value` from its item's.
+   */
+  from?: Record<string, { slot: string; prop: string }>
+  /** Props made unique for each element, like an icon's `id`. */
+  ids?: string[]
+  /**
+   * The element the slot binds to, when it isn't the part itself. Without it,
+   * an as-child attribute binds the part's first child instead, like a link.
+   */
+  target?: (el: HTMLElement) => HTMLElement | null
+  /** Runs once before the first registration, to add generated children. */
+  render?: (el: HTMLElement) => void
+  /** Runs when one of its `props` attributes changes, for generated children that follow it. */
+  changed?: (el: HTMLElement) => void
+  /** The element's CSS display. `contents` keeps it out of layout, for wrappers. Inline by default. */
+  display?: PartDisplay
+  /** Form-associated, so labels and fieldsets treat it like a native control. */
+  formAssociated?: boolean
+  /** Properties read as props, like a trigger's `payload`. Setting one re-syncs the part. */
+  properties?: string[]
+  /** Boolean props that start on, like `{ closeOnSelect: true }`, as the owner's `defaults`. */
+  defaults?: BooleanDefaults
+  /** Props the part's core binding reads once, so a change binds it again. */
+  rebind?: string[]
+  /** @internal The feature that ships the slot, like a select's select-all option. */
+  feature?: Feature
+  /** Callbacks whose event hands listeners `waitUntil()`, from the schema's `"action"` kind. */
+  actions?: string[]
+}
+
+// Defines a part element, like <ui-menu-item>. It finds its owner, reads its
+// props from attributes and registers. The owner binds and syncs it.
+function definePartElement(tagName: string, config: SlotConfig) {
+  if (!claimTag(tagName)) return
+  const schema = config.props ?? {}
+  setDisplay(tagName, config.display, "align" in schema)
+
+  customElements.define(
+    tagName,
+    class PartElement extends (config.formAssociated ? formAssociated(HTMLElement) : HTMLElement) {
+      static observedAttributes = [...Object.keys(schema).map(kebab), "for"]
+      #owner?: OwnerElement
+      #part?: Part
+      #properties: Record<string, unknown> = {}
+
+      static {
+        for (const name of config.properties ?? [])
+          Object.defineProperty(PartElement.prototype, name, {
+            get(this: PartElement) {
+              return this.#properties[name]
+            },
+            set(this: PartElement, value: unknown) {
+              this.#properties[name] = value
+              this.attributeChangedCallback("")
+            },
+          })
+        reflectAttributes(PartElement.prototype, schema, config.defaults)
+      }
+
+      // What the element says itself, its attributes and properties, wins
+      // over what its surroundings give it.
+      #props() {
+        const props: Record<string, unknown> = { ...config.context?.(this), ...readAttributes(this, schema) }
+        for (const name of config.properties ?? [])
+          if (this.#properties[name] !== undefined) props[name] = this.#properties[name]
+        for (const [name, { slot, prop }] of Object.entries(config.from ?? {}))
+          props[name] ??= propsAround(this, slot, this.#owner)?.[prop]
+        for (const name of config.ids ?? []) props[name] ??= autoId(this)
+        // Parts without a value, their own or from their surroundings, still need a stable key.
+        if (props.value === undefined && props.id === undefined) props.id = autoId(this)
+        return withEvents(this, props, [], config.actions)
+      }
+
+      // Watches the children for the element the part binds, which can come
+      // later or be replaced, like a framework's conditional content.
+      #children?: MutationObserver
+
+      connectedCallback() {
+        upgradeProperties(this, [...(config.properties ?? []), ...Object.keys(schema)])
+        adoptStyles(this)
+        if ((config.target || this.hasAttribute("as-child")) && !this.#children) {
+          this.#children = new MutationObserver(() => this.#retarget())
+          this.#children.observe(this, { childList: true })
+        }
+        const owner = findOwner(this, config.owner) ?? this.#owner
+        if (!owner) return queueMicrotask(() => this.#findOwnerLater())
+        // Upgrade order can reach a part before its owner. Try again once it's defined.
+        if (!("register" in owner)) {
+          customElements
+            .whenDefined((owner as HTMLElement).localName)
+            .then(() => this.isConnected && this.connectedCallback())
+          return
+        }
+        if (owner === this.#owner) return
+        if (this.#owner && this.#part) this.#owner.unregister(this.#part)
+
+        const el = boundElement(this, config.target)
+        // It may come later. Warned once the task that built the element ends without it.
+        if (!el)
+          return queueMicrotask(() => {
+            if (this.isConnected && !this.#part && !boundElement(this, config.target))
+              warn(`<${tagName}> needs an element inside it.`)
+          })
+        if (!this.#part) {
+          config.render?.(this)
+          // A render that moves the part, like into a wrapper it adds, connects
+          // it again inside this call, and that call registered it already.
+          if (this.#part) return
+        }
+        this.#owner = owner
+        this.#part = {
+          slot: config.slot,
+          feature: config.feature,
+          el,
+          props: this.#props(),
+          reread: (config.context || config.from) && (() => this.#props()),
+        }
+        partOwners.set(this, owner)
+        slotParts.set(this, this.#part)
+        owner.register(this.#part)
+      }
+
+      // Put back on the page, a part can connect before what leads to its owner
+      // does, like an item in a list its owner renders again. Warned only when
+      // the owner is still missing once the task's other elements connected.
+      #findOwnerLater() {
+        if (!this.isConnected || this.#owner) return
+        if (findOwner(this, config.owner)) this.connectedCallback()
+        else warn(`<${tagName}> must be inside ${config.owner}.`)
+      }
+
+      // The element the part binds came, left or was replaced: the part lets go
+      // of the old one and registers again with what's there now. One the owner
+      // moved into a portal, like an input a sheet puts in its header, stays bound.
+      #retarget() {
+        const old = this.#part?.el
+        if (!this.isConnected || (old && portals.has(old))) return
+        const el = boundElement(this, config.target)
+        if (el === (old ?? null)) return
+        if (this.#owner && this.#part) this.#owner.unregister(this.#part)
+        this.#owner = undefined
+        this.#part = undefined
+        if (el) this.connectedCallback()
+      }
+
+      disconnectedCallback() {
+        whenGone(this, () => {
+          this.#children?.disconnect()
+          this.#children = undefined
+          if (this.#owner && this.#part) this.#owner.unregister(this.#part)
+          partOwners.delete(this)
+          slotParts.delete(this)
+          this.#owner = undefined
+          this.#part = undefined
+        })
+      }
+
+      attributeChangedCallback(name: string) {
+        // A new `for` names another owner, or none. Only a portal move keeps an
+        // owner the page no longer names.
+        if (name === "for") {
+          if (!this.isConnected) return
+          if (!findOwner(this, config.owner) && this.#owner && this.#part) {
+            this.#owner.unregister(this.#part)
+            this.#owner = undefined
+            partOwners.delete(this)
+          }
+          this.connectedCallback()
+          return
+        }
+        if (!this.#owner || !this.#part) return
+        const previous = this.#part.props
+        this.#part.props = this.#props()
+        const next = this.#part.props
+        const rebind =
+          previous.value !== next.value || !!config.rebind?.some((name) => previous[name] !== next[name])
+        this.#owner.update(this.#part, rebind)
+        config.changed?.(this)
+      }
+    },
+  )
+}
+
+/**
+ * Web-only kinds that replace the schema's, by prop name, like
+ * `{ container: "string" }` for a container named by a selector. `null`
+ * leaves a prop out, for one the element sets itself, like a group it finds
+ * around it.
+ * @stable
+ */
+type Kinds = Record<string, PropSpec | null>
+
+/**
+ * How `defineParts` and `definePart` define a part's element, beyond its tag.
+ * @stable
+ */
+type PartOptions<P extends Primitive = Primitive> = {
+  /** The element's tag, like `"ui-tabs-tab"`. */
+  tag: string
+  /**
+   * The slot it fills, when it isn't its key, like a radio filling the root
+   * slot of a radio group whose own element is the group.
+   */
+  slot?: SlotName<P>
+  /** Owners of another primitive it belongs to as well, like a calendar day's <ui-date-picker>. */
+  owners?: string[]
+  kinds?: Kinds
+  /** Properties beyond the schema's, read as props. */
+  properties?: string[]
+} & Omit<SlotConfig, "slot" | "owner" | "props" | "properties" | "from" | "ids" | "actions">
+
+/**
+ * How `defineParts` and `definePart` define the root's element, the one that owns an instance, beyond its tag.
+ * @stable
+ */
+type RootOptions<P extends Primitive> = {
+  /** The element's tag, like `"ui-tabs"`. */
+  tag: string
+  /**
+   * The slot the element itself fills, when it isn't `root`, like a radio
+   * group's `group`. Without one, it fills `root` when the primitive has it
+   * and no native child fills it.
+   */
+  self?: SlotName<P>
+  kinds?: Kinds
+  /**
+   * Properties beyond the schema's, which go into the options, like a
+   * `filter` function beside its attribute.
+   */
+  properties?: string[]
+  /**
+   * Live properties for the state a user controls, like `open` or `value`.
+   * Setting one changes the state as a controller would, and fires the
+   * change event. An attribute of the same name sets the starting state, and
+   * changing it later changes the state the same way.
+   */
+  state?: Record<
+    string,
+    { get: (api: TypesOf<P>["api"]) => unknown; set: (api: TypesOf<P>["api"], value: any) => void }
+  >
+  /** The controller's methods, which the element's `api` property exposes. */
+  api?: (keyof TypesOf<P>["api"] & string)[]
+} & Omit<OwnerConfig<P>, "attributes" | "properties" | "self" | "state" | "api" | "actions">
+
+// The root tags defined for each primitive, so the parts defined after them find their owner.
+const rootTags = new WeakMap<Primitive, string[]>()
+
+// A schema's props as an element reads them: string, number, boolean and
+// list kinds and parsers from attributes, value kinds from properties, id
+// kinds made for each element when left out, and props taken from a part
+// around it, which only `kinds` makes attributes too. Callbacks need
+// nothing, since every `on*` prop fires an event, and action callbacks hand
+// their listeners `waitUntil()`. `id` is the element's own attribute, so
+// it's never a prop's unless `kinds` says so.
+function elementProps(props: Record<string, PropSpec>, schema: PrimitiveSchema, kinds: Kinds = {}) {
+  const attributes: Record<string, AttributeType> = {}
+  const properties: string[] = []
+  const ids: string[] = []
+  const actions: string[] = []
+  const from: Record<string, { slot: string; prop: string }> = {}
+  for (const [name, spec] of Object.entries({ ...props, ...kinds })) {
+    if (!spec) continue
+    if (typeof spec === "object") {
+      // `"group.id"` names the group's `id`, and `"item"` the item's prop of the same name.
+      const [slot, prop = name] = spec.from.split(".")
+      // A shared part's prop from a slot this primitive doesn't have, like an
+      // item icon's `item` in tabs, has nowhere to come from.
+      if (slot in schema.slots) from[name] = { slot, prop }
+      if (!(name in kinds)) continue
+    }
+    const kind = typeof spec === "object" ? spec.kind : spec
+    if (kind === "value") properties.push(name)
+    else if (kind === "action") actions.push(name)
+    else if (kind === "id") ids.push(name)
+    if (kind === "value" || kind === "action" || kind === "callback") continue
+    if (name !== "id" || name in kinds) attributes[name] = kind === "id" || kind === "key" ? "string" : kind
+  }
+  return { attributes, properties, ids, actions, from: Object.keys(from).length ? from : undefined }
+}
+
+const tagOf = <T extends { tag: string }>(tagOrOptions: string | T) =>
+  typeof tagOrOptions === "string" ? ({ tag: tagOrOptions } as T) : tagOrOptions
+
+/**
+ * What `definePart` defines for a slot: for `root`, the element that owns an
+ * instance, with the primitive's options as attributes and properties; for
+ * any other slot, an element that finds that owner, with the slot's props.
+ * The kinds come from the primitive's schema. A root's tag is remembered, so
+ * the parts defined after it find their owner. The docs' elements manifest
+ * reads it too.
+ */
+function partElement<P extends Primitive>(
+  primitive: P,
+  key: string,
+  tagOrOptions: string | RootOptions<P> | PartOptions<P>,
+  // The root defined with it, which its owners list first.
+  root?: string,
+) {
+  const schema = schemaOf(primitive)
+  if (key === "root") {
+    const { tag, self, kinds, properties = [], ...options } = tagOf(tagOrOptions as string | RootOptions<P>)
+    rootTags.set(primitive, [...new Set([...(rootTags.get(primitive) ?? []), tag])])
+    // `debug` is every owner's own attribute.
+    const { debug: _debug, ...optionSchema } = schema.options
+    const props = elementProps(optionSchema, schema, kinds)
+    const config: OwnerConfig<P> = {
+      ...options,
+      self: self ?? ("root" in schema.slots && !options.children?.root ? "root" : undefined),
+      attributes: props.attributes,
+      // Live state has its own property.
+      properties: [...new Set([...props.properties, ...properties])].filter((name) => !options.state?.[name]),
+      actions: props.actions,
+    }
+    return { kind: "owner" as const, key, tagName: tag, config }
+  }
+  const {
+    tag,
+    slot = key,
+    owners = [],
+    kinds,
+    properties = [],
+    ...options
+  } = tagOf(tagOrOptions as string | PartOptions<P>)
+  const roots = rootTags.get(primitive)
+  if (!roots) throw new Error(`<${tag}> is a part of ${primitive.name}: define its root first.`)
+  // A feature's slot, like a select's select-all option, is in the feature.
+  const slotSchema = (schema.slots[slot] ??
+    (options.feature?.slots[slot] && ((options.feature.slots[slot] as { props?: object }).props ?? {}))) as
+    Record<string, PropSpec> | undefined
+  if (!slotSchema) throw new Error(`<${tag}>: ${primitive.name} has no ${slot} slot.`)
+  const { attributes, ...props } = elementProps(slotSchema, schema, kinds)
+  const config: SlotConfig = {
+    ...options,
+    slot,
+    owner: [...new Set([...(root ? [root] : []), ...roots, ...owners])].join(", "),
+    props: attributes,
+    ...props,
+    properties: [...new Set([...props.properties, ...properties])],
+  }
+  return { kind: "part" as const, key, tagName: tag, config }
+}
+
+/**
+ * The tags `defineParts` takes: `root` for the element that owns an
+ * instance, and each slot it renders by name. A part under another key
+ * names its slot, like `{ radio: { tag: "ui-radio", slot: "root" } }`.
+ */
+type PartTags<P extends Primitive> = { root: string | RootOptions<P> } & {
+  [S in Exclude<SlotName<P>, "root">]?: string | PartOptions<P>
+}
+
+/**
+ * Every element `defineParts` defines, as `partElement` describes each, the
+ * root first, so its parts know their owner's tag.
+ */
+function partElements<P extends Primitive>(primitive: P, tags: PartTags<P>) {
+  const { root, ...parts } = tags
+  const owner = partElement(primitive, "root", root)
+  return [
+    owner,
+    ...Object.entries(parts as Record<string, string | PartOptions<P> | undefined>).flatMap(([key, tag]) =>
+      tag ? [partElement(primitive, key, tag, owner.tagName)] : [],
+    ),
+  ]
+}
+
+function defineElement<P extends Primitive>(primitive: P, element: ReturnType<typeof partElement<P>>) {
+  if (element.kind === "owner") defineRootElement(element.tagName, primitive, element.config)
+  else definePartElement(element.tagName, element.config)
+}
+
+/**
+ * Defines a custom element for each part of a primitive, typed from it.
+ * `root` is the element that owns an instance: the primitive's options are
+ * its attributes (strings, numbers, booleans and comma-separated lists),
+ * each reflected by a property, and properties (any other value), and its
+ * callbacks are events, like
+ * `onValueChange` firing `valuechange`. Every other slot named becomes an
+ * element that finds the root above it, with the slot's props read the same
+ * way. A part that needs more than a tag takes an object, like
+ * `{ tag, display, target, render }`, and the root's takes `state`, `api` and
+ * `display` too. Does nothing on the server, and once per tag.
+ *
+ * @example
+ * defineParts(tabs, {
+ *   root: { tag: "ui-tabs", display: "block", api: ["select"] },
+ *   list: "ui-tabs-list",
+ *   // Binds the <button> inside, so it stays a real button.
+ *   tab: { tag: "ui-tabs-tab", display: "contents", target: wrappedButton },
+ *   panel: "ui-tabs-panel",
+ * })
+ * @stable
+ */
+function defineParts<P extends Primitive, Tags extends PartTags<P>>(primitive: P, tags: Tags) {
+  for (const element of partElements(primitive, tags)) defineElement(primitive, element)
+}
+
+/**
+ * Defines the custom element for one part of a primitive, written by hand:
+ * the root, which owns an instance, or a part that finds the root above it.
+ * Its attributes, properties and events come from the primitive's schema, as
+ * in `defineParts`. Define the root first. A second root of the same
+ * primitive, like a submenu's, owns the parts defined after it too.
+ *
+ * @example
+ * definePart(rating, "root", "my-rating")
+ * definePart(rating, "star", { tag: "my-rating-star", target: wrappedButton })
+ * @stable
+ */
+function definePart<P extends Primitive, S extends SlotName<P> | "root">(
+  primitive: P,
+  slot: S,
+  tagOrOptions: S extends "root" ? string | RootOptions<P> : string | PartOptions<P>,
+) {
+  defineElement(primitive, partElement(primitive, slot, tagOrOptions))
+}
+
+export {
+  type AttributeType,
+  autoId,
+  claimTag,
+  definePart,
+  defineParts,
+  findContainer,
+  findOwner,
+  inheritedPortal,
+  instanceOf,
+  type Kinds,
+  ownButton,
+  parseAttribute,
+  type PartDisplay,
+  partElement,
+  partElements,
+  type PartOptions,
+  type PartTags,
+  passPortalOn,
+  type RootOptions,
+  reconfigureInside,
+  setDisplay,
+  whenGone,
+  wrappedButton,
+  wrappedChild,
+}

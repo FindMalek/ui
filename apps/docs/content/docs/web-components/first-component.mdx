@@ -1,0 +1,77 @@
+---
+title: First Component
+description: Add a component to your page and style its state.
+---
+
+Let's add a Bookmark toggle. Press it once to turn it on, then again to turn it off.
+
+If you haven't installed the packages yet, start with [Installation](./installation).
+
+This example uses a bundler that resolves package imports and compiles TypeScript, such as Vite. Keep `index.html` and `bookmark-button.ts` in the same folder.
+
+## Register the Component
+
+Create `bookmark-button.ts` and import the toggle entry:
+
+```ts title="bookmark-button.ts"
+import "@ui-sdk/web/toggle"
+```
+
+Importing the toggle entry registers `<ui-toggle>`. The custom element manages the wrapped button's pressed state and sets `aria-pressed` for screen readers. The native button handles Enter and Space.
+
+## Use It on Your Page
+
+Add this markup to `index.html`:
+
+```html title="index.html"
+<ui-toggle id="bookmark">
+  <button type="button">Bookmark</button>
+</ui-toggle>
+
+<script type="module" src="./bookmark-button.ts"></script>
+```
+
+Open your page. You should see a button labeled Bookmark. Next, add styles so you can tell when it is pressed.
+
+## Add Styles
+
+When the toggle is pressed, its button has a `data-pressed` attribute. Style the button inside `<ui-toggle>`.
+
+With Tailwind CSS and the [example theme](./styling-and-animation#example-theme) configured in your app, add utility classes to the button:
+
+```html title="index.html"
+<ui-toggle id="bookmark">
+  <button
+    type="button"
+    class="inline-flex h-8 min-w-8 cursor-default items-center justify-center gap-1 rounded-2xl border border-input bg-transparent px-2.5 py-0 text-sm leading-5 font-medium whitespace-nowrap text-foreground transition-colors outline-none hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 data-pressed:bg-muted motion-reduce:transition-none"
+  >
+    Bookmark
+  </button>
+</ui-toggle>
+
+<script type="module" src="./bookmark-button.ts"></script>
+```
+
+Keep the component import in `bookmark-button.ts`:
+
+```ts title="bookmark-button.ts"
+import "@ui-sdk/web/toggle"
+```
+
+Try the styled toggle:
+
+<ComponentExample
+  name="toggle/first-component"
+  hideCode={true}
+  caption="Click Bookmark to turn it on or off. A filled background means it is on. You can also focus the button with Tab and press Enter or Space."
+/>
+
+Keep the label the same in both states. `aria-pressed` tells a screen reader whether the toggle is on.
+
+## Keep Going
+
+- [Toggle](./components/toggle) covers disabled states, controlled state, and groups of toggles.
+- [Components](./components) lists the other components you can add with the same install.
+- [Parts and Composition](./parts-and-composition) shows how to put a component with several parts together.
+- [State and Events](./state-and-events) shows how to read changes and control state from your app.
+- [Styling and Animation](./styling-and-animation) covers state attributes, CSS variables, and transitions.

@@ -1,0 +1,47 @@
+---
+title: Server Rendering
+description: Send HTML from the server and upgrade custom elements in the browser.
+---
+
+Write custom elements in your server-rendered HTML. Import their modules in the browser to upgrade them and connect their behavior.
+
+## Send the Markup
+
+```html
+<ui-toggle default-pressed>
+  <button type="button" aria-pressed="true">Bold</button>
+</ui-toggle>
+<script type="module" src="/src/components.ts"></script>
+```
+
+```ts title="components.ts"
+import "@ui-sdk/web/toggle"
+```
+
+Your bundler resolves the package import. The browser upgrades `<ui-toggle>` when that module runs. Plain server-rendered HTML does not calculate the primitive’s ARIA state. Here, `aria-pressed="true"` describes the initial button before upgrade and matches `default-pressed`. After upgrade, ui-sdk keeps it in sync as the button toggles.
+
+## Before Upgrade
+
+The Bold button is visible before the script loads, but it cannot toggle yet. Native behavior still works: a submit button can submit a form, and a native input can accept text. Keyboard navigation and state changes managed by ui-sdk need the component’s script.
+
+Design the initial HTML accordingly. For a control that must submit before upgrade, include a native input or select using the fallback markup shown on its component page.
+
+## Wait for an Element
+
+Run code that uses component properties after the markup exists and the element is defined:
+
+```ts
+import "@ui-sdk/web/toggle"
+
+await customElements.whenDefined("ui-toggle")
+const toggle = document.querySelector("ui-toggle")!
+console.log(toggle.pressed)
+```
+
+Run this after the markup exists. `whenDefined` waits for the tag's registration; it doesn't wait for an element to be inserted into the document.
+
+## Importing on the Server
+
+Component modules skip registration when `customElements` is unavailable. Importing one on the server doesn't upgrade markup. Load it again in the browser.
+
+Popups render in place, so your server template doesn't need a portal root. [Popups](./popups) covers placement, and [Forms](./forms) covers submission.

@@ -1,0 +1,183 @@
+---
+title: Alert Dialog
+description: Ask someone to confirm an action before you continue.
+---
+
+Use an alert dialog when someone needs to answer a question before an action continues, such as deleting a project.
+
+<ComponentExample
+  name="alert-dialog/basic"
+  caption="Open the dialog with Enter to start on Cancel. Tab stays inside, clicking outside leaves it open, and Escape closes it and returns focus to the trigger."
+/>
+
+## Installation
+
+```bash
+npm install @ui-sdk/svelte @ui-sdk/core
+```
+
+To use the examples' Tailwind classes, add the [example theme](../styling-and-animation#example-theme) to your global stylesheet.
+
+## Anatomy
+
+Put the question in `AlertDialogTitle`, explain what happens in `AlertDialogDescription`, and use `AlertDialogClose` for each answer:
+
+```svelte
+<script lang="ts">
+import {
+  AlertDialog,
+  AlertDialogClose,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@ui-sdk/svelte/alert-dialog"
+</script>
+
+<AlertDialog>
+  <AlertDialogTrigger>Delete project</AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogTitle>Delete this project?</AlertDialogTitle>
+    <AlertDialogDescription>
+      The project and its files will be deleted for everyone.
+    </AlertDialogDescription>
+    <AlertDialogClose>Cancel</AlertDialogClose>
+    <AlertDialogClose value="confirm">Delete</AlertDialogClose>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+The dialog uses the `alertdialog` role and keeps the rest of the page inert while it is open. Screen readers announce its title and description. Add `AlertDialogBackdrop` when you want to dim the page, as the examples do.
+
+Put Cancel first. By default, a keyboard open focuses the first Close part. Escape closes the dialog, but pressing outside never does. [Dialog](./dialog#focus) covers other initial and final focus targets.
+
+[Dialog](./dialog#keyboard-shortcut) covers trigger shortcuts. `AlertDialogShortcut` uses the same pattern.
+
+A Close part reports its `value` when it closes. `value="confirm"` is the agreeing answer that the [confirm helper](#confirm) recognizes. Closing the basic example only answers the question; the next examples show how to act on that answer.
+
+## Examples
+
+<span id="small" />
+<span id="media" />
+<span id="small-with-media" />
+<span id="destructive" />
+<span id="rtl" />
+
+### Controlled
+
+Use `bind:open` when your app needs to read or control whether the dialog is open. [State and Events](../state-and-events) explains controlled state and canceling a change.
+
+<ComponentExample
+  name="alert-dialog/controlled"
+  caption="Choose Review changes, then Keep editing or Discard. The Open readout follows the dialog's state."
+/>
+
+### Confirm
+
+Use `createConfirm<Payload>()` to ask a question from an event handler and await the answer. Create it once, then pass its `controller` to your alert dialog. The content reads the question's data from `state.payload`.
+
+`await confirm({ name })` resolves `true` when the Close part with `value="confirm"` closes the dialog. Cancel, Escape, and other answers resolve `false`. This lets several rows share one dialog:
+
+<ComponentExample
+  name="alert-dialog/confirm"
+  caption="Delete a project. Cancel or Escape keeps it; Delete removes it and focuses a neighboring row's button. Reset projects brings the list back."
+/>
+
+When the action removes the button that opened the dialog, choose a useful place for focus to go. This example focuses a neighboring row, or Reset projects when the list is empty.
+
+### Queued Questions
+
+Calls to the same confirm function wait their turn. You can ask two questions at once; the second appears only after the first has an answer.
+
+<ComponentExample
+  name="alert-dialog/queue"
+  caption="Choose Review two projects. Answer the Acme question, then the Globex question. Each result appears below the button after both questions are answered."
+/>
+
+### Async Action
+
+An `action` on a Close part runs before it closes the dialog. Return a Promise to keep the dialog open until the work finishes. A resolved Promise closes it with the reason `action`; a rejection keeps it open and puts the error in that part's state.
+
+<ComponentExample
+  name="alert-dialog/async-action"
+  caption="Choose Delete project, then Delete. The first attempt fails so you can try again. While Deleting… is shown, Cancel and Escape leave the dialog open. A successful retry closes it."
+/>
+
+While the action runs, its button stays focusable and gets `data-pending`, `aria-busy`, and `aria-disabled`. Other Close parts and dismissals cannot close the dialog until it settles. `onDismissAttempt` reports refused dismissals; a controller can still close it.
+
+The root's `pendingAnnouncement` sets what screen readers hear after a second of waiting. The error clears on the next attempt or when the dialog opens again. The action also receives `{ source }` after its event argument; [Changes After an Await](./button#changes-after-an-await) explains when to use it.
+
+## Styling
+
+[Styling and Animation](../styling-and-animation) covers state attributes and entry and exit transitions.
+
+<DataAttributes component="alert-dialog" />
+
+<CssVariables component="alert-dialog" />
+
+## API Reference
+
+Alert Dialog shares [Dialog's](./dialog) options, except `modal`, `closeOnOutsidePress`, and `presentation`. It is always modal, never closes on an outside press, and does not present as a sheet.
+
+### Reasons
+
+<ReasonTable path="../../packages/core/src/components/dialog/dialog.ts" name="AlertDialogOpenChangeReason" />
+
+`onPayloadChange(payload, details)` runs before `onOpenChange` when the dialog opens with another payload. Calling `controller.open({ payload })` on an open dialog updates the payload with the reason `imperative`.
+
+<ReasonTable
+  path="../../packages/core/src/components/dialog/dialog.ts"
+  name="AlertDialogPayloadChangeReason"
+/>
+
+### Controller
+
+Use `createAlertDialogController<Payload, Result>()` for direct control. `createConfirm<Payload>()` returns a confirm function with its own `controller`.
+
+<ControllerTable path="../../packages/core/src/components/dialog/dialog.ts" name="AlertDialogController" />
+
+### Confirm Options
+
+The shared `confirm()` function uses these options when an `OverlayHost` renders the question. Import `OverlayHost` from `@ui-sdk/svelte/overlays` and mount it once near your app’s root. With your own dialog, `createConfirm<Payload>()` accepts the payload you choose instead.
+
+<TypeTable path="../../packages/core/src/components/dialog/dialog.ts" name="ConfirmOptions" />
+
+### AlertDialog
+
+<TypeTable path="../../packages/core/src/components/dialog/dialog.ts" name="AlertDialogOptions" />
+
+### AlertDialogTrigger
+
+<TypeTable path="../../packages/core/src/components/dialog/dialog.ts" name="AlertDialogTriggerProps" />
+
+### AlertDialogContent
+
+<TypeTable path="../../packages/core/src/components/dialog/dialog.ts" name="AlertDialogContentProps" />
+
+### AlertDialogClose
+
+<TypeTable path="../../packages/core/src/components/dialog/dialog.ts" name="AlertDialogCloseProps" />
+
+### AlertDialogShortcut
+
+<TypeTable path="../../packages/core/src/components/dialog/dialog.ts" name="AlertDialogShortcutProps" />
+
+### State
+
+`AlertDialogContent`:
+
+<StateTable path="../../packages/core/src/components/dialog/dialog.ts" name="AlertDialogContentState" />
+
+`AlertDialogClose`:
+
+<StateTable path="../../packages/core/src/components/dialog/dialog.ts" name="AlertDialogCloseState" />
+
+`AlertDialogShortcut`:
+
+<StateTable path="../../packages/core/src/components/dialog/dialog.ts" name="AlertDialogShortcutState" />
+
+## Accessibility
+
+Give the dialog a title and a description, and put the least destructive answer first. It follows the [WAI-ARIA alert dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/alertdialog/). These behaviors are covered by automated tests:
+
+<SpecList spec="dialog" only={["alert dialog"]} />

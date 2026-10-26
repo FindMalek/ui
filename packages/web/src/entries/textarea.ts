@@ -1,0 +1,21 @@
+// Importing this defines <ui-textarea>, <ui-input> and their parts. On the server it does nothing.
+import { defineInputElements } from "../input"
+
+defineInputElements()
+
+export type {
+  InputController,
+  InputGroupOptions,
+  InputGroupPrimitive,
+  InputGroupState,
+  InputOptions,
+  InputPrimitive,
+  InputProps,
+  InputState,
+  InputValueChangeReason,
+  TextareaOptions,
+  TextareaPrimitive,
+  TextareaProps,
+  TextareaState,
+} from "@ui-sdk/core/input"
+export type { InputEvents, UiInputElement } from "../events"

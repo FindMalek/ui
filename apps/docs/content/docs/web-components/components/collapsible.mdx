@@ -1,0 +1,230 @@
+---
+title: Collapsible
+description: Show and hide a panel, preserve its contents, and animate its height.
+---
+
+<ComponentExample
+  name="collapsible/basic"
+  caption="Press Order details, or focus it and press Enter or Space, to show or hide the order."
+/>
+
+## Installation
+
+```bash
+npm install @ui-sdk/web @ui-sdk/core
+```
+
+To use the examples' Tailwind classes, add the [example theme](../styling-and-animation#example-theme) to your global stylesheet.
+
+Import the component in your client entry point to register its elements:
+
+```ts
+import "@ui-sdk/web/collapsible"
+```
+
+The demos also use icons from `lucide`. Install that package if you copy their source.
+
+## Usage
+
+Put a trigger and a panel inside `ui-collapsible`. The trigger reports whether the panel is open with `aria-expanded` and points to the panel with `aria-controls` while it is mounted.
+
+<span id="anatomy" />
+
+```html
+<ui-collapsible>
+  <ui-collapsible-trigger>
+    <button>Order details</button>
+  </ui-collapsible-trigger>
+  <ui-collapsible-panel>2 × Linen shirt</ui-collapsible-panel>
+</ui-collapsible>
+```
+
+The trigger wraps your own native button. Put styles on that button; the root and panel render their own elements.
+
+## Examples
+
+### Settings Panel
+
+Keep the main setting visible and put its extra controls in the panel.
+
+<ComponentExample
+  name="collapsible/settings-panel"
+  caption="Press Edit each axis to reveal the Radius X and Radius Y fields. Tab moves from the trigger into the open panel."
+/>
+
+### File Tree
+
+Nest a collapsible inside another panel to give each folder its own open state. This is a list of disclosures; use [Tree](./tree) when you need arrow-key navigation and selection across the whole hierarchy.
+
+<ComponentExample
+  name="collapsible/file-tree"
+  caption="Open ui inside components, or open hooks. Each folder expands independently."
+/>
+
+<span id="right-to-left" />
+
+The layout follows an ancestor's `dir="rtl"`. Collapsible has no direction-dependent arrow keys.
+
+### Disabled
+
+Set `disabled` on the root to stop its trigger from opening or closing the panel. The trigger stays in the tab order and reports `aria-disabled="true"`.
+
+<ComponentExample
+  name="collapsible/disabled"
+  caption="Shipping details opens normally. Tab to Gift options and try Enter or Space: it stays closed."
+/>
+
+## Behavior and Options
+
+### Opening and Closing
+
+Enter, Space or a click toggles the panel. Focus stays on the trigger. When you close a panel while focus is inside it, focus returns to the trigger.
+
+A hidden panel is skipped by Tab.
+
+### Find in Page
+
+Set `hidden-until-found` on the panel to keep it in the DOM as `hidden="until-found"`. Browser Find and links to content inside the panel can reveal it. The panel opens without an animation so the match is visible immediately.
+
+Add `hidden="until-found"` to the initial panel markup too if it should be findable before your script runs.
+
+<ComponentExample
+  name="collapsible/find-in-page"
+  caption="Leave Ingredients closed. Open your browser's Find command and search for cardamom to reveal the panel."
+/>
+
+### Keep Mounted
+
+Closed panels stay in the DOM with `hidden`, so their contents already keep their state. `keep-mounted` also keeps the panel registered as the target of the trigger's `aria-controls`.
+
+<ComponentExample
+  name="collapsible/keep-mounted"
+  caption="Open Add a delivery note, type a note, then close and reopen the panel. Your note is still there."
+/>
+
+### Animation
+
+Animate the measured `--collapsible-panel-height` between zero and the content's height. `data-starting-style` marks the opening frame; `data-ending-style` stays present during the closing animation.
+
+```html
+<ui-collapsible-panel
+  class="h-(--collapsible-panel-height) overflow-hidden transition-[height] duration-200 data-starting-style:h-0 data-ending-style:h-0 motion-reduce:transition-none"
+></ui-collapsible-panel>
+```
+
+The panel stays mounted until its closing animation finishes. A panel open on its first paint does not animate. Keyframe animations can use `data-open` and `data-closed` too; respect reduced motion in either case.
+
+`openchangecomplete` reports when opening or closing has finished.
+
+<ComponentExample
+  name="collapsible/animation"
+  caption="Open and close Release notes. The status updates after the height and opacity transitions finish."
+/>
+
+### Controlled
+
+Read or set the element's `open` property. Listen for `openchange` to receive the new value in `event.detail.value`. Call `event.preventDefault()` during `openchange` to cancel the change.
+
+Use the element's `api.open()`, `api.close()` or `api.toggle()` to control it from another button.
+
+<ComponentExample
+  name="collapsible/controlled"
+  caption="Open Recovery codes with either button, then choose Done. The status shows the change reason, and Done returns focus to the trigger."
+/>
+
+See [State and Events](../state-and-events) for controlled state, cancellation and debugging.
+
+## Styling
+
+Use the parts' data attributes to style open and disabled states. The examples rotate their chevron from the trigger's `data-open` attribute.
+
+<DataAttributes component="collapsible" />
+
+### Panel Variables
+
+<CssVariables component="collapsible" />
+
+## Custom Rendering
+
+The trigger already wraps your own button. Use `as-child` on the panel to bind its behavior to a different element, such as an ordered list. The demo also changes the summary using `data-open`. See [Parts and Composition](../parts-and-composition).
+
+<ComponentExample
+  name="collapsible/render"
+  caption="Press Track parcel to open the ordered list. The summary changes from Arrives Thursday to 3 updates."
+/>
+
+## API Reference
+
+Props are attributes in kebab case, like `default-open`, `keep-mounted` and `hidden-until-found`: `"false"`
+is false. Callbacks are DOM events. Elements have no `controller` attribute: their
+`api` property is one.
+
+### Events
+
+Events fire on their own element and don't bubble, with the new state in `event.detail.value` and the `reason` and `event` beside it. Calling `preventDefault()` on `openchange` cancels the change.
+
+| Member                     | On               | Description                                                                |
+| -------------------------- | ---------------- | -------------------------------------------------------------------------- |
+| `open` property, attribute | `ui-collapsible` | Whether the panel is open. The attribute sets where it starts, and is live |
+| `api` property             | `ui-collapsible` | The [controller](#controller)                                              |
+| `openchange` event         | `ui-collapsible` | `detail: { value: open, reason, event, source }`                           |
+| `openchangecomplete` event | `ui-collapsible` | `detail: { value: open }`, after the panel's animation                     |
+
+### Reasons
+
+`event.detail.reason` says why the panel opened or closed.
+
+<ReasonTable
+  path="../../packages/core/src/components/collapsible/collapsible.ts"
+  name="CollapsibleOpenChangeReason"
+/>
+
+### Controller
+
+The element's `api` property has the same methods. The `open` property reads and sets whether the panel is
+open.
+
+Every write method takes an optional `{ reason, event }`, and returns `false` when the change was canceled or changed nothing.
+
+<ControllerTable
+  path="../../packages/core/src/components/collapsible/collapsible.ts"
+  name="CollapsibleController"
+/>
+
+### Collapsible
+
+<TypeTable path="../../packages/core/src/components/collapsible/collapsible.ts" name="CollapsibleOptions" />
+
+### CollapsibleTrigger
+
+The trigger takes no options of its own, only the props of the element it renders.
+
+### CollapsiblePanel
+
+<TypeTable
+  path="../../packages/core/src/components/collapsible/collapsible.ts"
+  name="CollapsiblePanelProps"
+/>
+
+### State
+
+The same state shows as data attributes on each element.
+
+<StateTable
+  path="../../packages/core/src/components/collapsible/collapsible.ts"
+  name="CollapsibleRootState"
+/>
+
+## Accessibility
+
+The collapsible follows the [WAI-ARIA disclosure pattern](https://www.w3.org/WAI/ARIA/apg/patterns/disclosure/). Every line below is an automated test.
+
+<SpecList spec="collapsible" only={["opening and closing", "keyboard", "mounting"]} />
+
+Beyond the pattern's baseline:
+
+<SpecList spec="collapsible.enhancements" />
+
+Screen readers hear the same thing in each tested framework, recorded by a virtual screen reader:
+
+<SpecList spec="collapsible.sr" />

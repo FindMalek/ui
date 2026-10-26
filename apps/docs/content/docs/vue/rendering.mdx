@@ -1,0 +1,54 @@
+---
+title: Rendering Primitives
+description: Turn a Core primitive into Vue components with createParts.
+---
+
+This page renders the rating from [Compose Behaviors](../core/compose-behaviors). Start with that guide's [complete `rating.ts`](../core/compose-behaviors#complete-primitive): it already handles selection, arrow keys, and focus. Here we'll connect its `root` and `star` slots to Vue.
+
+## Create the Parts
+
+`createParts` maps slots to elements. Save this beside `rating.ts`:
+
+```ts title="rating-parts.ts"
+import { createParts } from "@ui-sdk/vue/primitive"
+import { rating } from "./rating"
+
+const { Root: RatingRoot, Star: RatingStar } = createParts(rating, { root: "div", star: "button" })
+
+export { RatingRoot, RatingStar }
+```
+
+`Root` creates the instance and shares it with the parts inside. Each mapped slot becomes a component. Slot names become Pascal case: `star` becomes `Star`, and `tab-icon` would become `TabIcon`.
+
+If you leave out the `root` tag, `Root` still shares the instance but renders only its children.
+
+## Render the Rating
+
+The root accepts the primitive's options and the element's props. Each star receives its slot value and a name a screen reader can announce:
+
+```vue
+<script setup lang="ts">
+import { RatingRoot, RatingStar } from "./rating-parts"
+</script>
+
+<template>
+  <RatingRoot :default-value="4" aria-label="Rating" class="flex gap-1">
+    <RatingStar
+      v-for="star in 5"
+      :key="star"
+      :value="String(star)"
+      :aria-label="`${star} ${star === 1 ? 'star' : 'stars'}`"
+      class="opacity-40 data-filled:opacity-100"
+      >★</RatingStar
+    >
+  </RatingRoot>
+</template>
+```
+
+The primitive supplies `data-filled`; these classes make the filled stars easier to see. [Styling and Animation](./styling-and-animation) covers other ways to style parts.
+
+Generated parts also support the same default and `#render` slots as the components in the catalog. Use [Parts and Composition](./parts-and-composition) when you want to change their markup.
+
+## Add Logic to a Part
+
+Keep `createParts` when mapping slots to elements is enough. [Custom Parts](./custom-parts) uses the same rating to show how `usePrimitive` and `usePart` let you write a root or child part by hand.

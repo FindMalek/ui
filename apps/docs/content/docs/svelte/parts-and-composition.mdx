@@ -1,0 +1,74 @@
+---
+title: Parts and Composition
+description: Put a component's parts together and choose what each one renders.
+---
+
+A component can have several parts. A Popover has a root to hold its state, a trigger to open it, and content to show.
+
+## Put Parts Together
+
+Import the parts you need and nest them as shown in the component's Anatomy:
+
+```svelte
+<script lang="ts">
+import { Popover, PopoverClose, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/svelte/popover"
+</script>
+
+<Popover>
+  <PopoverTrigger>Details</PopoverTrigger>
+  <PopoverContent>
+    <PopoverTitle>Project Details</PopoverTitle>
+    <p>Last updated today.</p>
+    <PopoverClose>Done</PopoverClose>
+  </PopoverContent>
+</Popover>
+```
+
+`Popover` shares state without adding an element. Other roots, such as `Tabs`, do render an element. Parts find their root through the framework's context, so you can put your own components between them.
+
+## Choose the Element
+
+Render a menu item as a link:
+
+```svelte
+<script lang="ts">
+import { Menu, MenuContent, MenuItem, MenuTrigger } from "@ui-sdk/svelte/menu"
+</script>
+
+<Menu>
+<MenuTrigger>Account</MenuTrigger>
+<MenuContent>
+<MenuItem>
+  {#snippet render({ props })}
+    <a {...props} href="/settings">Settings</a>
+  {/snippet}
+</MenuItem>
+</MenuContent>
+</Menu>
+```
+
+The `render` snippet receives the part's props and state. Spread the props onto your element, or a component, to keep its behavior connected. It also receives `children`, the part's own content, like a slider thumb's range input: render it inside your element with `{@render children?.(state)}`.
+
+Pass event handlers to the component, like `<MenuItem onclick={track}>`, even when you render your own element. Your handler runs first, and calling `event.preventDefault()` skips the built-in one. A handler written on the element inside `render` runs after the built-in one, because Svelte calls handlers written in markup from the root of the page. Keep the supplied roles, IDs, and ARIA state when rendering your own element.
+
+## Read the State
+
+The part can pass its state to its content:
+
+```svelte
+<script lang="ts">
+import { Toggle } from "@ui-sdk/svelte/toggle"
+</script>
+
+<Toggle aria-label="Mute">
+  {#snippet children(state)}{state.pressed ? "Mute on" : "Mute off"}{/snippet}
+</Toggle>
+```
+
+Keep the accessible name stable when the content changes. Here, `aria-label="Mute"` names the toggle and `aria-pressed` reports its state.
+
+## Name the Control
+
+Use the component's label or title part, such as `FieldLabel` or `DialogTitle`. Give controls without visible text an `aria-label`.
+
+[Custom Parts](./custom-parts) covers writing a part with logic of its own.

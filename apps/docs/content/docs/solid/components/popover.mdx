@@ -1,0 +1,289 @@
+---
+title: Popover
+description: Edit or explore something beside its trigger.
+---
+
+A popover keeps a small task close to the thing it belongs to. Put fields, buttons, or other interactive content inside; it handles placement, focus, and dismissal.
+
+<ComponentExample
+  name="popover/basic"
+  caption="Open the popover and edit the dimensions. Escape, another press on the trigger, or a press outside closes it."
+/>
+
+## Installation
+
+```package-install
+npm install @ui-sdk/solid
+```
+
+The examples use the shared [example theme](../styling-and-animation#example-theme).
+
+## Anatomy
+
+```tsx
+import {
+  Popover,
+  PopoverClose,
+  PopoverContent,
+  PopoverDescription,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@ui-sdk/solid/popover"
+
+function Example() {
+  return (
+    <Popover>
+      <PopoverTrigger>Edit</PopoverTrigger>
+      <PopoverContent>
+        <PopoverTitle>Project details</PopoverTitle>
+        <PopoverDescription>Make a quick change without leaving the page.</PopoverDescription>
+        <PopoverClose>Done</PopoverClose>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+export { Example }
+```
+
+The content has the dialog role. Its title names it and its description adds context. The trigger can live inside the popover or [connect from elsewhere](#triggers-outside-the-popover).
+
+## Examples
+
+### With Form
+
+An ordinary form can save a value and then close the popover. Focus starts on the first field and returns to the trigger when the task finishes. A form with `method="dialog"` closes on submission and returns its submit button’s value; the [row editor](#triggers-outside-the-popover) shows that version.
+
+<ComponentExample
+  name="popover/form"
+  caption="Open Edit profile, change the name, and press Save. The popover closes and the readout shows the saved name."
+/>
+
+### Keep It Open While Editing
+
+Set `dismissible` to false while there is unsaved work. Deliberate dismissal attempts report `onDismissAttempt`, so you can ask whether to discard it. Focus leaving is refused quietly. The trigger, Close parts, and controller can still close it explicitly.
+
+<ComponentExample
+  name="popover/draft"
+  caption="Type a note, then press Escape or click outside. Keep editing returns to the field; Discard closes without saving, and Save keeps the note."
+/>
+
+### Placement
+
+<span id="align" />
+<span id="offsets" />
+<span id="rtl" />
+
+`side` chooses an edge; `align` chooses where along it to line up. Start and end follow text direction. The popover flips or shifts when the requested position does not fit.
+
+`sideOffset` is the gap from the anchor, `alignOffset` shifts along its edge, and `collisionPadding` keeps space around the viewport boundary. The [popup guide](../popups) covers the shared positioning options.
+
+<ComponentExample
+  name="popover/placement"
+  caption="Choose a side and alignment, adjust the offsets, then open Placement. Near a window edge, the popover can flip or shift to stay visible."
+/>
+
+### Arrow
+
+The arrow follows the side the popover actually uses, including after a flip. `arrowPadding` keeps it away from corners; `data-arrow-clamped` tells you when it cannot point exactly at the anchor’s center. This example cancels dismissal when you press its placement controls, so the open arrow can move.
+
+<ComponentExample
+  name="popover/arrow"
+  caption="Open Help, then change Side or Align. The panel stays open while its arrow follows the new position."
+/>
+
+Keep overflow visible around an arrow that extends outside the panel. If the body needs to scroll, put scrolling on an inner element. You can also draw an arrow with `::before`, using `data-side` and `--arrow-offset` to position it.
+
+### Anchor
+
+Set `anchor` to position against something other than the trigger. It accepts an element, a selector, a point such as `{ x, y }`, or an object with `getBoundingClientRect()`, such as a text range. The position is read again as the anchor moves.
+
+<ComponentExample
+  name="popover/anchor"
+  caption="Open Search filters. The popover lines up with the search field instead of the small trigger beside it."
+/>
+
+### Modal
+
+The default leaves the page usable and closes when focus leaves the popover. `modal="trap-focus"` keeps Tab inside while the page can still scroll and receive clicks. `modal` also makes the rest of the page inert and locks scrolling.
+
+<ComponentExample
+  name="popover/modal"
+  caption="Compare Non-modal, Trap focus, and Modal. Try Tab, then press the counter below to see whether the page can receive the click."
+/>
+
+### Focus
+
+Use `initialFocus` to choose the first focused element, or `"none"` to leave focus where it is. `finalFocus` controls where focus returns. Hover opening leaves focus alone; touch opening focuses the panel itself so the keyboard does not appear unexpectedly.
+
+<ComponentExample
+  name="popover/focus"
+  caption="Open each example: First field focuses its input, Specific element focuses Apply, and No focus change leaves focus on the trigger."
+/>
+
+### Open on Hover
+
+`openOnHover` adds pointer opening while keeping click, keyboard, and touch activation. `delay` and `closeDelay` control the pause before opening and closing. You can cross the gap into the content and interact with it.
+
+<ComponentExample
+  name="popover/hover"
+  caption="Hover over @ada, then move into the preview and press Close preview. You can also open it by pressing the trigger."
+/>
+
+### Controlled
+
+Pass `open={open()}` and update the signal in `onOpenChange`. Use `details.cancel()` to reject a proposed change. A controller can open it from another control; [state and events](../state-and-events) and [controllers](../controllers) cover these shared patterns.
+
+<ComponentExample
+  name="popover/controlled"
+  caption="Open Share directly or press Open from elsewhere. Close it to see the value and change reason in the readout."
+/>
+
+### Keyboard Shortcut
+
+Set a trigger’s `shortcut` to toggle the popover from the keyboard. `mod+i` means Command+I or Control+I. The Shortcut part displays the platform’s keys, and the trigger advertises them through `aria-keyshortcuts`.
+
+<ComponentExample
+  name="popover/shortcut"
+  caption="Press Command+I or Control+I to open Dimensions. Press the same shortcut again, or Escape, to close it."
+/>
+
+### Triggers Outside the Popover
+
+Connect the triggers and popover to one `createPopoverController<Member>()`. Each trigger passes its row as `payload`; the content reads the active row from its state. Only the active trigger is expanded and receives focus back. Opening from another row updates the same panel, so one editor can serve the whole list.
+
+`controller.open({ payload, anchor })` opens it from code and returns a promise with the closing reason and any `returnValue`. The payload stays available during the exit animation.
+
+<ComponentExample
+  name="popover/payload"
+  caption="Edit Grace Hopper or Alan Turing and save a new role. The owner cannot be edited. Edit the newest member opens the same editor from code and reports its result."
+/>
+
+### Container
+
+Popovers render in place by default and use the browser’s top layer. `container` moves their DOM to another element while keyboard order still follows the trigger. See [popups](../popups) for the shared container behavior.
+
+<ComponentExample
+  name="popover/container"
+  caption="Open in the box. The popover is rendered inside the marked container in the DOM while remaining positioned by its trigger."
+/>
+
+### Animation
+
+Animate `data-starting-style` and `data-ending-style`; `onOpenChangeComplete` reports when each transition finishes. `keepMounted` leaves the closed content in the DOM, hidden. See [styling and animation](../styling-and-animation) for the common lifecycle.
+
+<ComponentExample
+  name="popover/animation"
+  caption="Open Animated, then dismiss it. The readout follows Opening, Open, Closing, and Closed."
+/>
+
+### Presentation
+
+`presentation="sheet"` shows the task as a sheet; `"auto"` chooses a sheet on small touch screens each time it opens. A sheet is modal by default and can be swiped down to dismiss. If dismissal is disabled, it springs back and reports the attempt.
+
+Style `data-presentation` for both layouts. The sheet manages its own position and movement, so leave its translation alone and avoid the floating panel’s fixed width. `--sheet-backdrop` sets the dim behind it.
+
+<ComponentExample
+  name="popover/presentation"
+  caption="Open Dimensions as a sheet. Edit a value, then dismiss it with Escape, the dimmed area, or a downward swipe on a touch screen."
+/>
+
+## Styling
+
+Use the state attributes to style each part and the positioning variables to size or animate the panel. `--transform-origin` keeps a scale animation attached to the anchor.
+
+<DataAttributes component="popover" />
+
+<CssVariables component="popover" />
+
+## Custom Rendering
+
+Use the shared [composition guide](../parts-and-composition) when a part needs your own element. A content render function can read its payload, as the row editor does.
+
+## API Reference
+
+### Events
+
+Callbacks get the new state first, then the details.
+
+| Prop                   | On        | Receives                                                                    |
+| ---------------------- | --------- | --------------------------------------------------------------------------- |
+| `onOpenChange`         | `Popover` | `(open, details)`: the new state, and the [reason](#reasons)                |
+| `onOpenChangeComplete` | `Popover` | `(open)`, after the animation                                               |
+| `onPayloadChange`      | `Popover` | `(payload, details)`: the content's new payload, and the [reason](#reasons) |
+| `onDismissAttempt`     | `Popover` | `({ reason, event })`, when a dismissal was refused                         |
+
+### Reasons
+
+`details.reason` says why the popover opened or closed.
+
+<ReasonTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverOpenChangeReason" />
+
+For a payload change, it says what opened the popover or took it over.
+
+<ReasonTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverPayloadChangeReason" />
+
+With `dismissible` false, the refused dismissals `onDismissAttempt` reports:
+
+<ReasonTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverDismissReason" />
+
+### Controller
+
+Create one with `createPopoverController<Payload>()` and pass it as `controller`, to the popover and to any
+triggers outside it. `Payload` is the type of the data triggers and `open()` pass.
+
+Every write method takes an optional `{ reason, event }`, passed to `onOpenChange`.
+
+<ControllerTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverController" />
+
+### Popover
+
+<TypeTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverOptions" />
+
+### PopoverTrigger
+
+A trigger outside the popover also takes `controller`.
+
+<TypeTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverTriggerProps" />
+
+### PopoverContent
+
+<TypeTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverContentProps" />
+
+### PopoverShortcut
+
+<TypeTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverShortcutProps" />
+
+### State
+
+What render functions, state-based class names and slots receive, per part.
+
+`PopoverTrigger`:
+
+<StateTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverTriggerState" />
+
+`PopoverContent`:
+
+<StateTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverContentState" />
+
+`PopoverArrow`:
+
+<StateTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverArrowState" />
+
+`PopoverShortcut`:
+
+<StateTable path="../../packages/core/src/components/popover/popover.ts" name="PopoverShortcutState" />
+
+## Accessibility
+
+The trigger is a button that opens a dialog, and focus inside follows the [WAI-ARIA dialog pattern](https://www.w3.org/WAI/ARIA/apg/patterns/dialog-modal/). Every line below is an automated test.
+
+<SpecList spec="popover" only={["trigger", "focus", "dismissal", "modal", "hover", "nested popovers"]} />
+
+Additional behaviors:
+
+<SpecList spec="popover.enhancements" />
+
+Screen readers hear the same thing in each tested framework, recorded by a virtual screen reader:
+
+<SpecList spec="popover.sr" />

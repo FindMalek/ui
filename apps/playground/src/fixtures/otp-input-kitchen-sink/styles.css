@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@source "./";
+
+/* The fake caret in the active, empty slot blinks like a real one. */
+@keyframes caret-blink {
+  0%,
+  70%,
+  100% {
+    opacity: 1;
+  }
+  20%,
+  50% {
+    opacity: 0;
+  }
+}

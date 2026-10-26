@@ -1,0 +1,3 @@
+{
+  "pages": ["core", "agents", "react", "vue", "svelte", "solid", "web-components"]
+}

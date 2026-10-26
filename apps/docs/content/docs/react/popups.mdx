@@ -1,0 +1,96 @@
+---
+title: Popups
+description: Place popup content, control dismissal, and choose when it stays mounted.
+---
+
+Popovers, menus, selects, and dialogs use the browser's top layer. They render in place, above the page, so you don't need a Portal or Positioner part.
+
+## Place the Content
+
+Set placement on the content part:
+
+```tsx
+import { Popover, PopoverContent, PopoverTrigger } from "@ui-sdk/react/popover"
+
+function Example() {
+  return (
+    <Popover>
+      <PopoverTrigger>Details</PopoverTrigger>
+      <PopoverContent side="bottom" align="start" sideOffset={8}>
+        Last updated today.
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+export { Example }
+```
+
+The popup flips or shifts when there isn't enough room.
+
+| Prop               | What It Does                                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| `side`             | Chooses `top`, `bottom`, `left`, `right`, `start`, or `end`. Start and end follow reading direction. |
+| `align`            | Aligns the popup to the `start`, `center`, or `end` of that side.                                    |
+| `sideOffset`       | Sets the gap from the anchor, in pixels.                                                             |
+| `alignOffset`      | Shifts the popup along its side, in pixels.                                                          |
+| `collisionPadding` | Leaves space from the window's edges.                                                                |
+| `arrowPadding`     | Keeps an arrow away from the popup's corners.                                                        |
+
+An `anchor` can position the popup against another element. The component's page lists the anchors it accepts.
+
+## Control Dismissal
+
+Set `dismissible={false}` to stop Escape, outside presses, focus leaving, Back, and sheet swipes from closing a popup. Its trigger, Close part, and controller can still close it.
+
+```tsx
+<Popover dismissible={false} onDismissAttempt={(details) => console.log(details.reason)}>
+  {/* Trigger, content, and a Close part. */}
+</Popover>
+```
+
+Use [State and Events](./state-and-events) when you want to cancel only a particular reason, such as an outside press while a form has unsaved changes.
+
+## Modals and Sheets
+
+`modal` makes the rest of the page inert and locks scrolling. Each component documents its default.
+
+Menu, Select, Combobox, Autocomplete, Popover, and Dialog support `presentation="auto"` to become a sheet on small touch screens. Use `presentation="sheet"` to always show a sheet.
+
+```tsx
+<Popover presentation="auto">{/* Trigger and content. */}</Popover>
+```
+
+## Mounting and Containers
+
+Closed content unmounts after its exit animation. `keepMounted` leaves it in the page, hidden. `onOpenChangeComplete` runs when opening or closing finishes, including animations.
+
+Use `container` to render into another element, such as a shadow root. Keep a dialog containing a form outside any surrounding form, or move its content with `container`, to avoid nested forms.
+
+In a tree a hidden `<Activity>` or a Suspense fallback hides, an open popup hides with it, from its `container` too, and comes back open when the tree shows, with focus in it if it's modal.
+
+[Styling and Animation](./styling-and-animation) shows how to animate the content.
+
+## Toasts and Confirms
+
+Mount `OverlayHost` once near your app's root, then call `toast()` from event handlers:
+
+```tsx
+"use client"
+
+import { OverlayHost } from "@ui-sdk/react/overlays"
+import { toast } from "@ui-sdk/react/toast"
+
+function Example() {
+  return (
+    <>
+      <OverlayHost />
+      <button onClick={() => toast.success("Saved")}>Save</button>
+    </>
+  )
+}
+
+export { Example }
+```
+
+See [Toast](./components/toast) and [Alert Dialog](./components/alert-dialog) for the complete APIs.

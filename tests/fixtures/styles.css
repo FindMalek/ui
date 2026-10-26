@@ -1,0 +1,1854 @@
+/* In their own cascade layer, so classes a test adds win over these. */
+@layer fixtures {
+  /* Shared fixture styles. Implementations add these class names to their parts. */
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font:
+      14px/1.4 system-ui,
+      sans-serif;
+    color: #0a0a0a;
+    background: #fff;
+  }
+
+  .fixture {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    padding: 24px;
+  }
+
+  body[data-layout="bottom"] .fixture {
+    position: fixed;
+    bottom: 0;
+  }
+
+  body[data-layout="right"] .fixture {
+    position: fixed;
+    right: 0;
+  }
+
+  .popup,
+  [data-slot="menu-content"] {
+    min-width: 180px;
+    padding: 4px;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
+    outline: none;
+  }
+
+  body[data-animate] :is(.popup, [data-slot="menu-content"]) {
+    transition:
+      opacity 200ms,
+      transform 200ms;
+  }
+
+  body[data-animate] :is(.popup, [data-slot="menu-content"])[data-starting-style],
+  body[data-animate] :is(.popup, [data-slot="menu-content"])[data-ending-style] {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  .item,
+  [data-slot="menu-item"],
+  [data-slot="menu-checkbox-item"],
+  [data-slot="menu-radio-item"],
+  [data-slot="menu-trigger"][role="menuitem"] {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: default;
+    outline: none;
+    user-select: none;
+  }
+
+  :is(.item, [role^="menuitem"])[data-highlighted] {
+    background: #f5f5f5;
+  }
+
+  :is(.item, [role^="menuitem"])[data-disabled] {
+    opacity: 0.5;
+  }
+
+  .label,
+  [data-slot="menu-group-label"] {
+    padding: 6px 8px;
+    font-size: 12px;
+    color: #525252;
+  }
+
+  .separator,
+  [data-slot="menu-separator"] {
+    height: 1px;
+    margin: 4px 0;
+    background: #e5e5e5;
+  }
+
+  .shortcut {
+    color: #525252;
+  }
+
+  [data-slot="menu-shortcut"] {
+    color: #525252;
+  }
+
+  [data-slot="menu-content"][data-presentation="sheet"] {
+    border-radius: 12px 12px 0 0;
+  }
+
+  @keyframes spin {
+    to {
+      rotate: 360deg;
+    }
+  }
+
+  body[data-animate="infinite"] [role="menu"][data-ending-style] {
+    animation: spin 300ms linear infinite;
+  }
+
+  /* Popover. The reference only gets class names, so each rule targets both. */
+  [data-slot="popover-content"] {
+    min-width: 180px;
+    padding: 12px;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
+    outline: none;
+  }
+
+  :is(.popup, [data-slot="popover-content"]) :is(.title, .description) {
+    margin: 0 0 8px;
+  }
+
+  :is(.popup, [data-slot="popover-content"]) .title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  :is(.popup, [data-slot="popover-content"]) .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  :is(.popup, [data-slot="popover-content"]) .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .arrow,
+  [data-slot="popover-arrow"] {
+    width: 12px;
+    height: 6px;
+    overflow: hidden;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"])::before {
+    content: "";
+    position: absolute;
+    left: 1px;
+    width: 8px;
+    height: 8px;
+    border: 1px solid #e5e5e5;
+    background: #fff;
+    rotate: 45deg;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"])[data-side="bottom"] {
+    top: -6px;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"])[data-side="bottom"]::before {
+    top: 2px;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"])[data-side="top"] {
+    bottom: -6px;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"])[data-side="top"]::before {
+    bottom: 2px;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"]):is([data-side="left"], [data-side="right"]) {
+    width: 6px;
+    height: 12px;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"])[data-side="right"] {
+    left: -6px;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"])[data-side="left"] {
+    right: -6px;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"]):is([data-side="left"], [data-side="right"])::before {
+    top: 1px;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"])[data-side="right"]::before {
+    left: 2px;
+  }
+
+  :is(.arrow, [data-slot="popover-arrow"])[data-side="left"]::before {
+    left: auto;
+    right: 2px;
+  }
+
+  body[data-animate] [data-slot="popover-content"] {
+    transition:
+      opacity 200ms,
+      transform 200ms;
+  }
+
+  body[data-animate] [data-slot="popover-content"]:is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+
+  body[data-animate="infinite"] [role="dialog"][data-ending-style] {
+    animation: spin 300ms linear infinite;
+  }
+
+  /* Tabs. */
+  .tabs,
+  [data-slot="tabs-root"] {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 360px;
+  }
+
+  :is(.tabs, [data-slot="tabs-root"])[data-orientation="vertical"] {
+    flex-direction: row;
+  }
+
+  .tablist,
+  [data-slot="tabs-list"] {
+    position: relative;
+    display: flex;
+    gap: 4px;
+    isolation: isolate;
+  }
+
+  .tablist[aria-orientation="vertical"],
+  [data-slot="tabs-list"][data-orientation="vertical"] {
+    flex-direction: column;
+  }
+
+  .tab,
+  [data-slot="tabs-tab"] {
+    padding: 6px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    font: inherit;
+    color: #525252;
+  }
+
+  .tab:is([aria-selected="true"]) {
+    color: #0a0a0a;
+  }
+
+  .tab:is([aria-disabled="true"], [data-disabled]) {
+    opacity: 0.5;
+  }
+
+  /* Behind the tabs, so it never takes their clicks. */
+  .indicator,
+  [data-slot="tabs-indicator"] {
+    position: absolute;
+    z-index: -1;
+    left: var(--active-tab-left);
+    top: var(--active-tab-top);
+    width: var(--active-tab-width);
+    height: var(--active-tab-height);
+    border-radius: 6px;
+    background: #f0f0f0;
+    pointer-events: none;
+  }
+
+  body[data-animate] :is(.indicator, [data-slot="tabs-indicator"]) {
+    transition:
+      left 200ms,
+      top 200ms,
+      width 200ms,
+      height 200ms;
+  }
+
+  .panel,
+  [data-slot="tabs-panel"] {
+    padding: 8px;
+    border-radius: 6px;
+    outline: none;
+  }
+
+  body[data-animate] :is(.panel, [data-slot="tabs-panel"]) {
+    transition: opacity 200ms;
+  }
+
+  body[data-animate] :is(.panel, [data-slot="tabs-panel"]):is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+  }
+
+  body[data-animate="infinite"] [role="tabpanel"][data-ending-style] {
+    animation: spin 300ms linear infinite;
+  }
+
+  /* A page tall enough to scroll, for scroll lock specs. */
+  body[data-layout="tall"] {
+    min-height: 300vh;
+  }
+
+  /* Tree. Groups indent their items and animate their height. */
+  .tree,
+  [data-slot="tree-root"] {
+    display: flex;
+    flex-direction: column;
+    min-width: 320px;
+  }
+
+  .tree-item,
+  [data-slot="tree-item"] {
+    display: block;
+  }
+
+  :is(.tree-item, [data-slot="tree-item"])[data-selected] > :is(.tree-label, [data-slot="tree-label"]) {
+    font-weight: bold;
+  }
+
+  :is(.tree-item, [data-slot="tree-item"])[data-disabled] {
+    opacity: 0.5;
+  }
+
+  .tree-indicator,
+  [data-slot="tree-indicator"] {
+    display: inline-block;
+    width: 16px;
+    cursor: default;
+  }
+
+  :is(.tree-indicator, [data-slot="tree-indicator"]):empty::before {
+    content: "▸";
+  }
+
+  .tree-checkbox,
+  [data-slot="tree-checkbox"] {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    margin-inline-end: 4px;
+    border: 1px solid;
+  }
+
+  :is(.tree-checkbox, [data-slot="tree-checkbox"]):is([data-checked], [data-indeterminate]) {
+    background: currentColor;
+  }
+
+  .tree-group,
+  [data-slot="tree-group"] {
+    height: var(--tree-group-height);
+    overflow: hidden;
+    padding-inline-start: 16px;
+  }
+
+  :is(.tree-group, [data-slot="tree-group"]):is([data-starting-style], [data-ending-style]) {
+    height: 0;
+  }
+
+  body[data-animate] :is(.tree-group, [data-slot="tree-group"]) {
+    transition: height 200ms;
+  }
+
+  /* Accordion. Panels animate their height through the measured variable. */
+  .accordion,
+  [data-slot="accordion-root"] {
+    display: flex;
+    flex-direction: column;
+    min-width: 360px;
+  }
+
+  .accordion-header,
+  [data-slot="accordion-header"] {
+    margin: 0;
+    font-size: inherit;
+  }
+
+  .accordion-trigger,
+  [data-slot="accordion-trigger"] {
+    display: flex;
+    width: 100%;
+    padding: 8px;
+    border: 0;
+    background: none;
+    font: inherit;
+    text-align: start;
+    color: inherit;
+  }
+
+  .accordion-trigger:is([aria-disabled="true"], [data-disabled]) {
+    opacity: 0.5;
+  }
+
+  .accordion-panel,
+  [data-slot="accordion-panel"] {
+    height: var(--accordion-panel-height);
+    overflow: hidden;
+  }
+
+  :is(.accordion-panel, [data-slot="accordion-panel"]):is([data-starting-style], [data-ending-style]) {
+    height: 0;
+  }
+
+  body[data-animate] :is(.accordion-panel, [data-slot="accordion-panel"]) {
+    transition: height 200ms;
+  }
+
+  body[data-animate="slow"] :is(.accordion-panel, [data-slot="accordion-panel"]) {
+    transition-duration: 1s;
+  }
+
+  body[data-animate="infinite"] [role="region"][data-ending-style] {
+    animation: spin 300ms linear infinite;
+  }
+
+  /* Form controls: checkbox, switch, radio group and field. */
+  .form,
+  .form fieldset {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .form label,
+  .form .row {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .checkbox,
+  [data-slot="checkbox-root"],
+  .radio,
+  [data-slot="radio-root"] {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    border: 1px solid #888;
+    border-radius: 4px;
+    background: white;
+  }
+
+  .radio,
+  [data-slot="radio-root"] {
+    border-radius: 50%;
+  }
+
+  .checkbox-indicator,
+  [data-slot="checkbox-indicator"],
+  .radio-indicator,
+  [data-slot="radio-indicator"] {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    background: #222;
+  }
+
+  .radio-indicator,
+  [data-slot="radio-indicator"] {
+    border-radius: 50%;
+  }
+
+  [data-slot="checkbox-indicator"][data-indeterminate] {
+    height: 2px;
+  }
+
+  .switch,
+  [data-slot="switch-root"] {
+    display: inline-flex;
+    box-sizing: border-box;
+    width: 34px;
+    height: 20px;
+    padding: 2px;
+    border: 0;
+    border-radius: 10px;
+    background: #ccc;
+  }
+
+  :is(.switch, [data-slot="switch-root"])[data-checked] {
+    background: #222;
+  }
+
+  .switch-thumb,
+  [data-slot="switch-thumb"] {
+    display: block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+  }
+
+  [data-slot="switch-thumb"][data-checked] {
+    transform: translateX(14px);
+  }
+
+  :is(
+    .checkbox,
+    .switch,
+    .radio,
+    [data-slot="checkbox-root"],
+    [data-slot="switch-root"],
+    [data-slot="radio-root"]
+  )[data-disabled] {
+    opacity: 0.5;
+  }
+
+  .field-error,
+  [data-slot="field-error"] {
+    color: #b00020;
+  }
+
+  body[data-animate]
+    :is(.checkbox-indicator, [data-slot="checkbox-indicator"], [data-slot="radio-indicator"]) {
+    transition: transform 200ms;
+  }
+
+  body[data-animate]
+    :is(.checkbox-indicator, [data-slot="checkbox-indicator"], [data-slot="radio-indicator"]):is(
+      [data-starting-style],
+      [data-ending-style]
+    ) {
+    transform: scale(0);
+  }
+
+  body[data-animate="infinite"] [data-slot="checkbox-indicator"][data-ending-style] {
+    animation: spin 300ms linear infinite;
+  }
+
+  /* Text fields: input, textarea and input group. The textarea grows from one line to five. */
+  .input,
+  .textarea {
+    box-sizing: border-box;
+    width: 240px;
+    padding: 4px 8px;
+    border: 1px solid #888;
+    font: 14px/20px sans-serif;
+  }
+
+  .textarea {
+    min-height: 30px;
+    max-height: 110px;
+    resize: none;
+  }
+
+  .input-group,
+  [data-slot="input-group"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  /* Custom elements keep parts that aren't shown, hidden. Class styles must not show them. */
+  :is(.checkbox-indicator, .radio-indicator, .switch-thumb, .field-error)[hidden] {
+    display: none;
+  }
+
+  /* Collapsible. The panel animates its height through the measured variable. */
+  .collapsible,
+  [data-slot="collapsible-root"] {
+    min-width: 360px;
+  }
+
+  .collapsible-trigger:is([aria-disabled="true"], [data-disabled]) {
+    opacity: 0.5;
+  }
+
+  .collapsible-panel,
+  [data-slot="collapsible-panel"] {
+    height: var(--collapsible-panel-height);
+    overflow: hidden;
+  }
+
+  :is(.collapsible-panel, [data-slot="collapsible-panel"]):is([data-starting-style], [data-ending-style]) {
+    height: 0;
+  }
+
+  body[data-animate] :is(.collapsible-panel, [data-slot="collapsible-panel"]) {
+    transition: height 200ms;
+  }
+
+  body[data-animate="slow"] :is(.collapsible-panel, [data-slot="collapsible-panel"]) {
+    transition-duration: 1s;
+  }
+
+  body[data-animate="infinite"] .collapsible-panel[data-ending-style] {
+    animation: spin 300ms linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body[data-animate] :is(.collapsible-panel, .accordion-panel) {
+      transition: none;
+    }
+  }
+
+  .rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .canvas {
+    display: block;
+    flex: none;
+    width: 480px;
+    height: 120px;
+    border: 1px dashed #a3a3a3;
+  }
+
+  .tablist.scrolling {
+    width: 220px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  /* Dialog and alert dialog. The reference only gets class names. */
+  .dialog-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgb(0 0 0 / 0.3);
+  }
+
+  .dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(400px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    overflow: auto;
+    padding: 16px;
+    border: 1px solid #e5e5e5;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 8px 32px rgb(0 0 0 / 0.16);
+    translate: -50% -50%;
+    outline: none;
+  }
+
+  .dialog :is(.title, .description) {
+    margin: 0 0 8px;
+  }
+
+  .dialog .title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .dialog .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .dialog .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .dialog .long {
+    height: 1200px;
+  }
+
+  body[data-animate] :is(.dialog, .dialog-backdrop) {
+    transition:
+      opacity 200ms,
+      scale 200ms;
+  }
+
+  body[data-animate] :is(.dialog, .dialog-backdrop):is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+  }
+
+  body[data-animate] .dialog:is([data-starting-style], [data-ending-style]) {
+    scale: 0.96;
+  }
+
+  body[data-animate="infinite"] .dialog[data-ending-style] {
+    animation: spin 300ms linear infinite;
+  }
+
+  /* Drawer. The sheet's position, the dim's opacity and the viewport come
+     from the drawer; these give it a surface. The reference only gets class names. */
+  .drawer-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgb(0 0 0 / 0.2);
+  }
+
+  .drawer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: calc(100vh - 48px);
+    padding: 8px 16px 16px;
+    border-radius: 16px 16px 0 0;
+    background: #fff;
+    box-shadow: 0 -4px 24px rgb(0 0 0 / 0.12);
+    outline: none;
+  }
+
+  .drawer[data-side="left"],
+  .drawer[data-side="right"] {
+    width: 320px;
+    max-height: none;
+    border-radius: 0;
+  }
+
+  .drawer[data-side="top"] {
+    border-radius: 0 0 16px 16px;
+  }
+
+  .drawer .handle {
+    align-self: center;
+    width: 40px;
+    height: 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: #d4d4d4;
+  }
+
+  .drawer :is(.title, .description) {
+    margin: 0;
+  }
+
+  .drawer .title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  .drawer .actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  .drawer .scroll {
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    overflow-y: auto;
+    list-style: none;
+  }
+
+  .outlet {
+    display: block;
+    width: 80px;
+    height: 40px;
+    background: #e5e5e5;
+  }
+
+  .drawer .scroll li {
+    padding: 8px 0;
+    border-bottom: 1px solid #f5f5f5;
+  }
+
+  /* Slider: a 200px track. The control is taller, so presses beside the track land. */
+  .slider-control {
+    display: flex;
+    align-items: center;
+    width: 200px;
+    height: 24px;
+  }
+
+  .slider-control[data-orientation="vertical"] {
+    flex-direction: column;
+    justify-content: center;
+    width: 24px;
+    height: 200px;
+  }
+
+  .slider-track {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: #e5e5e5;
+  }
+
+  .slider-track[data-orientation="vertical"] {
+    width: 4px;
+    height: 100%;
+  }
+
+  .slider-indicator {
+    border-radius: 2px;
+    background: #171717;
+  }
+
+  .slider-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #171717;
+  }
+
+  .slider-thumb:has(:focus-visible) {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+
+  /* Resizable: an 800 by 300 group with 2px handles. Hit areas reach past them. */
+  .fixture:has(.resizable) {
+    flex-wrap: wrap;
+  }
+
+  .resizable {
+    flex: none;
+    width: 800px;
+    height: 300px;
+    border: 1px solid #d4d4d4;
+  }
+
+  .resizable-nested {
+    height: 100%;
+  }
+
+  .resizable-panel {
+    overflow: hidden;
+  }
+
+  .resizable-handle {
+    width: 2px;
+    background: #d4d4d4;
+  }
+
+  .resizable-handle[data-orientation="vertical"] {
+    width: auto;
+    height: 2px;
+  }
+
+  .resizable-handle:focus-visible,
+  .resizable-handle[data-hovered],
+  .resizable-handle[data-dragging] {
+    background: #2563eb;
+  }
+
+  /* Number input. */
+  .number-input-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .number-input-control {
+    width: 120px;
+  }
+
+  .number-input-scrub {
+    cursor: ew-resize;
+  }
+
+  /* Toggle, Toggle Group, Button and Separator. */
+  .toggle-group,
+  [data-slot="toggle-group"] {
+    display: flex;
+    gap: 2px;
+  }
+
+  .toggle-group[data-orientation="vertical"],
+  [data-slot="toggle-group"][data-orientation="vertical"] {
+    flex-direction: column;
+  }
+
+  .toggle[aria-pressed="true"],
+  .toggle[data-pressed] {
+    background: #e5e5e5;
+  }
+
+  .button[aria-busy="true"] {
+    cursor: progress;
+  }
+
+  .rule,
+  [data-slot="separator-root"] {
+    flex: none;
+    align-self: stretch;
+    width: 1px;
+    min-height: 16px;
+    background: #e5e5e5;
+  }
+
+  .rule[data-orientation="horizontal"],
+  [data-slot="separator-root"][data-orientation="horizontal"] {
+    width: 24px;
+    height: 1px;
+    min-height: 0;
+    align-self: center;
+  }
+
+  .fixture form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  /* Select and Combobox. The reference only gets class names, so each rule targets both. */
+  .select-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .trigger {
+    display: inline-flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 160px;
+    padding: 6px 10px;
+    border: 1px solid #d4d4d4;
+    border-radius: 6px;
+    background: #fff;
+    font: inherit;
+  }
+
+  .trigger[data-placeholder],
+  .value[data-placeholder] {
+    color: #737373;
+  }
+
+  .popup.list-popup,
+  [data-slot="select-content"],
+  [data-slot="combobox-content"],
+  [data-slot="autocomplete-content"] {
+    max-height: min(var(--available-height, 320px), 320px);
+    overflow-y: auto;
+  }
+
+  .item[data-selected] {
+    font-weight: 600;
+  }
+
+  .item[hidden],
+  .group[hidden],
+  .separator[hidden] {
+    display: none;
+  }
+
+  .indicator {
+    margin-inline-start: auto;
+  }
+
+  .chips {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    align-items: center;
+    min-width: 240px;
+    padding: 4px;
+    border: 1px solid #d4d4d4;
+    border-radius: 6px;
+  }
+
+  .chip {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #f5f5f5;
+    outline: none;
+  }
+
+  .chip:focus-visible {
+    box-shadow: 0 0 0 2px #2563eb;
+  }
+
+  .input {
+    padding: 6px 8px;
+    border: 1px solid #d4d4d4;
+    border-radius: 6px;
+    font: inherit;
+  }
+
+  .chips .input {
+    flex: 1;
+    min-width: 80px;
+    border: 0;
+  }
+
+  /* Chips on one line, collapsing into "+N more" once they overflow. */
+  .chips.chips-line {
+    box-sizing: border-box;
+    width: 320px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  /* A list short enough to scroll with a few items, for loading more on scroll. */
+  .popup.list-popup.list-short {
+    max-height: 96px;
+  }
+
+  .chips-overflow {
+    flex: none;
+    white-space: nowrap;
+  }
+
+  .chip {
+    flex: none;
+  }
+
+  .empty:not(:empty),
+  .status:not(:empty) {
+    padding: 6px 8px;
+    color: #525252;
+  }
+
+  .long-list {
+    height: 240px;
+    overflow-y: auto;
+  }
+}
+
+/* Tooltip and Hover Card. Tooltip pages leave room above for tooltips, unless ?layout=top. */
+@layer fixtures {
+  .tooltip-page {
+    padding-top: 80px;
+  }
+
+  body[data-layout="top"] .tooltip-page {
+    padding-top: 0;
+  }
+
+  .tooltip,
+  [data-slot="tooltip-content"] {
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: #171717;
+    color: #fff;
+    font-size: 12px;
+  }
+
+  .tooltip .arrow::before {
+    border-color: #171717;
+    background: #171717;
+  }
+
+  .tooltip kbd,
+  [data-slot="tooltip-shortcut"] {
+    margin-inline-start: 6px;
+    color: #a3a3a3;
+    font: inherit;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 2px;
+  }
+
+  body[data-animate] :is(.tooltip, [data-slot="tooltip-content"]) {
+    transition: opacity 150ms;
+  }
+
+  body[data-animate]
+    :is(.tooltip, [data-slot="tooltip-content"]):is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+  }
+
+  .hover-card,
+  [data-slot="hover-card-content"] {
+    width: 260px;
+    padding: 12px;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
+    outline: none;
+  }
+
+  body[data-animate] :is(.hover-card, [data-slot="hover-card-content"]) {
+    transition: opacity 200ms;
+  }
+
+  body[data-animate]
+    :is(.hover-card, [data-slot="hover-card-content"]):is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+  }
+}
+
+/* File input. */
+@layer fixtures {
+  .zone {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    border: 2px dashed #a3a3a3;
+    border-radius: 8px;
+  }
+
+  .zone[data-drag-accept] {
+    border-color: #16a34a;
+  }
+
+  .zone[data-drag-reject] {
+    border-color: #dc2626;
+  }
+
+  .page-zone {
+    position: fixed;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    background: #171717;
+    color: white;
+    pointer-events: none;
+  }
+
+  .page-zone:not([data-dragging]) {
+    display: none;
+  }
+
+  .file-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .file-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border: 1px solid #d4d4d4;
+    border-radius: 6px;
+  }
+}
+
+/* Trigger menu and token input. */
+@layer fixtures {
+  .composer {
+    display: grid;
+    gap: 6px;
+    width: 320px;
+  }
+
+  .composer textarea.input,
+  .composer .editor {
+    min-height: 60px;
+  }
+
+  .hint {
+    color: #a3a3a3;
+    font-size: 14px;
+  }
+
+  .editor {
+    padding: 6px 8px;
+    border: 1px solid #d4d4d4;
+    border-radius: 6px;
+    outline: none;
+  }
+
+  .editor[data-empty]::before {
+    content: attr(aria-placeholder);
+    color: #a3a3a3;
+    pointer-events: none;
+    position: absolute;
+  }
+
+  .token {
+    padding: 0 4px;
+    border-radius: 4px;
+    background: #e0e7ff;
+  }
+
+  .token[data-pending] {
+    opacity: 0.6;
+  }
+
+  .token[data-selected] {
+    box-shadow: 0 0 0 2px #2563eb;
+  }
+}
+
+/* Command. The reference only gets class names, so each rule targets both. */
+@layer fixtures {
+  .command,
+  [data-slot="command-root"] {
+    display: flex;
+    flex-direction: column;
+    width: 320px;
+    border: 1px solid #d4d4d4;
+    border-radius: 8px;
+  }
+
+  .command-list,
+  [data-slot="command-list"] {
+    max-height: 240px;
+    overflow-y: auto;
+    padding: 4px;
+  }
+
+  .command .input {
+    border: 0;
+    border-bottom: 1px solid #d4d4d4;
+    border-radius: 0;
+  }
+
+  .shortcut {
+    margin-inline-start: auto;
+    color: #525252;
+  }
+
+  .item[data-pending] {
+    opacity: 0.6;
+  }
+}
+
+/* Toasts. The reference only gets class names. Newest first in the DOM, so a
+   region on the bottom edge lists them upward. */
+@layer fixtures {
+  .toast-region {
+    width: 320px;
+    margin: 16px;
+  }
+
+  .toast-region ol {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .toast-region[data-side="bottom"] ol {
+    flex-direction: column-reverse;
+  }
+
+  .toast {
+    display: grid;
+    gap: 4px;
+    padding: 12px;
+    border: 1px solid #d4d4d4;
+    border-radius: 8px;
+    background: white;
+    translate: var(--toast-swipe-x, 0) var(--toast-swipe-y, 0);
+  }
+
+  .toast[data-type="error"] {
+    border-color: #dc2626;
+  }
+
+  .toast [data-pending] {
+    opacity: 0.6;
+  }
+
+  body[data-animate] .toast {
+    transition:
+      opacity 150ms,
+      translate 150ms;
+  }
+
+  body[data-animate] .toast:is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+  }
+
+  body[data-animate="infinite"] .toast[data-ending-style] {
+    transition-duration: 100s;
+  }
+}
+
+/* Avatar: a round box, the image filling it and the fallback centred. */
+.avatar,
+[data-slot="avatar-root"] {
+  position: relative;
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eee;
+}
+.avatar-image,
+[data-slot="avatar-image"] {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.avatar-fallback,
+[data-slot="avatar-fallback"] {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+
+/* Progress and Meter: a track, and an indicator filling it. */
+.gauge-track,
+[data-slot="progress-track"],
+[data-slot="meter-track"] {
+  display: block;
+  width: 200px;
+  height: 8px;
+  overflow: hidden;
+  background: #eee;
+}
+.gauge-indicator,
+[data-slot="progress-indicator"],
+[data-slot="meter-indicator"] {
+  display: block;
+  height: 100%;
+  background: #333;
+}
+
+/* OTP Input: boxes in a row. */
+.otp,
+[data-slot="otp-input-root"] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: max-content;
+}
+.otp-group,
+[data-slot="otp-input-group"] {
+  display: flex;
+  gap: 4px;
+}
+.otp-slot,
+[data-slot="otp-input-slot"] {
+  display: flex;
+  box-sizing: border-box;
+  width: 32px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #999;
+  font: 16px monospace;
+  text-align: center;
+}
+[data-slot="otp-input-slot"][data-active] {
+  outline: 2px solid #333;
+}
+
+/* Scroll Area: fixed-size boxes with thin scrollbars over their edges. */
+.scroll-fixture {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.scroll-fixture-spacer {
+  width: 100%;
+  height: 1600px;
+}
+.scroll-area,
+[data-slot="scroll-area-root"] {
+  width: 180px;
+  height: 200px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+}
+.scroll-area.is-wide {
+  width: 300px;
+}
+.scroll-area.is-chat {
+  width: 260px;
+  height: 240px;
+}
+.scroll-area-viewport,
+[data-slot="scroll-area-viewport"] {
+  width: 100%;
+  height: 100%;
+}
+.scroll-area-item {
+  height: 24px;
+  margin: 0;
+  padding: 0 8px;
+  line-height: 24px;
+}
+.scroll-area-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 120px);
+  gap: 4px;
+  padding: 4px;
+}
+.scroll-area-grid a {
+  display: block;
+  height: 80px;
+  background: #f4f4f4;
+}
+.scroll-area-message {
+  margin: 0;
+  padding: 8px;
+  min-height: 40px;
+}
+.scroll-area-scrollbar,
+[data-slot="scroll-area-scrollbar"] {
+  display: flex;
+  padding: 2px;
+}
+.scroll-area-scrollbar[data-orientation="vertical"] {
+  width: 10px;
+}
+.scroll-area-scrollbar[data-orientation="horizontal"] {
+  height: 10px;
+  flex-direction: column;
+}
+.scroll-area-thumb,
+[data-slot="scroll-area-thumb"] {
+  flex: 1;
+  border-radius: 3px;
+  background: #999;
+}
+.scroll-area-corner {
+  background: #eee;
+}
+.scroll-area-end {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+}
+
+/* Navigation menu. Contents in the viewport sit at its corner, sized by
+   their own width, so the viewport can take their size. */
+@layer fixtures {
+  .nav-menu {
+    position: relative;
+  }
+
+  .nav-list {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .nav-list.vertical {
+    flex-direction: column;
+  }
+
+  .nav-trigger,
+  .nav-list > li > .nav-link,
+  .nav-list > li > a {
+    display: inline-block;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 6px;
+    background: none;
+    font: inherit;
+    color: inherit;
+  }
+
+  .nav-trigger[aria-expanded="true"] {
+    background: #f5f5f5;
+  }
+
+  .nav-viewport {
+    overflow: hidden;
+    width: var(--viewport-width, var(--popup-width, auto));
+    height: var(--viewport-height, var(--popup-height, auto));
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
+    outline: none;
+  }
+
+  [data-slot="navigation-menu-viewport"] > [data-slot="navigation-menu-content"] {
+    position: absolute;
+    top: 0;
+    inset-inline-start: 0;
+  }
+
+  .nav-content {
+    width: 320px;
+    padding: 12px;
+  }
+
+  .nav-content.narrow {
+    width: 200px;
+  }
+
+  .nav-content ul {
+    display: grid;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  /* Without a viewport, each content is its own popup. */
+  .nav-content[popover] {
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 4px 16px rgb(0 0 0 / 0.08);
+    outline: none;
+  }
+
+  .nav-indicator {
+    position: absolute;
+    top: calc(var(--active-item-top, 0px) + var(--active-item-height, 0px));
+    left: var(--active-item-left, 0px);
+    width: var(--active-item-width, 0px);
+    height: 2px;
+    background: #0a0a0a;
+  }
+
+  body[data-animate] .nav-viewport {
+    transition:
+      opacity 200ms,
+      width 200ms,
+      height 200ms,
+      left 200ms,
+      top 200ms;
+  }
+
+  body[data-animate] .nav-viewport:is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+  }
+
+  body[data-animate] .nav-content {
+    transition:
+      opacity 200ms,
+      translate 200ms;
+  }
+
+  body[data-animate] .nav-content:is([data-starting-style], [data-ending-style]) {
+    opacity: 0;
+  }
+
+  body[data-animate] .nav-content[data-motion="from-end"][data-starting-style],
+  body[data-animate] .nav-content[data-motion="to-end"][data-ending-style] {
+    translate: 40px 0;
+  }
+
+  body[data-animate] .nav-content[data-motion="from-start"][data-starting-style],
+  body[data-animate] .nav-content[data-motion="to-start"][data-ending-style] {
+    translate: -40px 0;
+  }
+
+  body[data-animate="infinite"] .nav-viewport[data-ending-style] {
+    animation: spin 1s infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    body[data-animate] :is(.nav-viewport, .nav-content) {
+      transition: none;
+    }
+  }
+}
+
+@layer fixtures {
+  /* Toolbar and Menubar. */
+  .toolbar,
+  [data-slot="toolbar-root"],
+  .menubar,
+  [data-slot="menubar-root"] {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border: 1px solid #e5e5e5;
+  }
+
+  .toolbar[data-orientation="vertical"],
+  [data-slot="toolbar-root"][data-orientation="vertical"],
+  .menubar[data-orientation="vertical"],
+  [data-slot="menubar-root"][data-orientation="vertical"] {
+    flex-direction: column;
+    align-items: stretch;
+    width: max-content;
+  }
+
+  .toolbar-group,
+  [data-slot="toolbar-group"] {
+    display: flex;
+    gap: 2px;
+  }
+
+  .toolbar [data-orientation="vertical"][role="separator"] {
+    align-self: stretch;
+    width: 1px;
+    background: #e5e5e5;
+  }
+
+  .toolbar[data-orientation="vertical"] [role="separator"] {
+    height: 1px;
+    background: #e5e5e5;
+  }
+
+  .toolbar input {
+    width: 72px;
+  }
+
+  .menubar [role="menuitem"][data-open] {
+    background: #e5e5e5;
+  }
+  /* Password input. The caps lock note shows while the field reports it. */
+  .password-input,
+  [data-slot="password-input-root"] {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .password-toggle[aria-pressed="true"] {
+    background: #e5e5e5;
+  }
+
+  .password-form .caps-lock {
+    display: none;
+  }
+
+  .password-form:has([data-capslock]) .caps-lock {
+    display: block;
+  }
+
+  /* Pagination. */
+  .pagination-list,
+  [data-slot="pagination-list"] {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  :is(.pagination-link, .pagination-step) {
+    min-width: 32px;
+    height: 32px;
+  }
+
+  .pagination-link[aria-current="page"] {
+    font-weight: bold;
+    outline: 1px solid #888;
+  }
+
+  .pagination-step[aria-disabled="true"] {
+    opacity: 0.5;
+  }
+
+  .calendar-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .calendar-months {
+    display: flex;
+    gap: 16px;
+  }
+
+  [data-slot="calendar-day"] {
+    width: 32px;
+    height: 32px;
+    text-align: center;
+    cursor: default;
+  }
+
+  [data-slot="calendar-day"][data-outside],
+  [data-slot="calendar-day"][data-disabled] {
+    color: #666;
+  }
+
+  [data-slot="calendar-day"][data-selected] {
+    background: #222;
+    color: white;
+  }
+
+  [data-slot="calendar-day"][data-range-middle] {
+    background: #ddd;
+    color: black;
+  }
+
+  [data-slot="calendar-day"][data-today] {
+    font-weight: bold;
+  }
+
+  .calendar-step[aria-disabled="true"] {
+    color: #666;
+  }
+
+  /* Items with icon parts line up beside their text. */
+  .icons-fixture {
+    flex-wrap: wrap;
+  }
+
+  .icons-fixture :is(.item, [role^="menuitem"], .tab, .toggle, .nav-link, .trigger) {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+  }
+
+  .icons-fixture [data-has-icons] :is(.item, [role^="menuitem"]):not([data-has-icon]) {
+    padding-inline-start: 32px;
+  }
+
+  /* Listbox: an always-visible list. Long lists scroll inside it. */
+  .listbox,
+  [data-slot="listbox-root"] {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 180px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 4px;
+    border: 1px solid #e5e5e5;
+    border-radius: 8px;
+    outline: none;
+  }
+
+  .listbox[aria-orientation="horizontal"] {
+    flex-direction: row;
+    max-height: none;
+  }
+
+  .listbox .item:focus-visible {
+    outline: 2px solid #2563eb;
+  }
+
+  .listbox .item[aria-selected="true"] {
+    background: #e0e7ff;
+  }
+
+  .listbox .icon {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: #a3a3a3;
+  }
+
+  /* Popups presented as a sheet (?presentation=sheet). The sheet places them,
+     moves them and dims the page; these turn a popup's surface into a sheet's. */
+  [data-presentation="sheet"] {
+    position: relative;
+    inset: auto;
+    width: auto;
+    max-width: none;
+    max-height: calc(100vh - 48px);
+    overflow: auto;
+    translate: none;
+    border-radius: 16px 16px 0 0;
+  }
+
+  /* The header a combobox's input moves into, above its list. */
+  :is([data-slot="combobox-header"], [data-slot="autocomplete-header"]) {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 4px;
+    background: #fff;
+  }
+
+  /* A submenu shows in its parent's place inside the sheet. */
+  [data-presentation="sheet"][data-nested] {
+    max-height: none;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  body[data-animate] [data-presentation="sheet"]:is([data-starting-style], [data-ending-style]) {
+    opacity: 1;
+    scale: none;
+    transform: none;
+  }
+
+  /* Carousel. Three hundred pixels wide, so specs know where each slide lands. */
+  .carousel,
+  [data-slot="carousel-root"] {
+    display: grid;
+    gap: 8px;
+    width: 300px;
+  }
+
+  .carousel-viewport,
+  [data-slot="carousel-viewport"] {
+    width: 300px;
+  }
+
+  :is(.carousel, [data-slot="carousel-root"])[data-orientation="vertical"]
+    :is(.carousel-viewport, [data-slot="carousel-viewport"]) {
+    height: 120px;
+  }
+
+  .carousel-slide,
+  [data-slot="carousel-item"] {
+    flex: 0 0 calc(100% / var(--per-view, 1));
+    min-width: 0;
+    height: 120px;
+    padding: 12px;
+    border: 1px solid #e5e5e5;
+  }
+
+  /* A percentage basis in a scroller's column is indefinite, which Firefox sizes by content. */
+  :is(.carousel, [data-slot="carousel-root"])[data-orientation="vertical"]
+    :is(.carousel-slide, [data-slot="carousel-item"]) {
+    flex-basis: auto;
+    height: calc(120px / var(--per-view, 1));
+  }
+
+  .carousel-slide:is([data-active], .is-snapped) {
+    background: #f5f5f5;
+  }
+
+  .carousel-controls {
+    display: flex;
+    gap: 4px;
+  }
+
+  .carousel-indicator,
+  [data-slot="carousel-indicator"] {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    font-size: 11px;
+  }
+
+  .carousel-indicator[aria-selected="true"] {
+    background: #0a0a0a;
+    color: #fff;
+  }
+}
+
+/* Drag perf fixtures: a wide slider, so a drag has room past its thumbs, and
+   a wide resizable group whose handles take no width, so 500 panels fit. */
+@layer fixtures {
+  .slider-control.is-wide {
+    width: 600px;
+  }
+
+  .resizable-perf {
+    flex: none;
+    width: 1200px;
+    height: 120px;
+    border: 1px solid #d4d4d4;
+  }
+
+  .resizable-perf-handle {
+    width: 0;
+    outline: 1px solid #d4d4d4;
+  }
+}

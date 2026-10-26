@@ -1,0 +1,267 @@
+---
+title: Hover Card
+description: Preview a link on hover or keyboard focus while keeping its normal navigation.
+---
+
+<ComponentExample
+  name="hover-card/basic"
+  caption="Hover the profile link or leave keyboard focus on it to open its preview."
+/>
+
+## Installation
+
+```bash
+npm install @ui-sdk/solid @ui-sdk/core
+```
+
+The examples use the shared [Example Theme](../styling-and-animation#example-theme).
+
+## Anatomy
+
+Wrap a link and its preview in a hover card.
+
+```tsx
+import { HoverCard, HoverCardTrigger, HoverCardContent } from "@ui-sdk/solid/hover-card"
+
+function ProfilePreview() {
+  return (
+    <HoverCard>
+      <HoverCardTrigger href="https://example.com/people/ada">Ada Lovelace</HoverCardTrigger>
+      <HoverCardContent>A preview of Ada's profile.</HoverCardContent>
+    </HoverCard>
+  )
+}
+
+export { ProfilePreview }
+```
+
+The trigger is a link (an `<a>`, so give it an `href`), and pressing it follows the link. The card only adds a preview for people who pause on it: everything in it should be reachable from the page the link goes to, since touch and screen reader users may never open it. For a tip on a button, use a [Tooltip](./tooltip). For content that opens with a press, use a [Popover](./popover).
+
+## Examples
+
+### Side
+
+`side` picks where the card opens: `bottom` by default. It flips to the other side when there isn't room, and shifts along the link to stay on screen.
+
+<ComponentExample name="hover-card/side" caption="Hover each link to compare the four preferred sides." />
+
+### Delays
+
+`delay` is how long the pointer rests on the link, or keyboard focus stays on it, before the card opens: 600 milliseconds by default. `closeDelay` is how long it stays open once the pointer leaves the link and the card: 300 milliseconds by default. The pointer can cross the gap between the link and the card without closing it.
+
+`disabled` stops the card from opening and leaves a plain link.
+
+<ComponentExample
+  name="hover-card/delay"
+  caption="Change the delays, then move between the link and card to see when it opens and closes."
+/>
+
+### RTL
+
+Start and end follow the text direction.
+
+<ComponentExample
+  name="hover-card/rtl"
+  caption="Hover the links to see logical alignment in right-to-left text."
+/>
+
+### Offsets
+
+`sideOffset` is the gap to the link, 4 pixels by default. `alignOffset` shifts along it, and `collisionPadding` is the space kept from the edges of the window.
+
+<ComponentExample
+  name="hover-card/offsets"
+  caption="Change the placement controls, then hover the link to see its offsets."
+/>
+
+### Arrow
+
+The arrow follows the side the card actually lands on, including after it flips away from an edge, and gets the same `data-side`. It points at the middle of the link, even after the card shifts, and keeps `arrowPadding` away from the corners. Change the side and alignment, then hover the link.
+
+<ComponentExample
+  name="hover-card/arrow"
+  caption="Change the side and alignment, then hover the link to see where the arrow points."
+/>
+
+### Anchor
+
+Position the card against something other than the link with `anchor`: an element, a CSS selector, a point like `{ x, y }`, or anything with `getBoundingClientRect()`. Here a name in a commit row opens a card lined up with the whole row.
+
+<ComponentExample
+  name="hover-card/anchor"
+  caption="Hover the author name. The card aligns with the whole commit row."
+/>
+
+### Controlled
+
+Pass `open` and `onOpenChange` to control the card.
+
+Every change carries a [reason](#reasons), like `trigger-hover`, `trigger-focus`, `focus-out`, `escape-key` or `outside-press`. Call `details.cancel()` to stop it. A [controller](#controller), from `createHoverCardController()`, opens the card from anywhere.
+
+<ComponentExample
+  name="hover-card/controlled"
+  caption="Open the card from the link or the external control, and read the change reason."
+/>
+
+### One Card for Many Links
+
+A feed or a list can share one card instead of rendering one per link. Put the links anywhere on the page and connect them to the card with its controller. Each link passes a `payload`, like its person, and the content reads it from its state. Only the link that opened the card gets `data-open`.
+
+Every part's `children` can be a function of its state, like `class`.
+
+The card here has a link of its own. Tab from a link with an open card moves into the card, and Tab past its end moves on to the page after the link. Focus leaving the card closes it.
+
+<ComponentExample
+  name="hover-card/payload"
+  caption="Move between authors. One card updates its preview; Tab can reach View profile inside it."
+/>
+
+### Container
+
+Cards render in place and show in the top layer, so no ancestor clips or covers them. `container` renders the card somewhere else, for iframes, shadow roots or a specific stacking context.
+
+<ComponentExample
+  name="hover-card/container"
+  caption="Hover the link to render the preview inside the specified container."
+/>
+
+### Animation
+
+`onOpenChangeComplete` runs once the card has finished opening or closing, after any
+animation, with the new open state. `keepMounted` on the content keeps the closed card in the page, hidden,
+for animation libraries that drive the exit from state. See [Styling](#styling) for the attributes to animate.
+
+<ComponentExample
+  name="hover-card/animation"
+  caption="Open and close the card, then watch the completion callback update the output."
+/>
+
+## Keyboard and Touch
+
+Keyboard focus on the link opens the card after the same `delay` as the pointer, so tabbing through a page of links doesn't flash a card at every stop. Escape closes it and leaves focus on the link, and Enter follows the link. When the card has something to focus, Tab moves into it, and focus leaving the card closes it.
+
+Touch screens have no hover, so a tap follows the link without opening the card. Anything in the card should
+be on the page the link goes to.
+
+## Styling
+
+Parts are unstyled. Style them through the attributes they render, which are the same in every framework.
+
+<DataAttributes component="hover-card" />
+
+Open cards also set these CSS variables, for sizing and animation.
+
+<CssVariables component="hover-card" />
+
+Animate with `data-starting-style` and `data-ending-style`. The card stays mounted until its exit animation finishes.
+
+```css
+[data-slot="hover-card-content"] {
+  transition:
+    opacity 150ms,
+    scale 150ms;
+  transform-origin: var(--transform-origin);
+}
+
+[data-slot="hover-card-content"]:is([data-starting-style], [data-ending-style]) {
+  opacity: 0;
+  scale: 0.96;
+}
+```
+
+## Custom Rendering
+
+<ComponentExample
+  name="hover-card/custom-rendering"
+  caption="Hover or focus the author link to see its custom trigger and content respond to open state."
+/>
+
+Every part takes `render`, a function that receives the props to spread and the part's state. `class`, `style` and `children` can be functions of the same state.
+
+Each part's state is listed under [State](#state).
+
+## API Reference
+
+Props and callbacks are the same as below, as Solid props.
+
+### Events
+
+Callbacks get the new state first, then the details.
+
+| Prop                   | On          | Receives                                                                    |
+| ---------------------- | ----------- | --------------------------------------------------------------------------- |
+| `onOpenChange`         | `HoverCard` | `(open, details)`: the new state, and the [reason](#reasons)                |
+| `onOpenChangeComplete` | `HoverCard` | `(open)`, after the animation                                               |
+| `onPayloadChange`      | `HoverCard` | `(payload, details)`: the content's new payload, and the [reason](#reasons) |
+
+### Reasons
+
+`details.reason` says why the card opened or closed.
+
+<ReasonTable
+  path="../../packages/core/src/components/hover-card/hover-card.ts"
+  name="HoverCardOpenChangeReason"
+/>
+
+For a payload change, it says what opened the card or took it over.
+
+<ReasonTable
+  path="../../packages/core/src/components/hover-card/hover-card.ts"
+  name="HoverCardPayloadChangeReason"
+/>
+
+### Controller
+
+Create one with `createHoverCardController<Payload>()` and pass it as `controller`, to the card and to any
+triggers outside it. `Payload` is the type of the data triggers and `open()` pass.
+
+Every write method takes an optional `{ reason, event }`, passed to `onOpenChange`.
+
+<ControllerTable
+  path="../../packages/core/src/components/hover-card/hover-card.ts"
+  name="HoverCardController"
+/>
+
+### HoverCard
+
+<TypeTable path="../../packages/core/src/components/hover-card/hover-card.ts" name="HoverCardOptions" />
+
+### HoverCardTrigger
+
+A trigger outside the card also takes `controller`.
+
+<TypeTable path="../../packages/core/src/components/hover-card/hover-card.ts" name="HoverCardTriggerProps" />
+
+### HoverCardContent
+
+<TypeTable path="../../packages/core/src/components/hover-card/hover-card.ts" name="HoverCardContentProps" />
+
+### State
+
+What render functions, state-based class names and slots receive, per part.
+
+`HoverCardTrigger`:
+
+<StateTable path="../../packages/core/src/components/hover-card/hover-card.ts" name="HoverCardTriggerState" />
+
+`HoverCardContent`:
+
+<StateTable path="../../packages/core/src/components/hover-card/hover-card.ts" name="HoverCardContentState" />
+
+`HoverCardArrow`:
+
+<StateTable path="../../packages/core/src/components/hover-card/hover-card.ts" name="HoverCardArrowState" />
+
+## Accessibility
+
+The trigger stays a plain link, and the card is a preview beside it, not a dialog. Every line below is an automated test.
+
+<SpecList spec="hover-card" />
+
+Also tested:
+
+<SpecList spec="hover-card.enhancements" />
+
+Screen readers hear the same thing in each tested framework, recorded by a virtual screen reader:
+
+<SpecList spec="hover-card.sr" />

@@ -1,0 +1,259 @@
+name: CI
+
+on:
+  # Markdown files don't run the suite; otherwise each one cancels the run in
+  # progress on main.
+  push:
+    branches: [main]
+    paths: ["**", "!**/*.md", "!.claude/**", "tests/perf/README.md"]
+  # The engines label adds WebKit and Firefox to a pull request's runs.
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths: ["**", "!**/*.md", "!.claude/**", "tests/perf/README.md"]
+  workflow_dispatch:
+    inputs:
+      suite:
+        description: Which tier to run.
+        type: choice
+        options: [full, main, nightly, engines, affected]
+        default: full
+  # The nightly workflow runs the nightly tier, the weekly one the full suite.
+  workflow_call:
+    inputs:
+      suite:
+        type: string
+        default: full
+
+# A newer push to the same branch or pull request cancels the run in progress.
+# Adding a label starts a run of its own, so it never cancels the push's run.
+# When the nightly or weekly workflow calls this one, github.workflow is its name,
+# so its run never cancels, or is cancelled by, a push.
+concurrency:
+  group: ${{ github.workflow }}-ci-${{ github.event.pull_request.number || github.ref }}${{ github.event.action == 'labeled' && format('-label-{0}', github.event.label.name) || '' }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # The nightly and engines tiers test a commit main or the pull request's own
+  # run already checked.
+  check:
+    name: Typecheck and unit tests
+    needs: plan
+    if: contains(fromJSON('["affected", "affected-engines", "main", "full"]'), needs.plan.outputs.suite)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      # Full history, so `pnpm format` finds where the branch left origin/main.
+      # On main that's HEAD itself, so it checks nothing.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+
+      # Return type annotations and the other rules in scripts/check-code.mjs.
+      - name: Lint
+        run: pnpm lint
+
+      # Prettier on the files the branch changed.
+      - name: Format
+        run: pnpm format
+
+      # The docs load the compiled examples in examples/dist.
+      - name: Build examples
+        run: pnpm --filter examples build
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      # The packed packages installed in a scratch app, every entry typechecked
+      # strictly against the emitted declarations, from scripts/check-packages.mjs.
+      - name: Build packages
+        run: pnpm build
+
+      - name: Packed packages
+        run: pnpm check:packages
+
+      # The perf catalog in tests/perf/README.md matches tests/perf/budgets.ts,
+      # and every budget has a test that reads it.
+      - name: Perf docs
+        run: pnpm docs:perf --check
+
+      # Only packages/*: a recursive `test` would also start Playwright in tests/.
+      - name: Unit tests
+        run: pnpm --filter "./packages/*" test
+
+  # Each tier runs a different set of shards, so the matrix is built here.
+  # Pull requests and pushes to main run the specs their changes can affect on
+  # one runner, like `pnpm test:pr` (the affected job), since every push running
+  # the whole Chromium matrix spent the Actions budget. WebKit and Firefox (web
+  # only) run nightly, and on pull requests with the engines label: adding it
+  # runs them once, and each push to a labeled pull request adds them to the
+  # affected specs. The weekly run is the full suite.
+  plan:
+    name: Plan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 2
+    outputs:
+      suite: ${{ steps.plan.outputs.suite }}
+      shards: ${{ steps.plan.outputs.shards }}
+    steps:
+      - id: plan
+        env:
+          INPUT: ${{ inputs.suite }}
+          EVENT: ${{ github.event_name }}
+          ACTION: ${{ github.event.action }}
+          LABEL: ${{ github.event.label.name }}
+          ENGINES: ${{ contains(github.event.pull_request.labels.*.name, 'engines') }}
+        # Shards per engine, since a WebKit or Firefox test takes about twice as
+        # long as a Chromium one. Each shard aims for about 15 minutes of tests
+        # on a 2-core runner. Retune from the shard durations in the merged report.
+        run: |
+          if [ -n "$INPUT" ]; then SUITE=$INPUT
+          elif [ "$EVENT" = pull_request ] && [ "$ACTION" = labeled ]; then
+            # Other labels run nothing.
+            if [ "$LABEL" = engines ]; then SUITE="engines"; else SUITE="skip"; fi
+          elif [ "$EVENT" = pull_request ]; then
+            if [ "$ENGINES" = true ]; then SUITE="affected-engines"; else SUITE="affected"; fi
+          elif [ "$EVENT" = push ]; then SUITE="affected"
+          else SUITE="full"
+          fi
+          shards() { for i in $(seq 1 "$2"); do printf '{"engine":"%s","shard":%d,"shards":%d},' "$1" "$i" "$2"; done; }
+          case "$SUITE" in
+            skip | affected | affected-engines) list="" ;;
+            main) list="$(shards chromium 10)" ;;
+            nightly | engines) list="$(shards webkit 2)$(shards firefox 3)" ;;
+            *) list="$(shards chromium 10)$(shards webkit 2)$(shards firefox 3)" ;;
+          esac
+          echo "suite=$SUITE" >> "$GITHUB_OUTPUT"
+          echo "shards=[${list%,}]" >> "$GITHUB_OUTPUT"
+
+  # The specs a pull request or a push can affect, from scripts/affected-specs.mjs:
+  # the touched components on the frameworks the changes reach, their leak
+  # tests, and a framework's whole project when its shared code changed. Most
+  # changes take a few minutes on one runner.
+  affected:
+    name: Playwright affected specs
+    needs: plan
+    if: startsWith(needs.plan.outputs.suite, 'affected')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      # Full history, so the script finds where the changes left their base.
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+        with:
+          browsers: ${{ needs.plan.outputs.suite == 'affected-engines' && 'chromium webkit firefox' || 'chromium' }}
+
+      # A pull request against its base branch, a push to main against the
+      # commit main was at before it.
+      - name: Run Playwright
+        env:
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before || 'origin/main' }}
+          ENGINES: ${{ needs.plan.outputs.suite == 'affected-engines' && '--engines' || '' }}
+        run: node scripts/affected-specs.mjs --base "$BASE" $ENGINES
+
+  e2e:
+    name: Playwright ${{ matrix.engine }} ${{ matrix.shard }}/${{ matrix.shards }}
+    needs: plan
+    if: needs.plan.outputs.shards != '[]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      # Every shard finishes, so the merged report lists every failure at once.
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.plan.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+        with:
+          browsers: ${{ matrix.engine }}
+
+      # Chromium runs every framework project; the other engines run web.
+      - name: Run Playwright
+        working-directory: tests
+        env:
+          # Shards of different engines share numbers, so each names its own report.
+          PLAYWRIGHT_BLOB_OUTPUT_NAME: report-${{ matrix.engine }}-${{ matrix.shard }}.zip
+        run: |
+          if [ "${{ matrix.engine }}" = chromium ]; then
+            projects=(--project react --project vue --project web --project solid --project svelte --project "*-data" --project "*-ssr" --project "*-portal" --project "*-sheet")
+          else
+            projects=(--project "*-${{ matrix.engine }}")
+          fi
+          npx playwright test "${projects[@]}" --shard=${{ matrix.shard }}/${{ matrix.shards }}
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: blob-report-${{ matrix.engine }}-${{ matrix.shard }}
+          path: tests/blob-report
+          retention-days: 3
+          overwrite: true
+
+  e2e-report:
+    name: Playwright report
+    needs: e2e
+    # Merge whatever the shards produced, even when some failed.
+    if: ${{ !cancelled() && needs.e2e.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: blob-report-*
+          path: tests/all-blob-reports
+          merge-multiple: true
+
+      - name: Merge reports
+        working-directory: tests
+        env:
+          PLAYWRIGHT_JSON_OUTPUT_NAME: results.json
+        run: npx playwright merge-reports --reporter html,json all-blob-reports
+
+      - name: Summarize failures and flakes
+        run: node scripts/ci-report-summary.mjs tests/results.json
+
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: tests/playwright-report
+          retention-days: 14
+          overwrite: true
+
+  docs:
+    name: Docs tests
+    needs: plan
+    if: needs.plan.outputs.suite == 'full'
+    runs-on: ubuntu-24.04
+    # Every framework, 576 tests: about 16 minutes on two workers.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: ./.github/actions/setup
+        with:
+          browsers: chromium
+
+      # The config's web server builds the examples and the docs, then serves the
+      # production build.
+      - name: Run docs tests
+        run: pnpm test:docs
+
+      - name: Upload HTML report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v5
+        with:
+          name: docs-report
+          path: tests/playwright-report
+          retention-days: 14
+          overwrite: true

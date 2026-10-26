@@ -1,0 +1,293 @@
+---
+title: Slider
+description: Adjust a number or a range with draggable thumbs and keyboard controls.
+---
+
+<ComponentExample
+  name="slider/basic"
+  caption="Drag the thumb or focus it and use the arrow keys to adjust Volume."
+/>
+
+## Installation
+
+```bash
+npm install @ui-sdk/web @ui-sdk/core
+```
+
+Importing the component defines its elements. Import the field too if you use it. On the server the import does nothing.
+
+```ts
+import "@ui-sdk/web/slider"
+import "@ui-sdk/web/field"
+```
+
+The examples use the shared [Example Theme](../styling-and-animation#example-theme).
+
+## Anatomy
+
+A control handles presses around the track. Put a thumb on that track for each value.
+
+```html
+<ui-slider default-value="50">
+  <ui-slider-value></ui-slider-value>
+  <ui-slider-control>
+    <ui-slider-track>
+      <ui-slider-indicator></ui-slider-indicator>
+      <ui-slider-thumb aria-label="Volume"></ui-slider-thumb>
+    </ui-slider-track>
+  </ui-slider-control>
+</ui-slider>
+```
+
+- **Slider** holds the value and is a group around the thumbs.
+- **SliderControl** is where presses land. Pressing it moves the nearest thumb and starts a drag. Give it some height around a thin track.
+- **SliderTrack** is the rail the thumbs move along. Thumbs and the indicator are placed in percentages of it with inline styles, so give it a size. It's the positioned box.
+- **SliderIndicator** fills the track up to a single thumb, or between the first and last thumb of a range.
+- **SliderThumb** is what you drag. Give each one a size.
+- **SliderValue** shows the formatted value, and a range joined with an en dash. It's optional.
+
+Each thumb renders a visually hidden `<input type="range">` inside itself. That input is what takes focus, so
+screen readers on phones adjust it with their own gestures. Style focus on the thumb with `has-focus-visible:`.
+`<ui-slider>` is form-associated, so it is what the form sees. Each `<ui-slider-thumb>` adds its own range input.
+Custom elements are inline by default, so the parts display as blocks. An empty `<ui-slider-value>` shows the
+formatted value.
+
+A single thumb is named by a `FieldLabel` in a `Field`, or by `aria-label` on the thumb. In a range, give
+each thumb its own `aria-label`, like "Minimum price", and name the group with a `FieldLabel` or
+`aria-label` on the slider.
+
+## Examples
+
+### Range
+
+Write a range as numbers joined with a slash, like `default-value="25/50"`, and render one thumb per number. Thumbs take their index from their order. Give each a name. The indicator fills the space between the first and last thumb.
+
+<ComponentExample name="slider/range" caption="Move either end of the range. The thumbs stay in order." />
+
+### Multiple Thumbs
+
+Any number of thumbs works the same way. They never pass each other, and a press on the track moves the nearest one.
+
+<ComponentExample
+  name="slider/multiple"
+  caption="Adjust Low, Mid, and High independently without moving past another thumb."
+/>
+
+### Vertical
+
+Set `orientation="vertical"`. The bottom is the minimum, ArrowUp increases it, and every part gets `data-orientation`, so one set of classes can style both axes with `data-[orientation=vertical]:`.
+
+<ComponentExample
+  name="slider/vertical"
+  caption="Drag up or down, or use the arrow keys, to adjust Bass and Treble."
+/>
+
+### Field
+
+Put the slider in a `Field`. The label names the thumb, the description describes it, and `SliderValue` shows the value beside the label. Screen readers don't announce `SliderValue` as it changes, since the thumb already says its value.
+
+<ComponentExample
+  name="slider/field"
+  caption="Use the Volume label to focus the thumb, then change the value."
+/>
+
+### Disabled
+
+Set `disabled`. A disabled slider can't be focused or moved, and isn't submitted. A disabled `<fieldset>` around it disables it too.
+
+<ComponentExample
+  name="slider/disabled"
+  caption="The disabled slider keeps its value and cannot be focused or dragged."
+/>
+
+### Right to Left
+
+Set `dir="rtl"` on the page or any element around the slider. It starts from the right, ArrowLeft increases it, and the thumbs and indicator are placed with `inset-inline-start`, so nothing in your styles needs to flip. `locale` sets the digits.
+
+<ComponentExample
+  name="slider/rtl"
+  caption="Adjust the range in a right-to-left layout. ArrowLeft increases the value."
+/>
+
+## Behavior and Options
+
+### Controlled
+
+Listen for `valuechange`, and set the element's `value` property.
+The value keeps its shape: a number stays a number and an array stays an array. Every change carries a reason,
+like `drag`, `track-press` or `step-key`, and `event.detail.thumb` says which thumb moved. Call `event.preventDefault()`
+to keep the current value.
+
+<ComponentExample
+  name="slider/controlled"
+  caption="Adjust the temperature range, then use Reset. The application keeps the values and change reason."
+/>
+
+### Step and Bounds
+
+`min` and `max` set the bounds, 0 and 100 by default, and `step` sets how far one step moves, counted from `min`. Decimal steps avoid floating-point drift, so a 0.1 step can reach 0.3 cleanly. When the steps from `min` don't land on `max`, the highest step below it is the end.
+
+<ComponentExample name="slider/step" caption="Choose a year in steps of five." />
+
+### Large Step
+
+Arrow keys move one step. Page Up, Page Down and Shift with an arrow key move by `largeStep`, which is ten steps unless you set it. Home and End go to the bounds.
+
+<ComponentExample
+  name="slider/large-step"
+  caption="Focus Zoom and try an arrow key, Shift with an arrow key, Page Up, and Page Down."
+/>
+
+### Distance Between Thumbs
+
+Set `minStepsBetweenThumbs` to keep neighbouring thumbs that many steps apart. A thumb stops at its neighbour, and Home and End move it only as far as its neighbour allows.
+
+<ComponentExample
+  name="slider/min-steps"
+  caption="Move either end of the opening hours. The thumbs keep their required gap."
+/>
+
+### Format and Locale
+
+`format` takes `Intl.NumberFormat` options, like `{ style: "currency", currency: "USD" }` or `{ style: "percent" }`, or a function of the value. It sets what `SliderValue` shows and what screen readers announce for each thumb, while the value stays a plain number. `locale` sets separators, digits and symbol placement. Without it, the slider uses the page's `lang`, or the browser's language, once the page is interactive. Server markup uses English until then, so it never disagrees with the client.
+
+`format` is an object or a function, so set it as a property. `locale` is an attribute.
+
+<ComponentExample
+  name="slider/format"
+  caption="Adjust the sliders to compare currency, percentages, units, a custom duration, and German number formatting."
+/>
+
+### Saving on Commit
+
+`valuechange` runs on every step of a drag. `valuecommit` runs once,
+when the interaction that changed the value ends: the pointer lifts, the key comes up, or a screen reader
+adjusts it. Use the commit callback to save once per interaction. A press that doesn't change the value
+commits nothing.
+
+Listen for `valuecommit`.
+
+<ComponentExample
+  name="slider/commit"
+  caption="Drag or use a key, then release it. The saved value updates once the interaction ends."
+/>
+
+### Controller
+
+The element's `api` moves the slider from anywhere with `setValue()`, reads it with `getValue()` and focuses a thumb with `focus()`. Values set through it are clamped, snapped to the step and sorted, and reported with the `imperative` reason.
+
+<ComponentExample
+  name="slider/controller"
+  caption="Use Mute, Louder, Read, and Focus to operate the slider through its controller."
+/>
+
+### Render Functions
+
+Elements have no render functions. Style each part, and what's inside it, from its data attributes. A
+`<ui-slider-value>` inside a thumb shows that thumb's value.
+
+<ComponentExample
+  name="slider/render"
+  caption="Focus or drag the Brightness thumb to reveal its value bubble."
+/>
+
+## Forms
+
+`<ui-slider>` is form-associated, so it is the control the form sees. `FormData`, `form.reset()`, the `form`
+attribute, a disabled `<fieldset>` and the browser's restore all work. User changes fire native `input` and
+`change` events too.
+
+- **Submit:** a single thumb submits its number under `name`, like `40`. A range submits `"start/end"`, like `200/800`. Without a name, it submits nothing.
+- **Reset:** a form reset returns it to `defaultValue`, with the `reset` reason.
+- **Join a form from elsewhere:** set `form` to the id of a form.
+
+<ComponentExample
+  name="slider/form"
+  caption="Adjust the filters and save to inspect the submitted values. Reset restores the defaults."
+/>
+
+## Styling
+
+Parts are unstyled. Style them through the attributes they render, which are the same in every framework. With Tailwind, use data attribute variants. The thumb's range input is what takes focus, so draw the focus ring with `has-focus-visible:`.
+
+```html
+<ui-slider-control class="flex items-center py-2 data-disabled:opacity-50">
+  <ui-slider-track
+    class="h-1 w-full rounded-2xl bg-input/90 data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1"
+  >
+    <ui-slider-indicator class="rounded-2xl bg-primary"></ui-slider-indicator>
+    <ui-slider-thumb
+      class="size-4 rounded-2xl bg-white shadow-md ring-1 ring-black/10 has-focus-visible:ring-4 has-focus-visible:ring-ring/30 data-dragging:ring-4 data-dragging:ring-ring/30"
+    ></ui-slider-thumb>
+  </ui-slider-track>
+</ui-slider-control>
+```
+
+<DataAttributes component="slider" />
+
+Thumbs and the indicator are placed with inline styles: `position: absolute`, and `inset-inline-start` or `bottom` in percent. They also get these CSS variables, for anything else that should follow them:
+
+<CssVariables component="slider" />
+
+## Custom Rendering
+
+The parts are the elements themselves, so there is nothing to replace. Put anything inside them, and show it from their data attributes. A `<ui-slider-value>` anywhere inside the slider shows the formatted value, and inside a thumb, that thumb's value.
+
+## API Reference
+
+Props are attributes in kebab case, like `default-value` and `min-steps-between-thumbs`. A range is written
+as `"20/80"`. `format` and `controller` are properties. Callbacks are DOM events.
+
+### Events
+
+Events fire on their own element and don't bubble, with the value in `event.detail.value` and the `reason`, `thumb` and `event` beside it. Calling `preventDefault()` on `valuechange` cancels the change.
+
+| Member                      | On          | Description                                                                  |
+| --------------------------- | ----------- | ---------------------------------------------------------------------------- |
+| `value` property, attribute | `ui-slider` | The value. The attribute sets it as text, like `"40"` or `"20/80"`           |
+| `format` property           | `ui-slider` | `Intl.NumberFormat` options or a function, for the value's text              |
+| `api` property              | `ui-slider` | The [controller](#controller)                                                |
+| `valuechange` event         | `ui-slider` | `detail: { value, reason, thumb, event, source }`, on every step             |
+| `valuecommit` event         | `ui-slider` | `detail: { value, reason, thumb, event, source }`, once the interaction ends |
+
+### Reasons
+
+`event.detail.reason` says why the value changed.
+
+<ReasonTable path="../../packages/core/src/components/slider/slider.ts" name="SliderValueChangeReason" />
+
+### Controller
+
+The element's `api` property has the same methods. The `value` property reads and sets the value.
+
+`setValue()` takes an optional `{ reason, event }`, fires the change event like a drag, and returns `false` when the change is canceled.
+
+<ControllerTable path="../../packages/core/src/components/slider/slider.ts" name="SliderController" />
+
+### Slider
+
+<TypeTable path="../../packages/core/src/components/slider/slider.ts" name="SliderOptions" />
+
+### SliderThumb
+
+<TypeTable path="../../packages/core/src/components/slider/slider.ts" name="SliderThumbProps" />
+
+### State
+
+The same state shows as data attributes on each element.
+
+<StateTable path="../../packages/core/src/components/slider/slider.ts" name="SliderState" />
+
+Thumbs add their own fields, and have their own value, `thumbValue`, in place of the whole `value`, so a thumb renders only when its own value moves:
+
+<StateTable path="../../packages/core/src/components/slider/slider.ts" name="SliderThumbState" />
+
+`SliderValue` adds the formatted text:
+
+<StateTable path="../../packages/core/src/components/slider/slider.ts" name="SliderValueState" />
+
+## Accessibility
+
+The slider follows the [WAI-ARIA slider pattern](https://www.w3.org/WAI/ARIA/apg/patterns/slider/), and the [multi-thumb slider pattern](https://www.w3.org/WAI/ARIA/apg/patterns/slider-multithumb/) for ranges. Every line below is an automated test.
+
+<SpecList spec="slider" />

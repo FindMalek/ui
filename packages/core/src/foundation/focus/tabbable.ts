@@ -1,0 +1,121 @@
+import { isAfter } from "../kernel/order"
+
+const candidates = [
+  "a[href]",
+  "area[href]",
+  "button",
+  "input:not([type='hidden'])",
+  "select",
+  "textarea",
+  "iframe",
+  "summary",
+  "audio[controls]",
+  "video[controls]",
+  "[contenteditable]:not([contenteditable='false'])",
+  "[tabindex]",
+].join(",")
+
+function isTabbable(el: Element): el is HTMLElement {
+  if (!(el instanceof HTMLElement) || el.tabIndex < 0) return false
+  if ((el as HTMLButtonElement).disabled || el.closest("[inert]")) return false
+  // Only one radio button per group takes Tab: the checked one, or the first.
+  if (el instanceof HTMLInputElement && el.type === "radio" && el.name && !el.checked) {
+    const group = el.form?.elements.namedItem(el.name)
+    if (
+      group instanceof RadioNodeList &&
+      Array.from(group).some((radio) => (radio as HTMLInputElement).checked)
+    )
+      return false
+  }
+  if (typeof el.checkVisibility === "function") return el.checkVisibility({ visibilityProperty: true })
+  return el.getClientRects().length > 0 && getComputedStyle(el).visibility !== "hidden"
+}
+
+function tabbables(root: Element) {
+  return Array.from(root.querySelectorAll(candidates)).filter(isTabbable)
+}
+
+// The first tabbable element after `node` in the document, skipping anything
+// inside `skip`, like the popup that is handing focus back.
+function nextTabbable(node: Node, skip?: Element) {
+  const doc = node.ownerDocument ?? document
+  return tabbables(doc.body).find((el) => !el.contains(node) && !skip?.contains(el) && isAfter(node, el))
+}
+
+const focusables =
+  'a[href],button,input:not([type="hidden"]),select,textarea,iframe,summary,[contenteditable]:not([contenteditable="false"]),[tabindex]'
+
+const ownTabStops = new WeakSet<Element>()
+
+const takesFocus = (node: Element) =>
+  (node as HTMLElement).tabIndex >= 0 && !(node as HTMLButtonElement).disabled
+
+function holdsFocusableNode(node: Node) {
+  if (!(node instanceof Element)) return false
+  return (node.matches(focusables) && takesFocus(node)) || holdsFocusable(node)
+}
+
+// Whether Tab could stop inside `el` once it shows. Visibility is ignored,
+// since a hidden panel checks before it shows.
+function holdsFocusable(el: Element) {
+  return Array.from(el.querySelectorAll(focusables)).some(takesFocus)
+}
+
+/**
+ * Makes `el` a tab stop while `wanted()` holds and nothing inside it can take
+ * focus, so keyboard users can still reach and scroll content without
+ * controls, as axe's scrollable-region-focusable asks. It checks again when
+ * focusable content comes or goes, looking at the whole subtree only when
+ * something may have stopped taking focus, so streaming text costs little.
+ * Call `check` after anything else `wanted` reads changes. A `tabindex` the
+ * author wrote is theirs and stays.
+ */
+function bindTabStop(
+  el: HTMLElement,
+  wanted: () => boolean,
+  {
+    skipWhenHolding = false,
+  }: {
+    // A scroller holding focusable content leaves the tab order with
+    // `tabindex="-1"`, since Firefox makes every scroller a stop of its own.
+    skipWhenHolding?: boolean
+  } = {},
+) {
+  // Binding again, like React's StrictMode does, finds the stop written last time.
+  const authored = el.hasAttribute("tabindex") && !ownTabStops.has(el)
+  let holds = holdsFocusable(el)
+  const check = () => {
+    if (authored) return
+    const stop = wanted() && !holds ? "0" : skipWhenHolding ? "-1" : null
+    if (el.getAttribute("tabindex") === stop) return
+    if (stop === null) {
+      el.removeAttribute("tabindex")
+      ownTabStops.delete(el)
+    } else {
+      el.setAttribute("tabindex", stop)
+      ownTabStops.add(el)
+    }
+  }
+  check()
+  if (typeof MutationObserver === "undefined") return { check, stop: () => {} }
+  const observer = new MutationObserver((records) => {
+    for (const record of records) {
+      if (record.target === el && record.type === "attributes") continue
+      if (record.type === "attributes" || (holds && record.removedNodes.length)) {
+        holds = holdsFocusable(el)
+        break
+      }
+      if (!holds) holds = Array.from(record.addedNodes).some(holdsFocusableNode)
+    }
+    check()
+  })
+  observer.observe(el, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ["tabindex", "disabled", "href", "contenteditable"],
+  })
+  return { check, stop: () => observer.disconnect() }
+}
+
+export { bindTabStop, isTabbable, nextTabbable, tabbables }

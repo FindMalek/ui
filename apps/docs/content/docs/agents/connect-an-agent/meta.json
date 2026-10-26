@@ -1,0 +1,13 @@
+{
+  "title": "Connect an Agent",
+  "pages": [
+    "index",
+    "guide",
+    "your-components",
+    "permissions",
+    "observe-changes",
+    "history-and-undo",
+    "webmcp",
+    "reference"
+  ]
+}

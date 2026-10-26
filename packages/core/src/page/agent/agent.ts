@@ -1,0 +1,1163 @@
+// The agent bridge: every live component on the page, read and driven through
+// its own api, so an AI agent operates the UI without a screenshot, a page
+// snapshot or a click. It shares `observe`'s registry, which hears instances
+// through the kernel's `watchers` once either entry is imported, and reports
+// each change it makes with the source `"agent"`. The marks an app writes on
+// its elements decide what an agent may do alone (`./marks`).
+import { dev, warn } from "#dev"
+import { withSource } from "../../foundation/kernel/details"
+import type { PrimitiveInstance } from "../../foundation/kernel/primitive-types"
+import { accessibleName } from "../../foundation/text/accessible-name"
+import { foldText } from "../../foundation/text/match"
+import { confirmOf } from "../observe/marks"
+import { guardedActions } from "./guard"
+import {
+  bound,
+  componentLabel,
+  rowOf,
+  entries,
+  install,
+  listen,
+  offPage,
+  remember,
+  retire,
+  stateKeys,
+  type Bound,
+  type Entry,
+  type ObservedChange,
+} from "../observe/registry"
+
+/**
+ * One component as an agent sees it.
+ * @stable
+ */
+type AgentComponent = {
+  /** What a step's `ref` and `query`'s `within` take. Stable while the component stays on the page. */
+  ref: string
+  /** The component, like `"select"`. */
+  component: string
+  /** Its accessible name, from its label or its element. */
+  label?: string
+  /** Other text on its row, like the name beside a member's menu. */
+  row?: string
+  /** Its value, checked or open state, and more it reports, like `min` and `max`. */
+  [state: string]: unknown
+  /** The items it takes, like a radio group's, when they're on the page or few. `query` finds the rest. */
+  items?: { value: string; label: string }[]
+  /** Text it shows, like a dialog's title and description. */
+  text?: string[]
+  /** Buttons inside it, for `press`, like a dialog's Cancel and Delete. */
+  buttons?: string[]
+  /** Whether a button's action is running, like a save. */
+  pending?: boolean
+  /** Why a button's action failed. */
+  error?: string
+  /** What `data-agent-confirm` says it does, when a person must make its change. */
+  confirm?: string
+  /** True for a component that left the page, like a closed tab's field, with the state it had. */
+  offPage?: boolean
+  /** The api methods it takes now. None while it's disabled or read-only. */
+  actions: string[]
+}
+
+/**
+ * A change a call made, as the component's `on<Key>Change` saw it.
+ * @stable
+ */
+type AgentChange = { component: string; label?: string; key: string; value: unknown }
+
+/**
+ * One step for `act`: a component's ref or label, and one of its `actions` with its arguments.
+ * @stable
+ */
+type AgentStep = { ref: string; action: string; args?: unknown[] }
+
+/**
+ * A step an agent asks to run, resolved to its component, for `allow` to decide.
+ * @stable
+ */
+type AgentAction = {
+  ref: string
+  component: string
+  label?: string
+  /** One of the component's `actions`, like `"setValue"`, or `"press"` with the button's text, if any, as its argument. */
+  action: string
+  args: unknown[]
+  /** What `data-agent-confirm` says the step does, when a person must approve it. */
+  confirm?: string
+}
+
+// The api methods that change something, by name, for a primitive whose
+// `agent` key doesn't list its actions. Reads, like `getPage`, and plumbing,
+// like `register`, stay out: `snapshot` already shows state, and `press`
+// presses items.
+const verbs =
+  /^(set[A-Z]|(open|close|toggle|select|clear|next|previous|first|last|play|pause|show|hide|expand|collapse|increment|decrement|reset|submit|add|remove|insert)([A-Z]|$))/
+// Actions another one already covers, left out of the list to keep it short.
+// They still work as a step's action.
+const synonyms: Record<string, string[]> = {
+  open: ["setOpen"],
+  close: ["setOpen"],
+  show: ["setOpen"],
+  hide: ["setOpen"],
+  toggle: ["setOpen", "setChecked", "setPressed"],
+  select: ["setValue"],
+}
+// State worth showing beside the controlled keys.
+const shown = ["min", "max", "step", "placeholder", "query", "multiple", "required", "errors"]
+
+// Two frames, so the framework has rendered what a call changed. A hidden tab
+// runs no frames, so a timer stands in there, or an agent driving a
+// background tab would wait forever.
+const frames = () =>
+  new Promise((resolve) => {
+    if (document.hidden) setTimeout(resolve, 32)
+    else requestAnimationFrame(() => requestAnimationFrame(resolve))
+  })
+
+// A list's items as data, like a select's `items`, flattened out of groups and a tree's branches.
+function fromData(items: unknown) {
+  if (!Array.isArray(items)) return
+  const out: { value: string; label: string }[] = []
+  const add = (item: unknown) => {
+    if (typeof item === "string") out.push({ value: item, label: item })
+    else if (item && typeof item === "object") {
+      const entry = item as {
+        type?: string
+        items?: unknown[]
+        children?: unknown[]
+        value?: unknown
+        label?: string
+      }
+      if (entry.type === "group") entry.items?.forEach(add)
+      else if (entry.type !== "separator") {
+        out.push({ value: String(entry.value), label: entry.label ?? "" })
+        // A tree's branches, whose rows aren't rendered while they're closed.
+        entry.children?.forEach(add)
+      }
+    }
+  }
+  items.forEach(add)
+  return out
+}
+
+// A component's items as data, from its state's `items` unless its `agent` key says where they are.
+function dataOf(entry: Entry, instance: PrimitiveInstance) {
+  return fromData(entry.agent?.items?.(instance.api) ?? (instance.get() as { items?: unknown }).items)
+}
+
+// The api methods an agent may call: the ones its `agent` key lists, else the ones named like a change.
+function actionsOf(entry: Entry, api: Record<string, unknown>) {
+  const declared = entry.agent?.actions
+  return Object.keys(api).filter(
+    (name) =>
+      typeof api[name] === "function" &&
+      (declared ? declared.includes(name) : verbs.test(name) && !synonyms[name]?.some((of) => of in api)),
+  )
+}
+
+// Whether an agent may call `action`: one the `agent` key lists or a synonym
+// of one, like `open` for `setOpen`, else one named like a change.
+function takes(entry: Entry, action: string) {
+  const declared = entry.agent?.actions
+  if (!declared) return verbs.test(action)
+  return declared.includes(action) || !!synonyms[action]?.some((of) => declared.includes(of))
+}
+
+// A `set<Key>` step's value, checked against the kind of the option it sets in
+// the primitive's schema, like `setChecked`'s against `checked`, since the api
+// stores what it's given. Text converts where it reads as a number or a list,
+// like "3" for a page, but never as true or false: an attribute's parser reads
+// any text but "false" as true. Without an option, like an app's own
+// `setRating`, the value passes unchecked.
+function valueFor(entry: Entry, action: string, value: unknown) {
+  const spec = entry.options?.[action[3].toLowerCase() + action.slice(4)]
+  const refuse = (expected?: string) => {
+    const given = JSON.stringify(value) ?? "nothing"
+    throw new Error(
+      `${action} on ${entry.label ?? entry.component} (${entry.ref}) takes ${expected ? `${expected}, not` : "no"} ${given}.`,
+    )
+  }
+  if (spec === "boolean") return typeof value === "boolean" ? value : refuse("true or false")
+  if (spec === "number") {
+    const number = typeof value === "string" && value.trim() ? Number(value) : value
+    return typeof number === "number" && !Number.isNaN(number) ? number : refuse("a number")
+  }
+  if (typeof spec !== "function") return value
+  const parsed = spec(String(value))
+  if (typeof parsed === "boolean" && typeof value !== "boolean") return refuse("true or false")
+  if (typeof value !== "string") return value
+  return parsed == null || Number.isNaN(parsed) ? refuse() : parsed
+}
+
+// The items on the page, named by their trigger when they have one, like an
+// accordion's sections, else by their text.
+function renderedItems(parts: Bound[]) {
+  return parts
+    .filter(
+      (part) =>
+        part.key &&
+        (part.slot === "item" ||
+          part.slot === "tab" ||
+          (part.slot === "root" && part.el.getAttribute("role") === "radio")),
+    )
+    .map((part) => {
+      const el = parts.find((other) => other.slot === "trigger" && other.key === part.key)?.el ?? part.el
+      return { value: part.key, label: el.textContent?.trim() || accessibleName(el) }
+    })
+}
+
+// Buttons and menu items inside the component's elements, like a dialog's
+// Cancel and Delete or a menu's Remove, visible, not inert and not inside
+// `data-agent-hidden`.
+function buttonsOf(parts: Bound[]) {
+  const found = new Set<HTMLElement>()
+  for (const part of parts)
+    for (const el of part.el.querySelectorAll<HTMLElement>("button, [role=button], [role^=menuitem]"))
+      if (el.checkVisibility?.() !== false && !el.closest("[inert], [data-agent-hidden]")) found.add(el)
+  return [...found]
+}
+
+// The button a component is, like a Button's root, which `press` presses with no text.
+function ownButton(parts: Bound[]) {
+  const root = parts.find((part) => part.slot === "root" && !part.key)?.el
+  if (root && (root.tagName === "BUTTON" || root.getAttribute("role") === "button")) return root
+}
+
+// Whether a state value changed, by content for a list's values.
+const differs = (was: unknown, now: unknown) =>
+  !Object.is(was, now) && JSON.stringify(was) !== JSON.stringify(now)
+
+// The key a field's value is under among a component's keys: `checked` for a checkbox, else `value`.
+const fieldKey = (keys: string[]) =>
+  keys.includes("checked") ? "checked" : keys.includes("value") ? "value" : undefined
+
+const messageOf = (error: unknown) => (error instanceof Error ? error.message : String(error))
+
+// The most components one `snapshot` or `query` returns, so a page with a
+// menu on every row of a long table doesn't fill the model's context.
+const limit = 100
+
+// The last entry of a list cut short, shaped like a component so the list
+// keeps one type: how many were left out, and the tool that finds them.
+const moreOf = (more: number) => {
+  const entry: AgentComponent = { ref: "more", component: "more", more, use: "query", actions: [] }
+  return entry
+}
+
+// Text as a name compares: as lists fold typing, so "lodz" finds "Łódź", and ß as
+// "ss", which lists can't do since they keep each character in place for highlighting.
+const fold = (text: string) => foldText(text.replace(/[ßẞ]/g, "ss"))
+
+// Folded text as its words between single spaces, with one at each end, so a match lands on whole words.
+const wordsOf = (text: string) => ` ${fold(text)} `.replace(/[^\p{L}\p{N}]+/gu, " ")
+
+// A component's ref with what names it, so an agent can pick between look-alikes: `c3 Admin (Jane Doe)`.
+const described = (entry: Entry) =>
+  [entry.ref, entry.label, entry.row && `(${entry.row})`].filter(Boolean).join(" ")
+
+// A password, card or one-time code, or a field inside `data-agent-secret`, shows only whether it's filled, never what it holds.
+const redact = (entry: Entry, value: unknown) =>
+  entry.secret && value !== "" && value != null ? "[redacted]" : value
+
+function describe(entry: Entry, instance: PrimitiveInstance, parts: Bound[]) {
+  const state = instance.get() as Record<string, unknown>
+  const api = instance.api as Record<string, unknown>
+  const out: AgentComponent = { ref: entry.ref, component: entry.component, actions: [] }
+  const label = componentLabel(parts)
+  if (label) out.label = label
+  const row = rowOf(parts)
+  if (row) out.row = row
+  for (const key of stateKeys(entry, state)) if (key in state) out[key] = redact(entry, state[key] ?? null)
+  // The rest only when they say something, like `required: true`. A secret
+  // field's search text and errors can repeat its value.
+  for (const key of shown) {
+    const value = state[key]
+    const empty = value === "" || value == null || value === false
+    if (empty || (typeof value === "object" && !Object.keys(value).length)) continue
+    if (entry.secret && key === "query") out[key] = "[redacted]"
+    else if (entry.secret && key === "errors" && Array.isArray(value))
+      out[key] = value.map(() => "[redacted]")
+    else out[key] = value
+  }
+  // A button's action while it runs, and why it failed.
+  if (state.pending === true) out.pending = true
+  if (state.error != null) out.error = messageOf(state.error)
+  // The items `setValue` takes. A list that opens shows them from its data
+  // when they're few, and through `query` when they may be many.
+  const opens = typeof api.setOpen === "function"
+  if (typeof api.setValue === "function") {
+    const data = dataOf(entry, instance)
+    const items = !opens ? renderedItems(parts) : data && data.length <= 10 ? data : []
+    if (items.length) out.items = items
+  }
+  const text = parts
+    .filter((part) => /title|description|error/.test(part.slot))
+    .map((part) => (entry.secret && /error/.test(part.slot) ? "[redacted]" : part.el.textContent?.trim()))
+    .filter(Boolean)
+  if (text.length) out.text = text as string[]
+  const confirm = confirmOf(parts.filter((part) => !part.key).map((part) => part.el))
+  if (confirm) out.confirm = confirm
+  const buttons = state.open === true ? buttonsOf(parts).map((el) => el.textContent?.trim() ?? "") : []
+  if (buttons.length) out.buttons = buttons
+  const disabled =
+    state.disabled === true || state.readOnly === true || ownButton(parts)?.matches(":disabled")
+  if (disabled) out.disabled = true
+  else {
+    out.actions = actionsOf(entry, api)
+    // A popup that isn't a list, like a menu or a dialog, opens itself to press one of its buttons.
+    const presses = opens && typeof api.setValue !== "function"
+    if (buttons.length || presses || (!out.actions.length && ownButton(parts))) out.actions.push("press")
+  }
+  return out
+}
+
+/**
+ * The page's components for an AI agent, as three methods that are also its
+ * tools, with the same names, input and output as `agentTools`: `snapshot`
+ * lists what's there with its state, `query` finds components and list
+ * items, like a select's, and `act` runs steps through each component's
+ * api, many in one go, like setting a select or pressing a dialog's Delete.
+ * Every change reports the source `"agent"` to the component's
+ * `on<Key>Change`, so the app can tell, and `allow` can refuse a step before
+ * it runs. A step on an element inside `data-agent-confirm` needs a person:
+ * without `allow` it fails and leaves the change to them, and with `allow`
+ * it waits for the answer. Agents never see what's inside
+ * `data-agent-hidden`, and values inside `data-agent-secret` read
+ * `"[redacted]"`. Create it before the page renders: it hears components as
+ * they're made. `registerTools` hands the three to the browser's agent.
+ *
+ * @example
+ * const agent = createAgent({ allow: (step) => (step.confirm ? chat.confirm(step.confirm) : true) })
+ * agent.snapshot() // [{ ref: "c1", component: "select", label: "Region", value: null, actions: ["setValue", "setOpen", ...] }]
+ * await agent.act({ steps: [{ ref: "Region", action: "setValue", args: ["Frankfurt"] }, { ref: "Create", action: "press" }] })
+ * await agent[call.name](call.input) // a model's tool call
+ * @stable
+ */
+function createAgent(
+  options: {
+    /**
+     * Whether a step may run, given its component. Return false, or a promise
+     * of false, to refuse it. `signal` aborts when the step stops waiting, so
+     * a confirm the app shows can close.
+     */
+    allow?: Allow
+    /** How long a step waits for `allow` before it fails, in milliseconds. 5 minutes by default. */
+    timeout?: number
+  } = {},
+) {
+  install()
+  const scan = () => {
+    const found: { entry: Entry; instance: PrimitiveInstance; parts: Bound[] }[] = []
+    // A copy, since `remember` can move an entry to the ref it had.
+    for (const entry of [...entries.values()]) {
+      const instance = entry.instance.deref()
+      if (!instance) {
+        retire(entry)
+        continue
+      }
+      const parts = bound(instance)
+      if (parts.length) remember(entry, parts)
+      // Some show only now and then, like a field while it has errors: its control carries its label.
+      if (parts.length && !entry.offLimits && (entry.agent?.shown?.(instance.get()) ?? true))
+        found.push({ entry, instance, parts })
+    }
+    return found
+  }
+  // The components on the page for `act` and `query`, read once until the
+  // code next waits or the agent calls something: names and rows walk the
+  // page, and one step reads it several times. After a wait, like for frames
+  // or a person's answer, the page may have changed, so it's read again.
+  let scanned: ReturnType<typeof scan> | undefined
+  const live = () => {
+    if (!scanned) {
+      scanned = scan()
+      queueMicrotask(() => (scanned = undefined))
+    }
+    return scanned
+  }
+  // Calls the api as the agent, so its changes report the source `"agent"`, and reads the page again after.
+  const asAgent = <T>(call: () => T) => {
+    try {
+      return withSource("agent", call)
+    } finally {
+      scanned = undefined
+    }
+  }
+  // A component by its ref, or by its label or row text when that names one, like "Visibility" or "Jane Doe".
+  // Text matches whole words regardless of case and accents, so "name" finds "Display name" but not
+  // "Username", and "region" finds "Région". Labels and rows are page text, which people other than the
+  // user can write, like a display name, so a label that matches exactly doesn't beat another component
+  // whose label or row holds the same words: the step is refused with both refs.
+  const find = (ref: string) => {
+    // `live` first: a component that just came back takes its old ref there.
+    const shown = live()
+    const byRef = shown.find(({ entry }) => entry.ref === ref)
+    if (byRef) return byRef
+    const needle = fold(ref)
+    const words = wordsOf(ref)
+    const tiers = [
+      shown.filter(
+        ({ entry }) =>
+          (entry.label && fold(entry.label) === needle) ||
+          (words.trim() && wordsOf(`${entry.label ?? ""} ${entry.row ?? ""}`).includes(words)),
+      ),
+      // Then by an item it offers, like the accordion with an Email section.
+      shown.filter(({ entry, instance, parts }) =>
+        describe(entry, instance, parts).items?.some((item) => fold(item.label) === needle),
+      ),
+      // Then by its kind, when the page has one, like "slider", or "dialog" for an alert dialog.
+      shown.filter(({ entry }) => {
+        const kind = fold(entry.component)
+        return kind === needle || kind.endsWith(`-${needle}`)
+      }),
+    ]
+    for (const near of tiers) {
+      if (near.length === 1) return near[0]
+      // An open popup is what the agent means while it's open, like the dialog a row's menu just opened.
+      const open = near.filter(({ instance }) => (instance.get() as { open?: boolean }).open === true)
+      if (open.length === 1) return open[0]
+      if (near.length > 1)
+        throw new Error(
+          `"${ref}" names ${near.length} components: ${near.map(({ entry }) => described(entry)).join(", ")}. Use a ref.`,
+        )
+    }
+    // A component inside `data-agent-hidden` is named as off-limits, so the
+    // agent stops looking, and nothing more about it.
+    const offLimits = [...entries.values()].some(
+      (entry) =>
+        entry.offLimits &&
+        (fold(entry.label ?? "") === needle ||
+          (words.trim() && wordsOf(`${entry.label ?? ""} ${entry.row ?? ""}`).includes(words))),
+    )
+    if (offLimits) throw new Error(`"${ref}" isn't available to agents here. Ask the person.`)
+    const labels = shown.map(({ entry }) => entry.label).filter(Boolean)
+    // What it might be behind, like a closed accordion section or another tab, which a step can open first.
+    const closed = shown.flatMap(({ entry, instance, parts }) => {
+      const { items } = describe(entry, instance, parts)
+      const value = (instance.get() as { value?: unknown }).value
+      const open = Array.isArray(value) ? value : [value]
+      const shut = items?.filter((item) => !open.includes(item.value)).map((item) => item.label) ?? []
+      return shut.length && entry.agent?.reveals
+        ? [`${entry.label ?? entry.component} (${entry.ref}): ${shut.join(", ")}`]
+        : []
+    })
+    throw new Error(
+      `No component "${ref}" on the page. Its labels: ${[...new Set(labels)].slice(0, 30).join(", ") || "none"}.${closed.length ? ` It may be behind one of these, which a step can open first: ${closed.join("; ")}.` : ""}`,
+    )
+  }
+
+  // Every instance's state, shown or not, like a closed dialog's, which a press can open.
+  const capture = () => {
+    const found = live()
+    const shown = new Set(found.map(({ entry }) => entry.ref))
+    // Names and row text too: an action can change the text, like a member's role beside their menu, and a component that leaves still needs its name.
+    const names = new Map(
+      found.map(({ entry }) => [
+        entry.ref,
+        { component: entry.component, label: entry.label, row: entry.row },
+      ]),
+    )
+    const states = new Map<string, Record<string, unknown>>()
+    for (const entry of entries.values()) {
+      const instance = entry.instance.deref()
+      if (instance) states.set(entry.ref, instance.get() as Record<string, unknown>)
+    }
+    return { shown, states, names }
+  }
+
+  // Refs that left, with their labels while they're few, like a removed member's menu.
+  const named = (before: ReturnType<typeof capture>, refs: string[]) =>
+    refs.length > 10
+      ? refs
+      : refs.map((ref) => {
+          const name = before.names.get(ref)
+          const label = [name?.label, name?.row].filter(Boolean).join(", ")
+          return label ? `${ref} ${label}` : ref
+        })
+
+  // Each field's value, on the page or remembered, so an agent checks its
+  // work without calling `snapshot`. A long page keeps the fields the steps
+  // acted on or changed, then the first others, `limit` in all, and says how
+  // many more there were, so a table of checkboxes doesn't fill the model's context.
+  const values = (before: ReturnType<typeof capture>, touched: Set<string>) => {
+    const fields: { name: string; value: unknown; first: boolean }[] = []
+    for (const { entry, instance } of live()) {
+      const state = instance.get() as Record<string, unknown>
+      const key = fieldKey(stateKeys(entry, state).filter((key) => key in state))
+      if (!key || state.open) continue
+      const was = before.states.get(entry.ref)
+      fields.push({
+        name: `${entry.ref} ${entry.label ?? entry.component}`,
+        value: redact(entry, state[key] ?? null),
+        first: touched.has(entry.ref) || !was || differs(was[key], state[key]),
+      })
+    }
+    for (const component of offPage.values()) {
+      const key = fieldKey(Object.keys(component))
+      if (key)
+        fields.push({
+          name: `${component.ref} ${component.label ?? component.component}`,
+          value: component[key],
+          first: touched.has(component.ref),
+        })
+    }
+    const kept = new Set(fields.filter((field) => field.first))
+    for (const field of fields) if (kept.size < limit) kept.add(field)
+    const out: Record<string, unknown> = {}
+    for (const field of fields) if (kept.has(field)) out[field.name] = field.value
+    if (fields.length > kept.size) out.more = fields.length - kept.size
+    return out
+  }
+
+  // What changed since `before`: values, the components that came onto the
+  // page and the refs that left it, so the agent needn't call `snapshot`.
+  function since(before: ReturnType<typeof capture>, skip?: string, listAppeared = true) {
+    const changes: AgentChange[] = []
+    const after = live()
+    for (const { entry, instance } of after) {
+      const was = before.states.get(entry.ref)
+      if (!was) continue
+      const state = instance.get() as Record<string, unknown>
+      for (const key of stateKeys(entry, state))
+        if (differs(was[key], state[key]))
+          changes.push({
+            component: entry.component,
+            label: entry.label,
+            key,
+            value: redact(entry, state[key]),
+          })
+      if (before.shown.has(entry.ref) && entry.row !== before.names.get(entry.ref)?.row)
+        changes.push({ component: entry.component, label: entry.label, key: "row", value: entry.row })
+    }
+    const shownAfter = new Set(after.map(({ entry }) => entry.ref))
+    // A component that changed and then left the page, like a field on a tab the same steps closed, from what it showed when it left.
+    for (const ref of before.shown) {
+      if (shownAfter.has(ref)) continue
+      const was = before.states.get(ref)
+      const name = before.names.get(ref)
+      // A popup that closed and left the page, like a confirm dialog.
+      if (was?.open === true && name)
+        changes.push({ component: name.component, label: name.label, key: "open", value: false })
+      const last = offPage.get(ref)
+      if (!last || !was) continue
+      for (const key of Object.keys(was))
+        if (key in last && differs(was[key], last[key]))
+          changes.push({ component: last.component, label: last.label, key, value: last[key] })
+    }
+    return {
+      after,
+      changes,
+      appeared: listAppeared
+        ? after
+            .filter((found) => found.entry.ref !== skip && !before.shown.has(found.entry.ref))
+            .map((found) => describe(found.entry, found.instance, found.parts))
+        : [],
+      gone: named(
+        before,
+        [...before.shown].filter((ref) => !shownAfter.has(ref)),
+      ),
+    }
+  }
+
+  // The click for a press: the button by its text, or the component itself.
+  // A closed menu or dialog opens first, since its buttons aren't on the page
+  // yet, once `beforeOpen` lets it.
+  async function pressing(
+    entry: Entry,
+    instance: PrimitiveInstance,
+    text: string | undefined,
+    beforeOpen: () => Promise<void>,
+  ) {
+    const api = instance.api as { setOpen?: (open: boolean) => void }
+    const match = () => {
+      const parts = bound(instance)
+      const buttons = buttonsOf(parts)
+      if (text === undefined) return { buttons, button: ownButton(parts) }
+      // Exact text first, then whole words, like "Delete" for "Delete project". Two that match the same
+      // way are refused, not guessed.
+      const needle = fold(text)
+      const words = wordsOf(text)
+      const exact = buttons.filter((el) => fold(el.textContent?.trim() ?? "") === needle)
+      const near = buttons.filter((el) => words.trim() && wordsOf(el.textContent ?? "").includes(words))
+      const matches = exact.length ? exact : near
+      if (matches.length > 1)
+        throw new Error(
+          `"${text}" names ${matches.length} buttons in ${entry.ref}. Use the whole text of one.`,
+        )
+      return { buttons, button: matches[0] }
+    }
+    let found = match()
+    let opened = false
+    if (!found.button && text !== undefined && api.setOpen && !(instance.get() as { open?: boolean }).open) {
+      await beforeOpen()
+      opened = true
+      asAgent(() => api.setOpen!(true))
+      try {
+        for (let tries = 0; tries < 60 && !(found = match()).button; tries++) await frames()
+      } finally {
+        if (!found.button) asAgent(() => api.setOpen!(false))
+      }
+    }
+    const { buttons, button } = found
+    if (!button)
+      throw new Error(
+        `No button "${text}" in ${entry.ref}. Buttons: ${buttons.map((el) => el.textContent?.trim()).join(", ") || "none"}.`,
+      )
+    // What was pressed, so a press that opened a dialog and closed it again, like a confirm, still says it happened.
+    const pressed = `Pressed "${button.textContent?.trim() || accessibleName(button)}"`
+    const close = () => asAgent(() => api.setOpen?.(false))
+    return { click: () => button.click(), button, pressed, opened, close }
+  }
+
+  // The buttons a press can name, like a row menu's Make admin and Remove,
+  // when they're on the page. A closed menu's aren't, and reading them would
+  // open it without a step `allow` decided on, so it says press opens it.
+  function pressable(instance: PrimitiveInstance) {
+    const texts = buttonsOf(bound(instance))
+      .map((el) => el.textContent?.trim())
+      .filter(Boolean)
+    if (texts.length) return ` press takes a button's text: ${texts.join(", ")}.`
+    const opens = typeof (instance.api as { setOpen?: unknown }).setOpen === "function"
+    return opens ? " press takes the text of a button inside it, and opens it first to find the button." : ""
+  }
+
+  // Whether `find` names one component now.
+  const shows = (ref: string) => {
+    try {
+      find(ref)
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  // `find`, then inside closed sections, as find in page opens one: each
+  // closed accordion section opens in turn and goes back, and the one section
+  // that shows the component opens again. A name two sections share, like
+  // Deploy failures under Email and under Slack, is refused, not guessed.
+  async function reveal(ref: string) {
+    try {
+      return find(ref)
+    } catch (missing) {
+      const holders: { entry: Entry; open: () => unknown; section: string }[] = []
+      for (const { instance, entry, parts } of live()) {
+        const api = instance.api as {
+          open?: (value: string) => unknown
+          setValue?: (value: unknown) => unknown
+        }
+        const value = (instance.get() as { value?: unknown }).value
+        if (typeof api.open !== "function" || typeof api.setValue !== "function" || !Array.isArray(value))
+          continue
+        const shut =
+          describe(entry, instance, parts).items?.filter((item) => !value.includes(item.value)) ?? []
+        for (const item of shut) {
+          const step = {
+            ref: entry.ref,
+            component: entry.component,
+            label: entry.label,
+            action: "open",
+            args: [item.value],
+          }
+          if (!(await allowed(step))) continue
+          const open = () => asAgent(() => api.open!(item.value))
+          open()
+          await frames()
+          if (shows(ref)) holders.push({ entry, open, section: item.label })
+          asAgent(() => api.setValue!(value))
+          await frames()
+        }
+      }
+      if (holders.length === 1) {
+        holders[0].open()
+        await frames()
+        return find(ref)
+      }
+      if (holders.length > 1) {
+        const [{ entry, section }] = holders
+        throw new Error(
+          `"${ref}" is in ${holders.length} closed sections: ${holders.map((holder) => holder.section).join(", ")}. Open one first, like { "ref": "${entry.ref}", "action": "open", "args": ["${section}"] }.`,
+        )
+      }
+      throw missing
+    }
+  }
+
+  // Waits while a component's work runs, like a button's or a form's save, 15 seconds at most.
+  async function settle(instance: PrimitiveInstance | undefined) {
+    const pending = () => (instance?.get() as { pending?: boolean } | undefined)?.pending === true
+    for (let waited = 0; pending() && waited < 15000; waited += 50)
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    const { error } = (instance?.get() ?? {}) as { error?: unknown }
+    return { pending: pending(), error }
+  }
+
+  // `registerTools`' own `allow`, for the calls the browser's agent makes.
+  let callerAllow: Allow | undefined
+
+  // The answer of `allow` and then `registerTools`' own, or a failed step when
+  // they take longer than `timeout`, since calls run one at a time and a
+  // confirm nobody answers would hold every later one.
+  async function allowed(step: AgentAction) {
+    const checks = [options.allow, callerAllow].filter((check) => !!check)
+    if (!checks.length) return true
+    const controller = new AbortController()
+    const wait = options.timeout ?? 300_000
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const late = new Promise<"late">((resolve) => (timer = setTimeout(() => resolve("late"), wait)))
+    const answer = async () => {
+      for (const check of checks) if (!(await check(step, { signal: controller.signal }))) return false
+      return true
+    }
+    try {
+      const ok = await Promise.race([answer(), late])
+      if (ok !== "late") return ok
+      controller.abort()
+      throw new Error(`No answer to ${step.action} on ${step.ref} in ${Math.round(wait / 1000)} seconds.`)
+    } finally {
+      clearTimeout(timer)
+    }
+  }
+
+  // Runs one step as the agent, once `allow` lets it, and waits for the page to render it.
+  async function perform(ref: string, action: string, args: unknown[], guard?: () => boolean) {
+    const { entry, instance, parts } = await reveal(ref)
+    const { actions, disabled } = describe(entry, instance, parts)
+    // A step is asked about before anything it does, and again when finding
+    // its target changed what `allow` would see, like the item a label names
+    // or the confirm on the button a menu opened to show.
+    const asked = new Set<string>()
+    const ask = async (stepArgs: unknown[], targets: Element[], what: string) => {
+      const confirm = confirmOf(targets)
+      const key = JSON.stringify([stepArgs, confirm])
+      if (asked.has(key)) return
+      const step: AgentAction = {
+        ref: entry.ref,
+        component: entry.component,
+        label: entry.label,
+        action,
+        args: stepArgs,
+      }
+      if (confirm) step.confirm = confirm
+      if (confirm && !options.allow && !callerAllow)
+        throw new Error(`Needs a person: "${confirm}". Ask them to ${what} themselves.`)
+      if (!(await allowed(step)))
+        throw new Error(
+          confirm ? `The person said no to "${confirm}".` : `The app refused ${action} on ${entry.ref}.`,
+        )
+      asked.add(key)
+    }
+    // The component's own elements and the item an argument names, which a step's confirm comes from.
+    const targetsOf = (item?: unknown) =>
+      parts.filter((part) => !part.key || part.key === String(item)).map((part) => part.el)
+    let run: () => unknown
+    let press: Awaited<ReturnType<typeof pressing>> | undefined
+    if (action === "press") {
+      if (!actions.includes("press"))
+        throw new Error(`${entry.component} ${entry.ref} has nothing to press now.`)
+      const text = args[0] as string | undefined
+      press = await pressing(entry, instance, text, () => ask(args, targetsOf(), `press "${text}"`))
+      run = press.click
+    } else {
+      const fn = (instance.api as Record<string, unknown>)[action]
+      if (typeof fn !== "function" || disabled || !takes(entry, action))
+        throw new Error(
+          `${entry.component} ${entry.ref} takes no ${action} now. It takes: ${actions.join(", ") || "nothing"}.${actions.includes("press") ? pressable(instance) : ""}`,
+        )
+      // A number from text, like "90 days" on a slider, since a slider or number field given text would hold no number.
+      const state = instance.get() as { value?: unknown; min?: unknown; max?: unknown }
+      const numeric =
+        typeof state.min === "number" || typeof state.max === "number" || typeof state.value === "number"
+      if (action === "setValue" && numeric && typeof args[0] === "string") {
+        const number = Number.parseFloat(args[0])
+        if (Number.isNaN(number)) throw new Error(`${entry.component} ${entry.ref} takes a number.`)
+        args = [Array.isArray(state.value) ? [number] : number, ...args.slice(1)]
+      }
+      // A value by its item's label, like "Germany (Frankfurt)" or an accordion's "Email", so the agent needn't look up the value first.
+      const label = typeof args[0] === "string" && fold(args[0])
+      if (label) {
+        const data = dataOf(entry, instance)
+        const items =
+          action === "setValue"
+            ? await listItems(entry, instance, () => ask(args, targetsOf(args[0]), "make this change"))
+            : data?.length
+              ? data
+              : renderedItems(bound(instance))
+        if (!items.some((item) => item.value === args[0])) {
+          const name = `${entry.label ?? entry.component} (${entry.ref})`
+          const found = items.filter((item) => fold(item.label) === label)
+          if (found.length > 1)
+            throw new Error(
+              `"${args[0]}" names ${found.length} items in ${name}: ${found.map((item) => item.value).join(", ")}. Use a value.`,
+            )
+          // A closed list refuses text that names none of its items, but a
+          // select's search text isn't an item. The first 20 keep the error short.
+          if (found.length === 1) args = [found[0].value, ...args.slice(1)]
+          else if (items.length && entry.agent?.closed && action !== "setQuery")
+            throw new Error(
+              `No item "${args[0]}" in ${name}. Its items: ${items
+                .slice(0, 20)
+                .map((item) => item.label)
+                .join(", ")}${items.length > 20 ? ", …" : ""}.`,
+            )
+        }
+      }
+      if (/^set[A-Z]/.test(action)) args = [valueFor(entry, action, args[0]), ...args.slice(1)]
+      run = () => fn(...args)
+    }
+    // A press asks the button it clicks, and any other step the component's
+    // own elements and the item it names, so a marked change has no unmarked
+    // way around it, like choosing a marked menu item by its value.
+    try {
+      if (press)
+        await ask(
+          args,
+          [press.button],
+          `press "${press.button.textContent?.trim() || accessibleName(press.button)}"`,
+        )
+      else await ask(args, targetsOf(args[0]), "make this change")
+    } catch (refused) {
+      // A popup the press opened to find its button closes again, as it was.
+      if (press?.opened) press.close()
+      throw refused
+    }
+    if (guard && !guard()) {
+      throw new Error(`The restoration of ${entry.ref} was superseded by a newer change.`)
+    }
+    let result = asAgent(run)
+    // Some calls settle later, like a popup's `open()`, which resolves once it
+    // closes. One that fails before the step ends fails the step. One that
+    // fails later is the page's, unhandled as if the page had made the call.
+    let rejected: { error: unknown } | undefined
+    let ended = false
+    if (result && typeof (result as PromiseLike<unknown>).then === "function") {
+      ;(result as PromiseLike<unknown>).then(undefined, (error: unknown) => {
+        if (ended) throw error
+        rejected = { error }
+      })
+      result = "pending"
+    }
+    await frames()
+    if (!press) {
+      // A component's own work, like a button's action, finishes before the step does.
+      const settled = await settle(instance)
+      ended = true
+      const failed = rejected ?? (settled.error != null ? { error: settled.error } : undefined)
+      if (failed)
+        throw new Error(
+          `${action} on ${entry.label ?? entry.component} (${entry.ref}) failed: ${messageOf(failed.error)}`,
+        )
+      if (settled.pending) return { ref: entry.ref, result: `${action} is still running.` }
+      return { ref: entry.ref, result: result ?? null }
+    }
+    const pressed = press.opened ? `${press.pressed}, after opening ${entry.ref}` : press.pressed
+    // A button's action finishes before the step does, and a failed one fails the step.
+    const settled = await settle(
+      [...entries.values()]
+        .map((entry) => entry.instance.deref())
+        .find(
+          (found) => found && bound(found).some((part) => part.slot === "root" && part.el === press.button),
+        ),
+    )
+    ended = true
+    if (settled.error != null)
+      throw new Error(`${pressed}, and its action failed: ${messageOf(settled.error)}`)
+    if (settled.pending) return { ref: entry.ref, result: `${pressed}. Its action is still running.` }
+    await frames()
+    const closed = (instance.get() as { open?: boolean }).open === false
+    return { ref: entry.ref, result: result ?? `${pressed}${closed ? `. ${entry.ref} is closed now.` : "."}` }
+  }
+
+  // A list's items: from its data, from the page, or, for a step that
+  // `beforeOpen` lets, by opening it for a moment.
+  async function listItems(entry: Entry, instance: PrimitiveInstance, beforeOpen?: () => Promise<void>) {
+    const state = instance.get() as Record<string, unknown>
+    const api = instance.api as { setOpen?: (open: boolean) => void }
+    let items = dataOf(entry, instance) ?? renderedItems(bound(instance))
+    if (!items.length && beforeOpen && api.setOpen && !state.open) {
+      await beforeOpen()
+      asAgent(() => api.setOpen!(true))
+      for (let tries = 0; tries < 60 && !(items = renderedItems(bound(instance))).length; tries++)
+        await frames()
+      asAgent(() => api.setOpen!(false))
+      await frames()
+    }
+    return items
+  }
+
+  async function act(steps: AgentStep[], guard?: () => boolean) {
+    const before = capture()
+    // What each step did, so a change that a later step undid or took off the page, like a removed row, still shows.
+    const log: { step: number; ref: string; result?: unknown; changes?: AgentChange[]; gone?: string[] }[] =
+      []
+    const touched = new Set<string>()
+    let error: { step: number; message: string } | undefined
+    for (const [index, step] of steps.entries()) {
+      try {
+        const prior = capture()
+        const { ref, result } = await perform(step.ref, step.action, step.args ?? [], guard)
+        touched.add(ref)
+        const { changes, gone } = since(prior, ref, false)
+        log.push({
+          step: index,
+          ref,
+          ...(result !== null && result !== true && { result }),
+          ...(changes.length && { changes }),
+          ...(gone.length && { gone }),
+        })
+      } catch (thrown) {
+        error = { step: index, message: messageOf(thrown) }
+        break
+      }
+    }
+    const { after, appeared } = since(before)
+    // The components the steps acted on that are still open, with what they show now, like an opened menu's buttons.
+    const open = after
+      .filter(
+        ({ entry, instance }) =>
+          touched.has(entry.ref) && (instance.get() as { open?: boolean }).open === true,
+      )
+      .map((found) => describe(found.entry, found.instance, found.parts))
+    return {
+      ok: !error,
+      ...(error && { error }),
+      steps: log,
+      ...(open.length ? { open } : {}),
+      appeared,
+      values: values(before, touched),
+    }
+  }
+
+  // Components that match, then how many more there were, when there were.
+  const capped = (found: AgentComponent[]) =>
+    found.length > limit ? [...found.slice(0, limit), moreOf(found.length - limit)] : found
+
+  // A list's items that match text, by label or value, the way find in page matches.
+  const matching = (items: { value: string; label: string }[], text?: string) => {
+    const needle = text && fold(text)
+    return needle
+      ? items.filter((item) => fold(item.label).includes(needle) || fold(item.value).includes(needle))
+      : items
+  }
+
+  // A component with only its items that match, 50 at most, and how many more there were.
+  const withItems = (component: AgentComponent, items: { value: string; label: string }[]) => ({
+    ...component,
+    items: items.slice(0, 50),
+    ...(items.length > 50 && { more: items.length - 50 }),
+  })
+
+  async function query({ text, within, kind }: { text?: string; within?: string; kind?: string }) {
+    if (!text && !within && !kind)
+      return { error: "query takes text, within or kind. snapshot lists everything." }
+    // One list's items, even while it's closed when its data has them, like
+    // today's region options. A query changes nothing, so a list whose items
+    // show only while it's open says how a step reaches them instead.
+    if (within) {
+      try {
+        const { entry, instance, parts } = find(within)
+        const items = await listItems(entry, instance)
+        const component: AgentComponent = withItems(describe(entry, instance, parts), matching(items, text))
+        const api = instance.api as { setOpen?: unknown; setValue?: unknown }
+        const closed = !items.length && !(instance.get() as { open?: boolean }).open
+        if (closed && typeof api.setOpen === "function" && typeof api.setValue === "function")
+          component.note = `Its items show while it's open. act's setValue takes an item's label and opens ${entry.ref} to find it.`
+        return [component]
+      } catch (missing) {
+        return { error: messageOf(missing) }
+      }
+    }
+    const words = text ? wordsOf(text) : undefined
+    const ofKind = (component: AgentComponent) =>
+      !kind || component.component === kind || component.component.endsWith(`-${kind}`)
+    const named = (component: AgentComponent) =>
+      !words || (!!words.trim() && wordsOf(`${component.label ?? ""} ${component.row ?? ""}`).includes(words))
+    const found: AgentComponent[] = []
+    for (const { entry, instance, parts } of live()) {
+      const component = describe(entry, instance, parts)
+      if (!ofKind(component)) continue
+      if (named(component)) found.push(component)
+      else if (text) {
+        // A list whose items match, from its data or the page, without opening it.
+        const items = matching(dataOf(entry, instance) ?? renderedItems(parts), text)
+        if (items.length) found.push(withItems(component, items))
+      }
+    }
+    for (const component of offPage.values()) if (ofKind(component) && named(component)) found.push(component)
+    return capped(found)
+  }
+
+  // One `act` or `query` at a time, in the order they were called. While a
+  // step waits on `allow`, like a confirm the person must answer, another
+  // call can't run, so an agent can't press that confirm itself.
+  let queue: Promise<unknown> = Promise.resolve()
+  const inTurn = <T>(run: () => Promise<T>) => {
+    const next = queue.then(run)
+    queue = next.catch(() => {})
+    return next
+  }
+
+  const agent = {
+    /**
+     * Every component on the page, as an agent sees it, then the ones that
+     * left it with `offPage: true` and the state they had, like a closed
+     * tab's fields. A long page stops after 100, open popups kept since
+     * they're in front of the person, and ends with `{ ref: "more",
+     * component: "more", more, use: "query" }`, how many were left out.
+     */
+    snapshot: () => {
+      const shown = scan().map(({ entry, instance, parts }) => describe(entry, instance, parts))
+      const all = [...shown, ...offPage.values()]
+      if (all.length <= limit) return all
+      const open = new Set(shown.filter((component) => component.open === true))
+      const rest = all.filter((component) => !open.has(component)).slice(0, limit - open.size)
+      const kept = new Set([...open, ...rest])
+      return [...all.filter((component) => kept.has(component)), moreOf(all.length - kept.size)]
+    },
+    /**
+     * Runs steps in order, as the agent, and reports what they changed
+     * together. A step names its component by ref, or by its label or row
+     * text, whole words regardless of case and accents, so it can reach one
+     * an earlier step brought onto the page. Stops at the first step that
+     * fails, and says which.
+     */
+    act: (input: { steps: AgentStep[] }) => inTurn(() => act(input.steps ?? [])),
+    /**
+     * Finds components without listing the page. `text` matches a
+     * component's label or row text by whole words, and a list's items, which
+     * come back under it; `within` names one list and returns its items,
+     * matching `text`, 50 at most, read from its data or the page, with a
+     * `note` when they show only while it's open, since a query never opens
+     * anything; `kind` keeps one kind, like `"select"`.
+     */
+    query: (input: { text?: string; within?: string; kind?: string }) => inTurn(() => query(input ?? {})),
+    /**
+     * Calls `listener` with every change to a component, from a person or an
+     * agent, with its ref, label, reason, source and value before, until the
+     * returned function runs. The same as `observe`: a change an interaction
+     * commits, like a slider's drag, comes once, when it commits.
+     */
+    subscribe: (listener: (change: ObservedChange) => void) =>
+      listen((change) => {
+        if (!entries.get(change.ref)?.offLimits) listener(change)
+      }),
+  }
+  guardedActions.set(agent.act, (steps, guard) => inTurn(() => act(steps, guard)))
+  allowing.set(agent, (input, allow) =>
+    inTurn(async () => {
+      callerAllow = allow
+      try {
+        return await act(input.steps ?? [])
+      } finally {
+        callerAllow = undefined
+      }
+    }),
+  )
+  return agent
+}
+
+type Allow = (step: AgentAction, context: { signal: AbortSignal }) => boolean | Promise<boolean>
+
+// Each agent's `act` with a second `allow` beside its own, for `registerTools`.
+const allowing = new WeakMap<
+  object,
+  (input: { steps: AgentStep[] }, allow: Allow) => ReturnType<ReturnType<typeof createAgent>["act"]>
+>()
+
+/**
+ * Registers an agent's three tools with the browser's own agent through
+ * WebMCP, `document.modelContext.registerTool`, where the browser has it, and
+ * does nothing where it doesn't. Returns a function that unregisters them.
+ *
+ * The browser's agent isn't one you wrote, so `allow` is required: it decides
+ * each step that agent asks for, after the agent's own `allow`. Return `true`
+ * to let every step run.
+ *
+ * @example
+ * registerTools(agent, { allow: (step) => step.action !== "press" || confirm(`Press ${step.args[0]}?`) })
+ * @stable
+ */
+function registerTools(agent: ReturnType<typeof createAgent>, { allow }: { allow: Allow }) {
+  if (typeof allow !== "function") throw new Error("registerTools needs an `allow` that decides each step.")
+  const context = (
+    globalThis.document as
+      { modelContext?: { registerTool: (tool: object, options: object) => Promise<void> } } | undefined
+  )?.modelContext
+  const controller = new AbortController()
+  for (const tool of agentTools)
+    context
+      ?.registerTool(
+        {
+          ...tool,
+          // Labels and text come from the page, which can hold what users wrote.
+          annotations: { readOnlyHint: tool.name !== "act", untrustedContentHint: true },
+          execute: (input: never) =>
+            tool.name === "act" ? allowing.get(agent)!(input, allow) : agent[tool.name as "act"](input),
+        },
+        { signal: controller.signal },
+      )
+      .catch((error: { name?: string }) => {
+        // A page whose permissions policy turns WebMCP off, or an unregister
+        // before the browser finished, isn't a mistake. A tool name already
+        // taken, like from a second call, is.
+        if (dev && error?.name !== "NotAllowedError" && error?.name !== "AbortError")
+          warn(`registerTools couldn't register ${tool.name}.`, undefined, error)
+      })
+  return () => controller.abort()
+}
+
+/**
+ * `createAgent`'s tools as JSON Schema, the shape model APIs and WebMCP take.
+ * @stable
+ */
+const agentTools = [
+  {
+    name: "snapshot",
+    description:
+      'Lists every component on the page: its ref, kind, label, row text, value or state, items when they\'re few, text, buttons and the actions it takes now. Components that left the page, like a closed tab\'s fields, follow with offPage: true and the state they had. A long page ends with an entry whose component is "more", saying how many were left out: use query to find them. confirm says a person must make that component\'s change. A value of "[redacted]" is filled but private.',
+    inputSchema: { type: "object", properties: {} },
+  },
+  {
+    name: "act",
+    description:
+      'Runs one or more actions in order, in one call: put every step you already know in the same call, even ones on another tab or in a menu or dialog an earlier step opens. A step names a component by ref, or by its label, row text or kind, like "Jane Doe" or "slider". action is one of its actions, like setValue, setChecked or setOpen, or "press" with a button\'s text, which opens a closed menu or dialog first, so there\'s no need to open it or see its buttons. setValue, open and the like take a value or an item\'s or section\'s label, like "Germany" or "Email". Name components and buttons by the words in your task, like "Remove": a step that names nothing fails and lists what is there, so a guess costs no more than looking first. Stops at the first step that fails and says why. A step that fails with "Needs a person" is one the person must do or approve: tell them what it does and let them do it, instead of looking for another way. A component in a closed accordion section is found too, and its section opens. Returns what each step pressed, changed or removed, what came onto the page, and every field\'s value, so there\'s no need to call snapshot to check; a long page\'s values keep the fields the steps touched or changed and end with more. Most tasks take one act for every change, then one to save once the values are right. Example, a field, a tab, a row\'s menu and its confirm dialog: { "steps": [{ "ref": "Display name", "action": "setValue", "args": ["Acme"] }, { "ref": "Settings", "action": "setValue", "args": ["Billing"] }, { "ref": "Jane Doe", "action": "press", "args": ["Delete"] }, { "ref": "dialog", "action": "press", "args": ["Delete"] }] }.',
+    inputSchema: {
+      type: "object",
+      properties: {
+        steps: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              ref: { type: "string" },
+              action: { type: "string" },
+              args: { type: "array", items: {} },
+            },
+            required: ["ref", "action"],
+          },
+        },
+      },
+      required: ["steps"],
+    },
+  },
+  {
+    name: "query",
+    description:
+      'Finds components without listing the whole page. text matches a component\'s label or row text by whole words, like "Jane" for the menu on Jane Doe\'s row, and a list\'s items, like "Germany" in a region select, which come back under their list. within names one list by ref or label and returns its items, matching text when given, 50 at most, even while it\'s closed when its data has them; otherwise a note says act opens it. query never opens anything. kind keeps one kind, like "select". Takes text, within or kind.',
+    inputSchema: {
+      type: "object",
+      properties: { text: { type: "string" }, within: { type: "string" }, kind: { type: "string" } },
+    },
+  },
+]
+
+export {
+  type AgentAction,
+  type AgentChange,
+  type AgentComponent,
+  type AgentStep,
+  agentTools,
+  createAgent,
+  registerTools,
+}
+export type { ObservedChange } from "../observe/registry"

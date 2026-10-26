@@ -1,0 +1,17 @@
+{
+  "title": "Core",
+  "pages": [
+    "request-access",
+    "build-a-component",
+    "compose-behaviors",
+    "reference",
+    "kernel",
+    "platform",
+    "text",
+    "date",
+    "behaviors",
+    "---Tools---",
+    "observe",
+    "testing"
+  ]
+}

@@ -1,0 +1,244 @@
+---
+title: Transitions and Gestures
+description: Run your CSS transitions as panels come and go, keep them present until they finish, and turn pointer movement into gestures.
+---
+
+Motion here follows state. When state changes, your CSS transitions run, and an element stays in the page until its animation finishes. Someone who prefers reduced motion gets the end at once. `bindPanel` manages panel transitions, and `animateIn` and `animateOut` apply the states for CSS entry and exit animations.
+
+Import these helpers from `@ui-sdk/core`. The functions in `@ui-sdk/core/gesture` calculate velocity, spring motion, resistance, and direction. You choose how to use those calculations in your input handlers and animation loop.
+
+To slide items into new places, use CSS, View Transitions or a motion library.
+
+## Panels and Presence
+
+### Open and Close
+
+`bindPanel` coordinates a panel's height, opening and closing styles, and focus. Your state tells it whether the panel is open or still exiting:
+
+```ts
+present: (state, { key }) => state.expanded.includes(key) || state.exiting.includes(key),
+```
+
+Keep a closing panel present until its transition finishes. Inside its `bind`, connect those values to `bindPanel` and return the cleanup:
+
+```ts
+bind: (el, { api, key, store }) =>
+  bindPanel(el, {
+    size: (el, height) => el.style.setProperty("--panel-height", height),
+    isOpen: () => store.get().expanded.includes(key),
+    isExiting: () => store.get().exiting.includes(key),
+    isFindable: () => false,
+    opening: () => "animate",
+    reveal: () => api.toggle(key),
+    trigger: () => el.previousElementSibling as HTMLElement | undefined,
+    subscribe: store.subscribe,
+    settled: () => {},
+    exited: () => store.set({ exiting: store.get().exiting.filter((item) => item !== key) }),
+  }),
+```
+
+Import `bindPanel` from `@ui-sdk/core`. The trigger in this example sits immediately before its panel. `exited` removes the key from `exiting`, allowing the panel to unmount.
+
+<ComponentExample
+  name="behaviors/panel"
+  caption="Open a question, then close it. The answer stays mounted while its height transitions to zero."
+/>
+
+Use the attributes it sets to write the transition:
+
+```css
+[data-slot="faq-panel"] {
+  height: var(--panel-height);
+  overflow: hidden;
+  transition: height 200ms ease-out;
+}
+[data-slot="faq-panel"][data-starting-style],
+[data-slot="faq-panel"][data-ending-style] {
+  height: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="faq-panel"] {
+    transition: none;
+  }
+}
+```
+
+`size` receives a measured height during the transition and `auto` once open. If focus is inside a closing panel, `trigger()` provides the element to focus instead.
+
+### Find in Page, and Opening at Once
+
+A closed panel can stay searchable with `hidden="until-found"`. Keep it mounted and use `hiddenAttrs` for its visibility:
+
+```ts
+attrs: (state, { key }) => hiddenAttrs(state.expanded.includes(key), true),
+```
+
+Import `hiddenAttrs` from `@ui-sdk/core`. In the panel binding, enable find in page and open the matching section in `reveal`:
+
+```ts
+isFindable: () => true,
+reveal: () => api.show([key]),
+opening: () => store.get().opening,
+```
+
+<ComponentExample
+  name="behaviors/panel-findable"
+  caption="Use your browser's find command to search for offline. In a supporting browser, its closed section opens. Open all reveals the remaining sections immediately."
+/>
+
+`opening()` returns `"mount"` for an initially open panel, `"instant"` to skip its opening animation, or `"animate"`. `settled(open)` reports completed opens and closes, including instant changes, but does not run for the initial `"mount"`.
+
+### Find in Page on Its Own
+
+For hidden content without transitions, use `bindFindable` with `hiddenAttrs`. It restores `hidden="until-found"` when needed and calls your `reveal` callback on a match:
+
+```ts
+import { bindFindable } from "@ui-sdk/core"
+
+const findable = bindFindable(el, {
+  shown: () => store.get().shown,
+  findable: () => true,
+  reveal: () => api.show(),
+})
+const unsubscribe = store.subscribe(findable.check)
+```
+
+Inside a slot's `bind`, return a cleanup that calls both `unsubscribe()` and `findable()`.
+
+<ComponentExample
+  name="behaviors/findable"
+  caption="Search the page for simmer to reveal the hidden method in a supporting browser. Show method and Hide method work without browser search."
+/>
+
+`supportsHiddenUntilFound()` tells you whether the browser supports this feature. Provide a visible control for revealing the content either way.
+
+### Entering and Leaving
+
+For an element that simply appears and disappears, use `animateIn` and `animateOut`:
+
+```ts
+import { animateIn, animateOut } from "@ui-sdk/core"
+
+const stopEntering = animateIn(el)
+```
+
+When it should leave, stop the pending entrance and begin the exit. Remove the element in the completion callback:
+
+```ts
+stopEntering()
+const stopExiting = animateOut(el, () => removeToast(key))
+```
+
+<ComponentExample
+  name="behaviors/presence"
+  caption="Press Save to add a message. Press its Dismiss button; it leaves the page after fading out."
+/>
+
+Style `data-starting-style` and `data-ending-style` with CSS. The exit waits for running animations, with a timeout so a stuck animation can't keep the element mounted forever. Both helpers return cleanup functions; call the current one when the element unmounts. Add a reduced-motion rule to your CSS, as in the panel example.
+
+### Options
+
+<TypeTable
+  path="../../packages/core/src/foundation/motion/panel.ts"
+  name="PanelBinding"
+  events={false}
+  examples={{
+    size: "Open and Close",
+    isOpen: "Open and Close",
+    isExiting: "Open and Close",
+    trigger: "Open and Close",
+    subscribe: "Open and Close",
+    exited: "Open and Close",
+    isFindable: "Find in Page, and Opening at Once",
+    reveal: "Find in Page, and Opening at Once",
+    opening: "Find in Page, and Opening at Once",
+    settled: "Find in Page, and Opening at Once",
+  }}
+/>
+
+## Gestures
+
+The functions in `@ui-sdk/core/gesture` help interpret pointer movement. Your component still handles input, state and animation frames.
+
+### Throws and Springs
+
+Record positions while the pointer moves, then read its velocity on release:
+
+```ts
+import { createVelocityTracker, projectDistance } from "@ui-sdk/core/gesture"
+
+const tracker = createVelocityTracker()
+tracker.add(event.timeStamp, x)
+```
+
+`velocity(time)` returns pixels per millisecond. `projectDistance` estimates how far that speed would carry an object as it slows down:
+
+```ts
+const speed = tracker.velocity(release.timeStamp)
+const target = x + projectDistance(speed, 0.994)
+```
+
+<ComponentExample
+  name="behaviors/gestures"
+  caption="Drag the fan control slowly, then try a quick flick. A faster release travels farther. Left and Right also change the speed."
+/>
+
+To settle onto a target, create a spring and read its position each frame:
+
+```ts
+import { solveSpring } from "@ui-sdk/core/gesture"
+
+const spring = solveSpring(0.4, 0.8, x - target, speed)
+const position = target + spring.position(elapsedMilliseconds)
+```
+
+The first argument is the response in seconds. The second is the damping ratio: `1` settles without oscillating; a lower value allows a bounce. The remaining arguments are the initial displacement and velocity. `position(t)` and `velocity(t)` take elapsed milliseconds. In your animation loop, check both position and velocity before deciding the spring has settled.
+
+### Past an Edge
+
+`rubberBand` makes a pull resist as it moves farther past an edge:
+
+```ts
+import { rubberBand } from "@ui-sdk/core/gesture"
+
+const offset = rubberBand(distancePastEdge, list.clientHeight)
+```
+
+<ComponentExample
+  name="behaviors/gesture-band"
+  caption="Pull the inbox down far enough to refresh, then release. Try a short pull held still before release; it returns without refreshing. Refresh also works by button."
+/>
+
+The result approaches the supplied dimension as the pull grows. Call `tracker.reset()` at the start of each gesture. `staleAfter` makes an old sample read as zero, so holding still before release doesn't act like a fresh flick.
+
+### Which Way a Stroke Points
+
+`sectorOf` turns a drag direction into a numbered wedge. With four wedges, zero is up, then right, down and left:
+
+```ts
+import { sectorOf } from "@ui-sdk/core/gesture"
+
+const index = sectorOf(dx, dy, 4) // -1 near the center
+```
+
+<ComponentExample
+  name="behaviors/gesture-sector"
+  caption="Drag from the center toward a reaction and release to choose it. A short stroke chooses nothing. You can also click a reaction directly."
+/>
+
+Within the `deadZone`, `sectorOf` returns `-1`; the default is 18 pixels. Check for that before using the index. Pass a `start` offset, measured in turns, to rotate the wedges.
+
+### Options
+
+<TypeTable
+  path="../../packages/core/src/foundation/motion/velocity.ts"
+  name="VelocityTrackerOptions"
+  type="NonNullable<Parameters<typeof createVelocityTracker>[0]>"
+  events={false}
+  examples={{
+    maxSpeed: "Past an Edge",
+    staleAfter: "Past an Edge",
+    horizon: "Past an Edge",
+    capacity: "Past an Edge",
+  }}
+/>

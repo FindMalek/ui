@@ -1,0 +1,7 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "include": ["src/**/*.svelte", "src/**/svelte*.ts", "src/ssr.ts", "ssr-plugin.ts"],
+  "compilerOptions": {
+    "types": ["vite/client", "svelte"]
+  }
+}

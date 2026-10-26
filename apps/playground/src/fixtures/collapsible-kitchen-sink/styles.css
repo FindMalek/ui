@@ -1,0 +1,51 @@
+@import "tailwindcss";
+@source "./";
+
+/* Keyframes that read the measured height, keyed on data-open and data-closed. */
+@keyframes ks-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--collapsible-panel-height);
+  }
+}
+
+@keyframes ks-up {
+  from {
+    height: var(--collapsible-panel-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+.ks-keyframes[data-open] {
+  animation: ks-down 300ms ease-out;
+}
+
+.ks-keyframes[data-closed] {
+  animation: ks-up 300ms ease-out;
+}
+
+/* An exit animation that never ends. Closing must not wait for it. */
+@keyframes ks-blink {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+.ks-infinite[data-ending-style] {
+  animation: ks-blink 300ms infinite;
+}
+
+/* The shared fixture styles size every collapsible for the specs, and their
+   unlayered rules beat Tailwind's layers. These parts take their classes instead. */
+#root [data-slot="collapsible-root"] {
+  min-width: revert-layer;
+}
+
+#root [data-slot="collapsible-panel"] {
+  height: revert-layer;
+  overflow: revert-layer;
+}

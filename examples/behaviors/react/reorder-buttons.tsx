@@ -1,0 +1,145 @@
+import * as React from "react"
+import {
+  createChange,
+  createReorder,
+  createRovingFocus,
+  definePrimitive,
+  type ReorderDraft,
+} from "@ui-sdk/core"
+import { createParts } from "@ui-sdk/react/primitive"
+
+type RecipeState = { value: string[]; focused: string | null; moving: ReorderDraft | null }
+
+const recipe = definePrimitive({
+  name: "recipe",
+  state: (): RecipeState => ({
+    value: ["Boil water", "Add pasta", "Make the sauce", "Drain", "Serve"],
+    focused: "Boil water",
+    moving: null,
+  }),
+  api: (context) => {
+    const { store } = context
+    const change = createChange(context)
+    const reorder = createReorder<RecipeState>(context, {
+      slot: "step",
+      key: "value",
+      draft: "moving",
+      set: (value, details) => change("value", value, details),
+    })
+    return {
+      roving: createRovingFocus<RecipeState, { value: string }>(context, { slot: "step", key: "focused" }),
+      reorder,
+      act(action: string) {
+        const { focused, moving } = store.get()
+        if (action === "grab" && focused) reorder.grab(focused)
+        else if (moving && (action === "up" || action === "down")) {
+          const index = moving.order.indexOf(moving.key)
+          reorder.moveTo(index + (action === "up" ? -1 : 1))
+        } else if (action === "drop") reorder.drop()
+        else if (action === "cancel") reorder.cancel()
+      },
+    }
+  },
+  slots: (slot) => ({
+    root: slot<{}, { order: string[] }>({
+      state: (state, { api }) => ({ order: api.reorder.order(state) }),
+    }),
+    list: slot({ attrs: () => ({ role: "listbox", "aria-roledescription": "sortable list" }) }),
+    step: slot<{ value: string }>({
+      props: { value: "string" },
+      attrs: (state, part) => ({
+        role: "option",
+        "aria-roledescription": "sortable item",
+        "aria-selected": String(state.moving?.key === part.key),
+        tabindex: part.api.roving.tabIndex(state, part),
+        "data-grabbed": state.moving?.key === part.key ? "" : undefined,
+        style: "touch-action:none;user-select:none",
+      }),
+      on: {
+        keydown: (event, { el, api, key }) =>
+          api.reorder.keydown(event, key) || api.roving.keydown(event, el!),
+        pointerdown: (event, { api, key }) => api.reorder.pointerdown(event, key),
+      },
+      bind: (el, part) => {
+        const cleanups = [part.api.roving.bind(el, part), part.api.reorder.bind(el, part)]
+        return () => cleanups.forEach((cleanup) => cleanup())
+      },
+    }),
+    toTop: slot<{ value: string }>({
+      props: { value: "string" },
+      attrs: (_state, part) => ({ type: "button", tabindex: "-1", "aria-label": `Move ${part.key} to top` }),
+      on: { pointerdown: (event) => event.preventDefault() },
+      press: ({ api, key }) => api.reorder.move(key, 0),
+    }),
+    action: slot<{ value: string }>({
+      props: { value: "string" },
+      attrs: (state, part) => ({
+        type: "button",
+        disabled: (part.key === "grab") === !!state.moving ? "" : undefined,
+      }),
+      on: { pointerdown: (event) => event.preventDefault() },
+      press: ({ api, key }) => api.act(key),
+    }),
+  }),
+})
+
+const parts = createParts(recipe, {
+  root: "div",
+  list: "div",
+  step: "div",
+  toTop: "button",
+  action: "button",
+})
+
+const Recipe = parts.Root
+
+const RecipeList = parts.List
+
+const RecipeStep = parts.Step
+
+const RecipeToTop = parts.ToTop
+
+const RecipeAction = parts.Action
+
+const actions = { grab: "Pick up", up: "Up", down: "Down", drop: "Drop", cancel: "Cancel" }
+
+function Example() {
+  return (
+    <Recipe className="flex w-64 flex-col gap-2 text-sm">
+      {({ order }) => (
+        <>
+          <div className="flex gap-1">
+            {Object.entries(actions).map(([value, label]) => (
+              <RecipeAction
+                key={value}
+                value={value}
+                className="rounded-md border border-border px-2 py-1 text-xs disabled:opacity-40"
+              >
+                {label}
+              </RecipeAction>
+            ))}
+          </div>
+          <RecipeList aria-label="Recipe" className="flex flex-col gap-1">
+            {order.map((step) => (
+              <RecipeStep
+                key={step}
+                value={step}
+                className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-1.5 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 data-grabbed:border-primary data-grabbed:bg-primary/10"
+              >
+                {step}
+                <RecipeToTop
+                  value={step}
+                  className="rounded px-1.5 text-xs text-muted-foreground hover:bg-muted"
+                >
+                  ↑ Top
+                </RecipeToTop>
+              </RecipeStep>
+            ))}
+          </RecipeList>
+        </>
+      )}
+    </Recipe>
+  )
+}
+
+export { Example, recipe, Recipe, RecipeAction, RecipeList, type RecipeState, RecipeStep, RecipeToTop }

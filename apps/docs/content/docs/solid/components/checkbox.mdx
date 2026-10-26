@@ -1,0 +1,305 @@
+---
+title: Checkbox
+description: Choose one or more options, individually or as a group.
+---
+
+Use a checkbox for a choice someone can check or uncheck. Use a group when several choices belong to one value.
+
+<ComponentExample
+  name="checkbox/basic"
+  caption="Click the checkbox or its label, or focus it and press Space, to accept the terms."
+/>
+
+## Installation
+
+```bash
+npm install @ui-sdk/solid @ui-sdk/core
+```
+
+To use the examples' Tailwind classes, add the [example theme](../styling-and-animation#example-theme) to your global stylesheet.
+
+## Anatomy
+
+Wrap the checkbox and its text in a label. The indicator shows while the checkbox is checked or mixed:
+
+```tsx
+import { Checkbox, CheckboxIndicator } from "@ui-sdk/solid/checkbox"
+
+function Example() {
+  return (
+    <label>
+      <Checkbox>
+        <CheckboxIndicator aria-hidden="true">✓</CheckboxIndicator>
+      </Checkbox>
+      Accept terms and conditions
+    </label>
+  )
+}
+
+export { Example }
+```
+
+`Checkbox` renders a button with the `checkbox` role and a hidden native checkbox that handles forms.
+
+## Examples
+
+### Description
+
+Use `FieldLabel` and `FieldDescription` when a choice needs more explanation. The field connects both to the checkbox.
+
+<ComponentExample
+  name="checkbox/description"
+  caption="Click Accept terms and conditions. The field connects the label and description to the checkbox."
+/>
+
+### Disabled
+
+`disabled` prevents focus and changes, and leaves the checkbox out of form submissions. A disabled `fieldset` does the same.
+
+<ComponentExample
+  name="checkbox/disabled"
+  caption="Both checkboxes are disabled. Clicking their labels leaves their values unchanged."
+/>
+
+<span id="behavior-and-options" />
+
+### Indeterminate
+
+An indeterminate checkbox represents a partly checked set. It has `aria-checked="mixed"` and `data-indeterminate`. A press checks it; only your code puts it back into the mixed state.
+
+Start with `defaultChecked="indeterminate"`, or pass `"indeterminate"` as the controlled value. The indicator's state tells it which icon to show. A [parent checkbox](#parent-checkbox) derives this state from a group for you.
+
+<ComponentExample
+  name="checkbox/indeterminate"
+  caption="All notifications starts mixed. Press it to check it; later presses toggle between checked and unchecked."
+/>
+
+### Controlled
+
+Pass `checked` and `onCheckedChange` to own the value. A `createCheckboxController()` lets another button change it. [State and Events](../state-and-events) covers canceling changes and choosing who owns the value.
+
+<ComponentExample
+  name="checkbox/controlled"
+  caption="Change the checkbox, then choose Toggle from outside. The readout shows its value and the reason for each change."
+/>
+
+### Read-Only
+
+`readOnly` keeps the checkbox focusable and included in form submissions, while preventing the user from changing it.
+
+<ComponentExample
+  name="checkbox/read-only"
+  caption="Tab to the checked checkbox. Space and clicks leave the setting unchanged."
+/>
+
+## Forms
+
+Set `name` and `value` to include a checked checkbox in a native form. Unchecked and mixed checkboxes submit nothing. The default value is `"on"`.
+
+`required` blocks submission until the checkbox is checked. Reset returns it to `defaultChecked`. Set `form` to a form's id to join it from elsewhere on the page. Space toggles the checkbox; Enter submits its form.
+
+<ComponentExample
+  name="checkbox/form"
+  caption="Submit with the terms unchecked to see native validation. Accept the terms and submit; Reset restores the defaults and clears the result. The newsletter checkbox belongs to the same form from outside it."
+/>
+
+### List
+
+Independent checkboxes can share a fieldset and legend. Give each one its own name, or use the same name to submit several values. Use a [group](#group) when your app also needs one shared list of checked values.
+
+<ComponentExample
+  name="checkbox/list"
+  caption="Choose which items appear on the desktop. Each checkbox keeps its own value."
+/>
+
+## Group
+
+`CheckboxGroup` keeps one list of checked values. Each checkbox supplies its `value`; the group returns selected values in the order the checkboxes appear. Name the group with `aria-label`, `aria-labelledby`, or a [Field](#group-in-a-field).
+
+<ComponentExample
+  name="checkbox/group"
+  caption="Choose several toppings. The group keeps one list of checked values."
+/>
+
+### Parent Checkbox
+
+Add a checkbox with `parent` to check or uncheck the group. It is checked when every value is selected, unchecked when none are, and mixed in between. It points to its children with `aria-controls` and submits nothing itself.
+
+Pass `allValues` to the group so the parent has the right state on the first render, including on the server. Otherwise it discovers the values after the checkboxes mount.
+
+<ComponentExample
+  name="checkbox/group-parent"
+  caption="Select all checks every topping. Uncheck one topping to put Select all into its mixed state."
+/>
+
+### Table
+
+The same parent checkbox can select rows from a table header. Each row supplies its value and accessible name.
+
+<ComponentExample
+  name="checkbox/table"
+  caption="Select rows individually, or use Select all in the header. The selected count follows the group."
+/>
+
+### Disabled Group
+
+Disable the group to lock every checkbox, or disable one child to keep just that value fixed. A parent changes only enabled children.
+
+<ComponentExample
+  name="checkbox/group-disabled"
+  caption="The Backups group is disabled. In Sync folders, Select all changes the enabled folders while Desktop stays checked."
+/>
+
+### Controlled Group
+
+Pass `value` and `onValueChange` to own the selected values. The controller can replace that list, as Select weekdays and Clear do below.
+
+<ComponentExample
+  name="checkbox/group-controlled"
+  caption="Choose working days, then try Select weekdays and Clear. The readout shows the group value and the reason it changed."
+/>
+
+### Group in a Form
+
+Set `name` on the group to submit every checked value under that name. `required` requires at least one selection; Reset restores `defaultValue`. The same `disabled` and `form` options apply as on an individual checkbox.
+
+<ComponentExample
+  name="checkbox/group-form"
+  caption="Submit to see all checked toppings. Clear them to try required validation; Reset restores Cheese. The group belongs to the form below it."
+/>
+
+### Group in a Field
+
+A field supplies the group's label and description. `FieldError` shows the validation message inline and clears when a selection makes the group valid. [Forms and Validation](../forms) covers the shared field behavior.
+
+<ComponentExample
+  name="checkbox/group-field"
+  caption="Save with nothing checked to see the inline error. Choose a notification method to clear it, then save again."
+/>
+
+## Styling
+
+<span id="right-to-left" />
+<span id="horizontal-group" />
+<span id="right-to-left-group" />
+
+Use your layout to arrange the checkboxes, including in right-to-left text. [Styling and Animation](../styling-and-animation) covers state attributes and transitions.
+
+`Checkbox`:
+
+<DataAttributes component="checkbox" />
+
+`CheckboxGroup`:
+
+<DataAttributes component="checkbox-group" />
+
+### Indicator
+
+`keepMounted` keeps the indicator in the page while unchecked. Use `data-unchecked` for that state and `data-starting-style` and `data-ending-style` for its entry and exit.
+
+<ComponentExample
+  name="checkbox/indicator"
+  caption="Check and uncheck a task. Its indicator stays mounted so the check can animate in both directions."
+/>
+
+## Custom Rendering
+
+The checkbox, indicator, and group can render your own elements. Keep the part's props on the interactive element so its role, label, and keyboard behavior stay connected. [Composition](../parts-and-composition) covers the framework's rendering API.
+
+## API Reference
+
+Props and callbacks are the same as below, as Solid props.
+
+### Events
+
+Callbacks get the new state or value first, then the details.
+
+| Prop              | On              | Receives                                                                               |
+| ----------------- | --------------- | -------------------------------------------------------------------------------------- |
+| `onCheckedChange` | `Checkbox`      | `(checked, details)`: `true`, `false` or `"indeterminate"`, and the [reason](#reasons) |
+| `onValueChange`   | `CheckboxGroup` | `(value, details)`: the checked values, and the [reason](#reasons)                     |
+
+### Reasons
+
+`details.reason` says why the checked state changed.
+
+<ReasonTable
+  path="../../packages/core/src/components/checkbox/checkbox.ts"
+  name="CheckboxCheckedChangeReason"
+/>
+
+For a group, it says why the checked values changed.
+
+<ReasonTable
+  path="../../packages/core/src/components/checkbox/checkbox-group.ts"
+  name="CheckboxGroupValueChangeReason"
+/>
+
+### Checkbox Controller
+
+Create one with `createCheckboxController()` and pass it as `controller`.
+
+Every write method takes an optional `{ reason, event }`, runs the change callback like a press, and returns `false` when the change is canceled.
+
+<ControllerTable path="../../packages/core/src/components/checkbox/checkbox.ts" name="CheckboxController" />
+
+### CheckboxGroup Controller
+
+Create one with `createCheckboxGroupController()` and pass it as `controller`.
+
+Its write methods work like the checkbox controller's.
+
+<ControllerTable
+  path="../../packages/core/src/components/checkbox/checkbox-group.ts"
+  name="CheckboxGroupController"
+/>
+
+### Checkbox
+
+<TypeTable path="../../packages/core/src/components/checkbox/checkbox.ts" name="CheckboxOptions" />
+
+### CheckboxIndicator
+
+<TypeTable path="../../packages/core/src/components/checkbox/checkbox.ts" name="CheckboxIndicatorProps" />
+
+### CheckboxGroup
+
+<TypeTable path="../../packages/core/src/components/checkbox/checkbox-group.ts" name="CheckboxGroupOptions" />
+
+### State
+
+What render functions, state-based class names and slots receive.
+
+<StateTable path="../../packages/core/src/components/checkbox/checkbox.ts" name="CheckboxState" />
+
+The indicator receives the same state.
+
+<StateTable path="../../packages/core/src/components/checkbox/checkbox.ts" name="CheckboxIndicatorState" />
+
+The group:
+
+<StateTable path="../../packages/core/src/components/checkbox/checkbox-group.ts" name="CheckboxGroupState" />
+
+## Accessibility
+
+The checkbox follows the [WAI-ARIA checkbox pattern](https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/). Every line below is an automated test.
+
+<SpecList spec="checkbox" />
+
+### Groups
+
+A group's parent checkbox follows the pattern's [mixed checkbox example](https://www.w3.org/WAI/ARIA/apg/patterns/checkbox/examples/checkbox-mixed/).
+
+<SpecList spec="checkbox.group" />
+
+### Forms
+
+<SpecList spec="forms.form" />
+
+Beyond the pattern's baseline:
+
+<SpecList spec="forms.enhancements" />
+
+Screen readers hear the same thing in each tested framework, recorded by a virtual screen reader:
+
+<SpecList spec="forms.sr" />

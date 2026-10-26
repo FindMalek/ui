@@ -1,0 +1,113 @@
+---
+title: Forms
+description: Submit component values, label controls, and show validation errors.
+---
+
+Give a control a `name` to include its value in a form. This works for Select and Combobox as well as inputs and checkboxes.
+
+## Submit a Value
+
+```vue
+<script setup lang="ts">
+import { Checkbox } from "@ui-sdk/vue/checkbox"
+</script>
+
+<template>
+  <form action="/preferences" method="post">
+    <label><Checkbox name="updates" value="yes" default-checked /> Email me updates</label>
+    <button type="submit">Save</button>
+    <button type="reset">Reset</button>
+  </form>
+</template>
+```
+
+The checkbox submits `updates=yes` when checked. Reset restores its default value.
+
+## Reset a Controlled Value
+
+A reset also goes through `@checked-change` and `v-model`. Keep the binding in place so your ref follows the reset:
+
+```vue
+<script setup lang="ts">
+import { Checkbox, type CheckedState } from "@ui-sdk/vue/checkbox"
+import { ref } from "vue"
+
+const checked = ref<CheckedState>(true)
+const reason = ref("No change yet")
+</script>
+
+<template>
+  <form>
+    <label>
+      <Checkbox
+        v-model:checked="checked"
+        name="updates"
+        default-checked
+        @checked-change="(_next, details) => (reason = details.reason)"
+      />
+      Email me updates
+    </label>
+    <button type="reset">Reset</button>
+    <output>{{ reason }}</output>
+  </form>
+</template>
+```
+
+Uncheck the box, then press Reset. `default-checked` supplies the reset value. The event receives `true` with reason `"reset"`, and `v-model` updates `checked`. The event runs when reset requests a different value; it does not run if the checkbox is already at its default.
+
+## Label and Validate a Field
+
+`Field` connects a control to its label, description, and error message:
+
+```vue
+<script setup lang="ts">
+import { Field, FieldControl, FieldDescription, FieldError, FieldLabel } from "@ui-sdk/vue/field"
+</script>
+
+<template>
+  <Field name="email">
+    <FieldLabel>Email</FieldLabel>
+    <FieldControl type="email" required />
+    <FieldDescription>We'll only use it for receipts.</FieldDescription>
+    <FieldError />
+  </Field>
+</template>
+```
+
+You can use Checkbox, Switch, Radio Group, or Select in place of `FieldControl`. [Field](./components/field) shows how they connect.
+
+On controls that support them, `required`, `disabled`, `readOnly`, and `form` follow native conventions. Disabled fields are left out of submission; read-only fields remain focusable and submitted.
+
+## Handle a Submission
+
+On a normal submit, the browser checks constraints such as `required` and `type="email"` before running your handler.
+
+Your server may still reject a valid-looking value. Pass `invalid` to the field and show the server’s message. When the user edits the field, clear the message and return `invalid` to `undefined` so the field uses native validation again. This example expects a `/api/preferences` endpoint:
+
+```vue
+<script setup lang="ts">
+import { Field, FieldControl, FieldError, FieldLabel } from "@ui-sdk/vue/field"
+import { ref } from "vue"
+
+const error = ref("")
+
+async function save(event: SubmitEvent) {
+  const body = new FormData(event.currentTarget as HTMLFormElement)
+  const response = await fetch("/api/preferences", { method: "POST", body })
+  error.value = response.ok ? "" : "That email is already taken."
+}
+</script>
+
+<template>
+  <form @submit.prevent="save">
+    <Field name="email" :invalid="error ? true : undefined">
+      <FieldLabel>Email</FieldLabel>
+      <FieldControl type="email" required @input="error = ''" />
+      <FieldError v-slot="{ state }">{{ error || state.message }}</FieldError>
+    </Field>
+    <button type="submit">Save</button>
+  </form>
+</template>
+```
+
+Without a handler, the form submits through its `action` URL.

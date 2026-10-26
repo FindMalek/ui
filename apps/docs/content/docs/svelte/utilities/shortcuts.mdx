@@ -1,0 +1,78 @@
+---
+title: Shortcuts
+description: Register keyboard shortcuts and show the right keys for the user's platform.
+---
+
+`useShortcut` registers a shortcut while your component is mounted. For a component that already accepts `shortcut`, such as a dialog trigger, use that prop directly.
+
+<ComponentExample
+  name="shortcuts/basic"
+  caption="Press N to create a note. Press Command+S on Mac or Control+S elsewhere to save. The buttons run the same actions."
+/>
+
+## Register a Shortcut
+
+Keys are joined with `+`. `mod` means Command on Apple platforms and Control elsewhere. This example also displays the keys using `useShortcutHint`:
+
+```svelte
+<script lang="ts">
+import { useShortcut, useShortcutHint } from "@ui-sdk/svelte/shortcuts"
+
+let count = $state(0)
+const addNote = () => count++
+useShortcut("mod+enter", addNote, { description: "New note" })
+const hint = useShortcutHint("mod+enter")
+</script>
+
+<button onclick={addNote} aria-keyshortcuts={hint.ariaKeyshortcuts}>
+New note ({count}) <kbd aria-hidden="true">{hint.text}</kbd>
+</button>
+```
+
+Call the helper in the component's script. It unregisters when the component goes away. Keys and options can be getters; return `null` for keys to leave the shortcut unregistered.
+
+## Show the Keys
+
+`useShortcutHint` supplies display text and `aria-keyshortcuts`. It keeps the server and first client render consistent, then updates for the user's platform after mount.
+
+Its fields are reactive getters. Read `hint.text` and `hint.ariaKeyshortcuts` in markup.
+
+Outside rendering, use `formatShortcut` for display text or `ariaKeyshortcuts` for the ARIA value, from the same entry.
+
+## While Someone Is Typing
+
+Shortcuts with Command, Control, or Option can run in text fields. Plain letters and other keys stay available for typing. Set `allowInInput: true` when a shortcut should work there too, such as Escape to clear a search.
+
+## Limit a Shortcut to an Area
+
+Use a named `scope` for an editor or another area. Turn it on while that area has focus:
+
+```svelte
+<script lang="ts">
+import { shortcuts, useShortcut } from "@ui-sdk/svelte/shortcuts"
+import { onDestroy } from "svelte"
+
+let text = $state("")
+useShortcut("escape", () => { text = "" }, { scope: "note", allowInInput: true })
+onDestroy(() => shortcuts.setScope("note", false))
+</script>
+
+<textarea aria-label="Note" bind:value={text} onfocus={() => shortcuts.setScope("note", true)} onblur={() => shortcuts.setScope("note", false)} />
+```
+
+Scope names are shared, so choose one for each area you want to enable together. A `when` function can add another condition, checked each time the keys are pressed.
+
+<ComponentExample
+  name="shortcuts/scope"
+  caption="Focus the note and type some text. Press Command+Enter on Mac or Control+Enter elsewhere to save, or Escape to clear it. Move focus outside the note to turn off its shortcuts."
+/>
+
+## Inside a Popup
+
+Page shortcuts pause while a modal is open. Pass `layer`, an element inside the popup or a getter that returns one, to make a shortcut belong to that popup. It runs only while that popup is open.
+
+When shortcuts share the same keys, the topmost open layer wins, then the most recently registered shortcut.
+
+## List Available Shortcuts
+
+Call `shortcuts.list()` when a help screen opens. It returns the shortcuts that can run now, including their `keys`, formatted `hint`, and `description`. Add descriptions when registering shortcuts so the help screen can explain each action.

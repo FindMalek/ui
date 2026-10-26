@@ -1,0 +1,214 @@
+---
+title: Toolbar
+description: Give buttons, toggles, menus and fields one tab stop with arrow-key navigation.
+---
+
+<ComponentExample
+  name="toolbar/demo"
+  caption="Tab into Formatting, then use Left and Right to move between toggles and the font menu. Down opens the menu when its trigger is focused."
+/>
+
+## Installation
+
+```bash
+npm install @ui-sdk/vue @ui-sdk/core
+```
+
+To use the examples' Tailwind classes, add the [example theme](../styling-and-animation#example-theme) to your global stylesheet.
+
+The demos use icons from `@lucide/vue`. Install that package if you copy their source.
+
+## Usage
+
+Put controls inside a named `Toolbar`. The toolbar provides one tab stop and moves focus between its controls with the arrow keys.
+
+<span id="anatomy" />
+
+```vue
+<script setup lang="ts">
+import { Toolbar, ToolbarButton } from "@ui-sdk/vue/toolbar"
+</script>
+
+<template>
+  <Toolbar aria-label="History">
+    <ToolbarButton>Undo</ToolbarButton>
+    <ToolbarButton>Redo</ToolbarButton>
+  </Toolbar>
+</template>
+```
+
+Use `ToolbarButton` for buttons, `ToolbarLink` for links and `ToolbarInput` for fields. Toggles and toggle groups join automatically. Give every icon-only control an accessible name.
+
+## Examples
+
+### With a Toggle Group
+
+A [toggle group](./toggle#group) joins the toolbar's navigation instead of creating another tab stop. Arrow keys move focus; Enter or Space changes a toggle.
+
+<ComponentExample
+  name="toolbar/toggle-group"
+  caption="Move from the formatting group to Code and Clear with the arrow keys. Clear resets the group's formatting values."
+/>
+
+### With a Menu
+
+Render the menu trigger through `ToolbarButton`. Put this inside a [Menu](./menu) within the toolbar:
+
+```vue
+<ToolbarButton>
+  <template #render="{ props }">
+    <MenuTrigger v-bind="props">Share</MenuTrigger>
+  </template>
+</ToolbarButton>
+```
+
+In a horizontal toolbar, Down opens the menu while Left and Right move between toolbar controls.
+
+<ComponentExample
+  name="toolbar/menu"
+  caption="Focus Share and press Down, then choose Email or Copy link. Escape closes the menu and returns to its trigger."
+/>
+
+### With a Select
+
+Compose a [Select](./select) trigger the same way. The trigger keeps its select behavior while joining the toolbar's focus order.
+
+<ComponentExample
+  name="toolbar/select"
+  caption="Open Zoom to choose a value, or use Zoom in and Zoom out. Fit to screen returns to 100%."
+/>
+
+### With Fields
+
+Render a field through `ToolbarInput`, or use its default native input. The field keeps Home and End, and Left and Right while they can move the caret. At the matching boundary, with no text selected, an arrow moves to the next toolbar item.
+
+Entering a field with an arrow puts its caret at the far end in that direction: press the same arrow again to leave, or the other arrow to edit. A [Number Input](./number-input) keeps Up and Down for stepping its value.
+
+<ComponentExample
+  name="toolbar/input"
+  caption="Move into Font size and use Up or Down to change it. In Find, move the caret to an edge before using that arrow to leave the field."
+/>
+
+### With Links
+
+Links join the same focus order and keep their normal link behavior. The demo intercepts a plain click to update its local page while leaving modified clicks alone.
+
+<ComponentExample
+  name="toolbar/link"
+  caption="Use the arrows to reach Files changed, then press Enter. The status changes to Showing: files."
+/>
+
+### Groups
+
+Use `ToolbarGroup` to name related controls. Set `disabled` on the group to disable those controls together.
+
+<ComponentExample
+  name="toolbar/group"
+  caption="Move through Clipboard and History with the arrow keys. Undo and Redo remain focusable but are disabled."
+/>
+
+### Right to Left
+
+Set `dir="rtl"` on an ancestor. Left moves to the next item and Right moves to the previous one.
+
+<ComponentExample
+  name="toolbar/rtl"
+  caption="Focus the first control and press Left to move forward through the right-to-left toolbar."
+/>
+
+## Behavior and Options
+
+### Keyboard
+
+Tab enters on the first enabled item, then returns to the item focused last on later visits. The next Tab leaves the toolbar.
+
+| Key                        | Action                                          |
+| -------------------------- | ----------------------------------------------- |
+| `ArrowRight` / `ArrowLeft` | Move focus in a horizontal toolbar              |
+| `ArrowDown` / `ArrowUp`    | Move focus in a vertical toolbar                |
+| `Home` / `End`             | Focus the first or last item, except in a field |
+| `Enter` / `Space`          | Activate a button or toggle, or open its popup  |
+
+Controls keep the keys they use: Down can open a menu, and Up and Down can step a number input. Toolbar navigation does not press toggles.
+
+### Vertical
+
+Set `orientation="vertical"` to move with Up and Down. Separators expose the perpendicular orientation for styling.
+
+<ComponentExample
+  name="toolbar/vertical"
+  caption="Use Up and Down to move between tools and Delete. Space changes the focused tool."
+/>
+
+### Disabled
+
+Disabled items stay reachable with `aria-disabled` by default. They ignore activation, including keys that would activate a component rendered through them. Toolbar navigation still works.
+
+Set `focusableWhenDisabled` to `false` to skip an item instead. A disabled field cannot be edited. Disabling the whole toolbar preserves a tab stop so users can still find it.
+
+<ComponentExample
+  name="toolbar/disabled"
+  caption="Arrow from Reply to the disabled Archive button. Delete is skipped. The Comment toolbar stays focusable but cannot be edited or submitted."
+/>
+
+### Loop
+
+Arrow keys wrap by default. Set `loop` to `false` to stop at the ends.
+
+<ComponentExample
+  name="toolbar/loop"
+  caption="Focus Last and press Right. Focus stays there; Home still moves to First."
+/>
+
+### Controller
+
+Create a controller with `createToolbarController` from `@ui-sdk/vue/toolbar` and pass it as `controller`. Its `focus()` method moves to the last focused item. Create one controller per mounted toolbar.
+
+<ComponentExample
+  name="toolbar/controller"
+  caption="Type in Notes, then press Alt+F10 or choose Focus toolbar. Use a toolbar action to update the status."
+/>
+
+## Styling
+
+Style orientation and disabled states through the parts' data attributes. A separator's orientation is perpendicular to its toolbar.
+
+<DataAttributes component="toolbar" />
+
+## Custom Rendering
+
+Use a toolbar part's `#render` slot and bind its `props` to the component inside it. The toolbar and that component keep their own behavior. See [Parts and Composition](../parts-and-composition) for the rendering contract.
+
+## API Reference
+
+Props are the same as below.
+
+### Toolbar
+
+<TypeTable path="../../packages/core/src/components/toolbar/toolbar.ts" name="ToolbarOptions" />
+
+### ToolbarButton
+
+<TypeTable path="../../packages/core/src/components/toolbar/toolbar.ts" name="ToolbarButtonProps" />
+
+### ToolbarInput
+
+<TypeTable path="../../packages/core/src/components/toolbar/toolbar.ts" name="ToolbarInputProps" />
+
+### ToolbarGroup
+
+<TypeTable path="../../packages/core/src/components/toolbar/toolbar.ts" name="ToolbarGroupProps" />
+
+### Controller
+
+<ControllerTable path="../../packages/core/src/components/toolbar/toolbar.ts" name="ToolbarController" />
+
+### State
+
+<StateTable path="../../packages/core/src/components/toolbar/toolbar.ts" name="ToolbarButtonState" />
+
+## Accessibility
+
+The toolbar follows the [WAI-ARIA toolbar pattern](https://www.w3.org/WAI/ARIA/apg/patterns/toolbar/). Every line below is an automated test.
+
+<SpecList spec="toolbar" />

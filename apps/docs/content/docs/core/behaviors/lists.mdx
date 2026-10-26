@@ -1,0 +1,271 @@
+---
+title: Lists
+description: Render long lists, follow new messages, and edit values in place.
+---
+
+Use `createVirtualizer` for long lists, `createStickToBottom` for chats and logs, and `createInlineEdit` for editable labels.
+
+Each helper works on its own or alongside [focus](./focus#grids) and [selection](./selection) in a component.
+
+## Long Lists
+
+### Render What's in View
+
+`createVirtualizer` tells you which rows to render and where to place them. Start with the number of rows and an estimated height in pixels:
+
+```ts
+import { createVirtualizer } from "@ui-sdk/core"
+
+const virtual = createVirtualizer({
+  count: () => entries.length,
+  estimate: () => 32,
+})
+```
+
+Once the scroller mounts, connect it and subscribe to changes:
+
+```ts
+const disconnect = virtual.connect(scroller)
+const unsubscribe = virtual.subscribe(render)
+```
+
+Render `virtual.items()` inside a relatively positioned box `virtual.size()` pixels tall. Each item gives you its `index`, `key`, `start` and `size`. Position its element absolutely at `start`, leaving the full-height box to provide the scrollbar.
+
+<ComponentExample
+  name="behaviors/virtualizer"
+  caption="Scroll through the ledger. The count shows how few of its 10,000 rows are rendered at once."
+/>
+
+Call `disconnect()` and `unsubscribe()` when the view unmounts. In a primitive, return `virtual.connect(el)` from the scroller slot's `bind`. Call `virtual.refresh()` after the row count or order changes.
+
+`items()` returns the same array until its contents change, so it works with subscriptions such as React's `useSyncExternalStore`. Give each row `aria-setsize` and `aria-posinset`, or use `aria-rowcount` and `aria-rowindex` for a grid, so assistive technology can tell where it sits in the full list.
+
+### Rows of Any Height
+
+For rows that wrap, estimate their height first and measure them after rendering. Give each row a stable data key so its measured size follows it when you sort:
+
+```ts
+const virtual = createVirtualizer({
+  count: () => notes.length,
+  key: (index) => notes[index].id,
+  estimate: () => 52,
+  overscan: 2,
+})
+```
+
+In the row slot, return the measurement cleanup:
+
+```ts
+bind: (el, { api, props }) => api.virtual.measure(props.index, el),
+```
+
+`measure` also observes later size changes. Keep each measurement binding associated with its index; this demo keys the rendered rows by index while the virtualizer tracks sizes by data key.
+
+<ComponentExample
+  name="behaviors/virtualizer-measure"
+  caption="Scroll through the notes, then try Newest first and Larger text. Row positions adjust to their measured heights."
+/>
+
+Call `virtual.reset()` to discard cached measurements after a change that affects every row, such as a new text size. `overscan` keeps a few extra rows beyond each edge; it defaults to four. Fixed-height rows can skip measurement.
+
+### Jumping and Loading More
+
+Use `scrollToIndex` to bring a row into view. Indexes start at zero:
+
+```ts
+virtual.scrollToIndex(49, { align: "center" })
+virtual.scrollToIndex(79)
+```
+
+`align` can be `"start"`, `"center"`, `"end"` or `"auto"`. The default, `"auto"`, scrolls only far enough to show the row.
+
+<ComponentExample
+  name="behaviors/virtualizer-jump"
+  caption="Try Center 50 and Last. Near the end, more contacts load. Click a contact and scroll away; its focused element stays rendered."
+/>
+
+For a sticky header, set `scrollMargin` to its height. To load more, provide `onEnd` and optionally `endThreshold`:
+
+```ts
+scrollMargin: 32,
+onEnd: () => loadMore(),
+endThreshold: 5,
+keep: () => (focusedIndex === null ? [] : [focusedIndex]),
+```
+
+`onEnd` runs once per row count when the visible range approaches the end. After loading, update the count and call `refresh()`. `keep()` adds indexes that must stay rendered, such as the row holding focus.
+
+### Sideways
+
+For a horizontal list, set `horizontal: true`:
+
+```ts
+const virtual = createVirtualizer({
+  count: () => 365,
+  estimate: () => 56,
+  horizontal: true,
+})
+```
+
+Now `start` and `size` describe horizontal positions. Use a spacer `virtual.size()` pixels wide and position items with `translateX`.
+
+<ComponentExample
+  name="behaviors/virtualizer-horizontal"
+  caption="Scroll sideways through the days. Only the visible days and a few nearby ones are rendered."
+/>
+
+### Options
+
+<TypeTable
+  path="../../packages/core/src/foundation/lists/virtualizer.ts"
+  name="VirtualizerOptions"
+  events={false}
+  examples={{
+    count: "Render What's in View",
+    estimate: "Render What's in View",
+    key: "Rows of Any Height",
+    overscan: "Rows of Any Height",
+    horizontal: "Sideways",
+    scrollMargin: "Jumping and Loading More",
+    keep: "Jumping and Loading More",
+    onEnd: "Jumping and Loading More",
+    endThreshold: "Jumping and Loading More",
+  }}
+/>
+
+## Logs That Follow Their End
+
+### Follow the Newest Line
+
+`createStickToBottom` follows new content while the reader is at the bottom. Scrolling up lets them read without being pulled away:
+
+```ts
+import { createStickToBottom } from "@ui-sdk/core"
+
+const stick = createStickToBottom()
+const disconnect = stick.connect(scroller)
+```
+
+The helper watches content size changes, including text that arrives a word at a time. Call `disconnect()` on unmount, or return `stick.connect(el)` from a slot's `bind`.
+
+<ComponentExample
+  name="behaviors/stick-to-bottom"
+  caption="While new lines arrive, scroll up to pause following. Jump to latest takes you back to the end."
+/>
+
+Use `stick.get()` to read whether the log is `following`, currently `atBottom`, or has `unseen` content below. `stick.subscribe(listener)` reports changes and returns a cleanup. These values can drive a jump button:
+
+```ts
+stick.scrollToBottom({ behavior: "smooth" })
+```
+
+Give the content `role="log"` when new entries should be announced by a screen reader.
+
+### Older Messages and Letting Go
+
+To open a conversation at its current position instead of jumping to the end, use `initial: false`:
+
+```ts
+const stick = createStickToBottom({ initial: false, threshold: 48 })
+```
+
+`threshold` is the distance in pixels that still counts as being at the bottom. Before adding older messages above the current ones, call `prepend()` to preserve the reader's position:
+
+```ts
+stick.prepend()
+addOlderMessages()
+```
+
+<ComponentExample
+  name="behaviors/stick-chat"
+  caption="Scroll to the end and Send a message. Load older adds messages above without moving your view. Let go stops following new messages."
+/>
+
+`stick.release()` stops following from code. Scrolling back to the end or calling `scrollToBottom()` resumes it. The helper manages scroll anchoring while connected so the browser doesn't apply a second adjustment.
+
+### Options
+
+<TypeTable
+  path="../../packages/core/src/foundation/lists/stick-to-bottom.ts"
+  name="StickToBottomOptions"
+  events={false}
+  examples={{
+    onChange: "Follow the Newest Line",
+    threshold: "Older Messages and Letting Go",
+    initial: "Older Messages and Letting Go",
+  }}
+/>
+
+## Editing in Place
+
+### Rename Where It Shows
+
+`createInlineEdit` manages the editing session. Your state holds the item's id, or `null` when nothing is being edited. Your `commit` callback saves the new text:
+
+```ts
+import { createInlineEdit } from "@ui-sdk/core"
+
+const edit = createInlineEdit(context, {
+  key: "editing",
+  value: (id) => nameOf(id),
+  commit: (id, text, details) => {
+    if (!text.trim()) {
+      return false
+    }
+    return rename(id, text, details)
+  },
+})
+```
+
+Returning `false` keeps the editor open. Unchanged text finishes editing without calling `commit`.
+
+<ComponentExample
+  name="behaviors/inline-edit"
+  caption="Focus a playlist and press Enter or F2, or double-click it. Enter saves the name; Escape cancels. Typing a letter starts a replacement."
+/>
+
+On the item, pass `keydown` to `edit.keydown(event, key)` and `dblclick` to `edit.dblclick(event, key)`. Render an input for the id returned by `edit.editing(state)`, then connect it:
+
+```ts
+input: slot({
+  on: {
+    keydown: (event, { api }) => api.edit.inputKeydown(event),
+    focusout: (event, { api }) => api.edit.end("focus-out", event),
+  },
+  bind: (el, { api }) => api.edit.bindInput(el as HTMLInputElement),
+}),
+```
+
+`bindInput` fills and focuses the input. Enter saves; Escape cancels. The `focusout` handler saves when focus leaves. After editing ends, the helper restores focus if removing the input would otherwise lose it.
+
+### Moving on and Starting from Code
+
+Tab also saves, but your component decides where focus goes next. `inputKeydown` returns `true` when it handled the key successfully:
+
+```ts
+if (event.key === "Tab" && edit.inputKeydown(event)) {
+  nextField.focus()
+}
+```
+
+Keep validation in `commit`. Use `disabled(id)` for values that can't be edited, and `edit.start(id)` to begin from a separate button or menu.
+
+<ComponentExample
+  name="behaviors/inline-edit-fields"
+  caption="Edit a product value and press Tab to save and move on. Price requires a number, SKU stays read-only, and Rename starts editing the name."
+/>
+
+### Options
+
+<TypeTable
+  path="../../packages/core/src/foundation/lists/inline-edit.ts"
+  name="InlineEditOptions"
+  type="InlineEditOptions<{ editing: string | null }>"
+  events={false}
+  examples={{
+    key: "Rename Where It Shows",
+    value: "Rename Where It Shows",
+    commit: "Rename Where It Shows",
+    disabled: "Moving on and Starting from Code",
+  }}
+/>

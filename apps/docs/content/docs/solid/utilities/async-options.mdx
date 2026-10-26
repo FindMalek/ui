@@ -1,0 +1,87 @@
+---
+title: Async Options
+description: Load search results, cancel stale requests, and fetch the next page.
+---
+
+`useAsyncOptions` loads items as someone types. It waits for typing to pause, cancels requests that are replaced, and keeps the previous results visible while loading.
+
+<ComponentExample
+  name="combobox/async"
+  caption="Change the movie search and wait for the results. Use the arrow keys to choose a movie, then press Enter."
+/>
+
+## Load Results
+
+Pass a loader to the helper. This example expects `/api/movies` to return an array of movie titles:
+
+```tsx
+import { useAsyncOptions } from "@ui-sdk/solid/async-options"
+import { Combobox, ComboboxContent, ComboboxInput } from "@ui-sdk/solid/combobox"
+
+function Example() {
+  const movies = useAsyncOptions<string>(async (query, { signal }) => {
+    const response = await fetch(`/api/movies?q=${encodeURIComponent(query)}`, { signal })
+    if (!response.ok) throw new Error("Couldn't load movies")
+    return response.json()
+  })
+
+  return (
+    <Combobox items={movies.items} filter={false} status={movies.status} onQueryChange={movies.setQuery}>
+      <ComboboxInput aria-label="Movie" placeholder="Search movies" />
+      <ComboboxContent />
+    </Combobox>
+  )
+}
+
+export { Example }
+```
+
+The fields on `movies` are reactive getters. Read them in JSX so the component follows each load.
+
+Pass `signal` to `fetch` so a newer search can cancel the request. The helper cancels on unmount. `filter` set to false leaves matching and ordering to the server.
+
+Use `ComboboxStatus` and `ComboboxEmpty` to show loading, error, and empty messages, as in the demo. The same pattern works with [Select](../components/select#async-search), [Autocomplete](../components/autocomplete#async-suggestions), and [Command](../components/command#async-results).
+
+## Choose When to Load
+
+The second argument sets the starting behavior:
+
+| Option      | What It Does                                            | Default |
+| ----------- | ------------------------------------------------------- | ------- |
+| `debounce`  | Milliseconds typing must pause before a request starts. | `200`   |
+| `query`     | The starting search text.                               | `""`    |
+| `immediate` | Loads that text before anyone types.                    | `false` |
+
+For initial choices, add `{ immediate: true, debounce: 300 }` after the loader. If you set `query`, use the same starting text for the component's `defaultQuery`.
+
+## Load More
+
+For paged results, the loader receives `page`, starting at `0`. Return `{ items, hasMore }`:
+
+```ts
+import type { AsyncOptionsContext } from "@ui-sdk/solid/async-options"
+
+async function loadMoviePages(query: string, { signal, page }: AsyncOptionsContext) {
+  const response = await fetch(`/api/movies?q=${encodeURIComponent(query)}&page=${page}`, { signal })
+  if (!response.ok) throw new Error("Couldn't load movies")
+  const data: { titles: string[]; next: number | null } = await response.json()
+  return { items: data.titles, hasMore: data.next !== null }
+}
+
+export { loadMoviePages }
+```
+
+Pass `loadMoviePages` to `useAsyncOptions` in place of the inline loader above.
+
+Connect `onLoadMore={movies.loadMore}` on Combobox. It asks for another page when scrolling or keyboard navigation reaches the last item. The helper appends the new items.
+
+<ComponentExample
+  name="combobox/infinite"
+  caption="Open the movie list and scroll down, or use Arrow Down to reach the last result. The next page is added to the list."
+/>
+
+## Retry a Search
+
+`status` is `"loading"` during a request, `"error"` after a failure, and `"idle"` otherwise. `error` holds the failure, and the previous items stay available.
+
+Call `movies.reload()` from a retry button to load the current query again, starting at page `0`. `movies.hasMore` tells you whether another page is available.

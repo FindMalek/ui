@@ -1,0 +1,53 @@
+---
+title: Installation
+description: Install UI SDK and register its custom elements.
+---
+
+Use these components in an app that supports custom elements. The examples use a bundler, such as Vite, to resolve package imports.
+
+## Install the Packages
+
+```bash
+npm install @ui-sdk/web @ui-sdk/core
+```
+
+`@ui-sdk/web` provides the custom elements. `@ui-sdk/core` provides their behavior and is a peer dependency. Install both so the components and any helpers you use share one copy of the core.
+
+## Register a Component
+
+Import each component from its own entry to register its tags:
+
+```ts
+import "@ui-sdk/web/button"
+import "@ui-sdk/web/toggle"
+```
+
+A dialog has separate tags for its trigger, content, and title. One import registers them all:
+
+```ts
+import "@ui-sdk/web/dialog"
+```
+
+Load these imports from your app's browser entry. The root entry, `@ui-sdk/web`, exports helpers and types but registers no elements. Each [component page](./components) shows the tags you can use.
+
+## Add Your Styles
+
+Components use light DOM and are unstyled. The examples use Tailwind CSS, but you can use your app's CSS too. [Styling and Animation](./styling-and-animation) covers both approaches.
+
+You can render your first component without setting up a provider, a portal root, or a UI SDK stylesheet. CSS Modules need a bundler that imports a class-name map.
+
+For right-to-left layouts, set `dir="rtl"` on the page or a container. Use logical CSS properties, such as `padding-inline-start`, in your styles. [Server Rendering](./server-rendering) covers markup before the elements upgrade.
+
+## Editor Support
+
+The package includes `custom-elements.json`, which describes its tags, attributes, properties, and events. Tools that support custom element manifests can read it.
+
+For HTML completion in VS Code, add this to your workspace settings:
+
+```json title=".vscode/settings.json"
+{ "html.customData": ["./node_modules/@ui-sdk/web/html-custom-data.json"] }
+```
+
+Component imports also register element types with TypeScript. For example, importing `@ui-sdk/web/toggle` gives `document.querySelector("ui-toggle")` its element type.
+
+Continue with [First Component](./first-component) to add a working toggle to your page.

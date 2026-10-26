@@ -1,0 +1,108 @@
+import * as React from "react"
+import { bindDrag, css, definePrimitive } from "@ui-sdk/core"
+import { sectorOf } from "@ui-sdk/core/gesture"
+import { createParts } from "@ui-sdk/react/primitive"
+
+const reactions = ["👍", "🎉", "😂", "😮", "😢", "❤️"]
+
+const start = 1 / 12
+
+function sectorPoint(index: number, count: number, radius: number, start = 0) {
+  const angle = (index / Math.max(count, 1) + start) * 2 * Math.PI
+  return { x: Math.round(Math.sin(angle) * radius), y: Math.round(-Math.cos(angle) * radius) }
+}
+
+type ReactState = {
+  pointing: number
+  picked: string | null
+}
+
+const react = definePrimitive({
+  name: "react",
+  state: (): ReactState => ({ pointing: -1, picked: null }),
+  api: (context) => {
+    const { store } = context
+    let stop: (() => void) | undefined
+    context.onDestroy(() => stop?.())
+    return {
+      pick: (index: number) => store.set({ picked: reactions[index], pointing: -1 }),
+      pointerdown(event: PointerEvent, el: HTMLElement) {
+        if (event.button !== 0) return
+        event.preventDefault()
+        stop = bindDrag(el, event, {
+          cancelOnEscape: true,
+          onMove: ({ x, y }) =>
+            store.set({
+              pointing: sectorOf(x - event.clientX, y - event.clientY, reactions.length, {
+                deadZone: 24,
+                start,
+              }),
+            }),
+          onEnd: (_end, canceled) => {
+            stop = undefined
+            const { pointing } = store.get()
+            if (!canceled && pointing !== -1) store.set({ picked: reactions[pointing] })
+            store.set({ pointing: -1 })
+          },
+        })
+      },
+    }
+  },
+  slots: (slot) => ({
+    root: slot<{}, { picked: string | null }>({
+      state: (state) => ({ picked: state.picked }),
+      attrs: () => ({ style: css({ position: "relative" }) }),
+    }),
+    handle: slot({
+      attrs: () => ({ "aria-hidden": "true", style: css({ "touch-action": "none" }) }),
+      on: { pointerdown: (event, { el, api }) => api.pointerdown(event, el!) },
+    }),
+    reaction: slot<{ index: number }>({
+      props: { index: "number" },
+      attrs: (state, { props }) => {
+        const { x, y } = sectorPoint(props.index, reactions.length, 72, start)
+        return {
+          type: "button",
+          "aria-label": `React with ${reactions[props.index]}`,
+          "aria-pressed": String(state.picked === reactions[props.index]),
+          "data-pointing": state.pointing === props.index ? "" : undefined,
+          style: css({ position: "absolute", left: "50%", top: "50%", translate: `${x}px ${y}px` }),
+        }
+      },
+      press: ({ api, props }) => api.pick(props.index),
+    }),
+  }),
+})
+
+const parts = createParts(react, { root: "div", handle: "div", reaction: "button" })
+
+const ReactionRing = parts.Root
+
+const ReactionHandle = parts.Handle
+
+const Reaction = parts.Reaction
+
+function Example() {
+  return (
+    <ReactionRing className="grid size-56 place-items-center rounded-full bg-muted text-sm">
+      {({ picked }) => (
+        <>
+          <ReactionHandle className="grid size-16 cursor-grab place-items-center rounded-full bg-background text-2xl shadow-sm select-none">
+            {picked ?? "·"}
+          </ReactionHandle>
+          {reactions.map((reaction, index) => (
+            <Reaction
+              key={reaction}
+              index={index}
+              className="-mt-5 -ml-5 grid size-10 place-items-center rounded-full text-xl transition-transform outline-none focus-visible:ring-3 focus-visible:ring-ring/50 aria-pressed:bg-background data-pointing:scale-125 data-pointing:bg-background"
+            >
+              {reaction}
+            </Reaction>
+          ))}
+        </>
+      )}
+    </ReactionRing>
+  )
+}
+
+export { Example, react, Reaction, ReactionHandle, ReactionRing, type ReactState }

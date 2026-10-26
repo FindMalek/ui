@@ -1,0 +1,180 @@
+---
+title: Input
+description: Enter text, add a clear button, and connect the value to your form or state.
+---
+
+<ComponentExample
+  name="input/basic"
+  caption="Focus Email and type an address. The component uses a native input, so ordinary text selection and editing work."
+/>
+
+## Installation
+
+```bash
+pnpm add @ui-sdk/vue @ui-sdk/core
+```
+
+The examples use the [shared example theme](../styling-and-animation#example-theme).
+
+## Anatomy
+
+```vue
+<Input />
+
+<InputGroup>
+  <Input />
+  <InputClear />
+</InputGroup>
+```
+
+`Input` renders a native `input`. Pass its type, placeholder, autocomplete, and other native attributes directly. `InputGroup` wraps optional text or buttons around it; `InputClear` clears the value and returns focus to the input.
+
+## Examples
+
+### Field
+
+Wrap the input in a [Field](./field) to associate a visible label and description. Field also supplies its name when the input does not have one.
+
+<ComponentExample
+  name="input/field"
+  caption="Click Username to focus the input, then edit it. A screen reader includes the description when it reads the field."
+/>
+
+### Disabled
+
+Set `disabled` on the input or its Field to prevent editing and remove it from the tab order.
+
+<ComponentExample
+  name="input/disabled"
+  caption="Try to edit Email or reach it with Tab. The disabled field is skipped and cannot be changed."
+/>
+
+### Invalid
+
+Set `invalid` on Field for an error your app decides. The input gets `aria-invalid`, and Field associates the error message with it.
+
+<ComponentExample
+  name="input/invalid"
+  caption="Focus Email. The field is marked invalid, and its error message explains the expected address format."
+/>
+
+### Required
+
+Use the native `required` attribute for browser validation. Field shows the error after an unsuccessful submit.
+
+<ComponentExample
+  name="input/required"
+  caption="Choose Continue while Email is empty. The browser blocks submission and focuses the required field."
+/>
+
+### Input Group
+
+Place text around an input with `InputGroup`. Clicking that text focuses the input. The prefix and suffix are display content; they are not added to the submitted value.
+
+<ComponentExample
+  name="input/input-group"
+  caption="Click https:// or .com to focus Website, then type a domain name. Only the text you enter belongs to the input's value."
+/>
+
+### Clear Button
+
+`InputClear` appears when the input has editable text. Pressing it clears the value, reports `clear-press`, and returns focus to the input. Controlled state and native input listeners receive the change too.
+
+<ComponentExample
+  name="input/clear"
+  caption="Choose Clear search. The text clears, focus returns to the input, and the last change shows clear-press. Type again to bring the button back."
+/>
+
+The search and clear icons come from `@lucide/vue`. Install that package if you copy this example.
+
+### Controlled
+
+Use `v-model` to bind the value. `@value-change` also receives the change details. The example derives a read-only profile URL from the display name.
+
+<ComponentExample
+  name="input/controlled"
+  caption="Edit Display name. Profile URL updates with it and stays read-only."
+/>
+
+See [State and Events](../state-and-events) for the shared controlled-state conventions. Input's [reasons](#reasons) distinguish typing, clearing, resetting, and controller changes.
+
+### Filtering What's Typed
+
+Call `details.cancel()` in the value-change callback to reject a change. The previous text and caret position are restored.
+
+<ComponentExample
+  name="input/filter"
+  caption="Type 12a3 into Verification code. The letter is rejected and the value becomes 123. The input accepts up to six digits."
+/>
+
+### Controller
+
+Use `createInputController()` for actions outside the input. Its methods update the input through the same change callbacks as typing.
+
+<ComponentExample
+  name="input/controller"
+  caption="Choose Quick reply to fill Message, Clear to empty it, and Focus to move the caret into the input."
+/>
+
+[Controllers](../controllers) covers creating and sharing a controller.
+
+## Related Controls
+
+<span id="password" />
+<span id="file" />
+
+Use [Password Input](./password-input) for showing and hiding passwords. A native file input works with `type="file"`; use [File Input](./file-input) for file selection with dropping, previews, and validation.
+
+## Styling
+
+Input exposes `data-filled`, `data-disabled`, `data-readonly`, and `data-required`. Field adds its validation and focus attributes. For a group, style `:has(input:focus-visible)` so focusing a button inside it keeps the button's own ring.
+
+<span id="field-group" />
+<span id="inline" />
+<span id="grid" />
+<span id="badge" />
+<span id="right-to-left" />
+
+Arrange fields with ordinary layout styles. Logical padding and margins follow the surrounding `dir` automatically.
+
+<DataAttributes component="input" />
+
+<DataAttributes component="input-group" />
+
+## API Reference
+
+Props are the same as below. `onValueChange` is `v-model:value`, or `@value-change` for the reason.
+
+### Reasons
+
+<ReasonTable path="../../packages/core/src/components/input/input.ts" name="InputValueChangeReason" />
+
+### Controller
+
+Create one with `createInputController()` and pass it as `controller`.
+
+<ControllerTable path="../../packages/core/src/components/input/input.ts" name="InputController" />
+
+### Input
+
+<TypeTable path="../../packages/core/src/components/input/input.ts" name="InputOptions" />
+
+<TypeTable path="../../packages/core/src/components/input/input.ts" name="InputProps" />
+
+### InputGroup
+
+<TypeTable path="../../packages/core/src/components/input/input.ts" name="InputGroupOptions" />
+
+### State
+
+<StateTable path="../../packages/core/src/components/input/input.ts" name="InputState" />
+
+`InputGroup` and `InputClear` receive the state of the field inside the group.
+
+<StateTable path="../../packages/core/src/components/input/input.ts" name="InputGroupState" />
+
+## Accessibility
+
+Give the input a visible Field label or an `aria-label`. Give the clear button an accessible name too. The native input keeps standard text editing, selection, autocomplete, and form behavior.
+
+<SpecList spec="input" />

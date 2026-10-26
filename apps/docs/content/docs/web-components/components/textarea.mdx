@@ -1,0 +1,115 @@
+---
+title: Textarea
+description: Enter multiple lines of text, grow the field as you type, and connect it to a form.
+---
+
+<ComponentExample
+  name="textarea/basic"
+  caption="Type a message. Press Enter to add a line; text selection and editing use the browser's native textarea."
+/>
+
+## Installation
+
+```bash
+pnpm add @ui-sdk/web @ui-sdk/core
+```
+
+```ts
+import "@ui-sdk/web/textarea"
+```
+
+The examples use the [shared example theme](../styling-and-animation#example-theme).
+
+## Anatomy
+
+```html
+<ui-textarea>
+  <textarea aria-label="Message" placeholder="Type your message here."></textarea>
+</ui-textarea>
+```
+
+`ui-textarea` connects to the native textarea inside it. Put native attributes and styles on that textarea.
+
+## Examples
+
+### Field
+
+Wrap the textarea in [Field](./field) to connect its visible label and description. Field also supplies the name used for form submission.
+
+<ComponentExample
+  name="textarea/field"
+  caption="Click Message to focus the textarea, then type. A screen reader includes the description when it reads the field."
+/>
+
+### Disabled
+
+Set `disabled` on the textarea or its Field to prevent editing and remove it from the tab order.
+
+<ComponentExample
+  name="textarea/disabled"
+  caption="Try to edit Message or reach it with Tab. The disabled textarea keeps its value and cannot be changed."
+/>
+
+### Invalid
+
+Set `invalid` on Field for an error your app decides. Field associates the error with the textarea and sets `aria-invalid`.
+
+<ComponentExample
+  name="textarea/invalid"
+  caption="Focus Message. The textarea is marked invalid, and the error explains the expected message length."
+/>
+
+### Button
+
+A textarea can submit its value through a native form. This example records the last message, then call `api.clear()` on the element to empty the field. The browser's `required` validation blocks an empty message.
+
+<ComponentExample
+  name="textarea/button"
+  caption="Type a message and choose Send message. The last message appears below the button, and the textarea clears and shrinks. Sending an empty message is blocked."
+/>
+
+### Auto Resize
+
+Set `auto-resize` to grow and shrink the textarea with its text. CSS `min-height` and `max-height` set its limits; after the maximum, the text scrolls inside it.
+
+<ComponentExample
+  name="textarea/auto-resize"
+  caption="Type several lines in Notes, then delete them. The textarea grows and shrinks. Add enough lines to reach its maximum height and scroll inside it."
+/>
+
+Browsers that support `field-sizing: content` size it natively. Elsewhere, the component measures after value changes, form resets, and width changes. The examples also set `field-sizing: content` in CSS so supported browsers can size server-rendered content before scripts run.
+
+### Controlled
+
+Listen for `valuechange` to read the value. Set the element’s `value` property when the app needs to update it. Derive a character count from that value and use the native length limit to cap the text.
+
+<ComponentExample
+  name="textarea/controlled"
+  caption="Edit Bio and watch the character count. The textarea accepts at most 160 characters."
+/>
+
+Textarea shares Input's [change reasons](./input#reasons) and cancellation behavior. See [State and Events](../state-and-events) and [Controllers](../controllers) for the shared conventions.
+
+## Styling
+
+<span id="right-to-left" />
+
+Style the native textarea directly. Use logical spacing to follow the surrounding text direction. The examples reserve space around the growing field so the demo stays in place.
+
+<DataAttributes component="textarea" />
+
+## API Reference
+
+### Textarea
+
+<TypeTable path="../../packages/core/src/components/input/input.ts" name="TextareaOptions" />
+
+### State
+
+<StateTable path="../../packages/core/src/components/input/input.ts" name="TextareaState" />
+
+## Accessibility
+
+Give the textarea a visible Field label or an `aria-label`. Keep descriptions and errors in their Field parts so they are associated with the control.
+
+<SpecList spec="textarea" />

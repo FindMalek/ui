@@ -1,0 +1,85 @@
+import { field, fieldGroup, fieldSet } from "@ui-sdk/core/field"
+import { defineParts } from "./define-element"
+
+const owner = "ui-field"
+
+// <ui-field> ties the control inside it to its label and messages. The control
+// can be any form control: a native input, or <ui-checkbox> and the others.
+// Markup:
+//
+// <ui-field>
+//   <ui-field-label>Email</ui-field-label>
+//   <input type="email" name="email" required />
+//   <ui-field-description>We never share it.</ui-field-description>
+//   <ui-field-error></ui-field-error>
+// </ui-field>
+//
+// An empty <ui-field-error> shows the browser's message for the current
+// problem. Set `invalid` when your code decides instead, as an attribute or
+// a property: `true` shows the field invalid, `false` shows no errors whatever
+// the browser thinks, and `undefined` hands it back to the browser.
+//
+// <ui-field-set> wraps a native <fieldset> and its <legend>, so `disabled`
+// disables every control inside it the way the browser does. A
+// <ui-field-description> right inside it, outside any field, describes the
+// group. <ui-field-group> lays fields out. Markup:
+//
+// <ui-field-set disabled>
+//   <fieldset>
+//     <legend>Shipping address</legend>
+//     <ui-field-description>Where we send your order.</ui-field-description>
+//     <ui-field-group>
+//       <ui-field>…</ui-field>
+//     </ui-field-group>
+//   </fieldset>
+// </ui-field-set>
+//
+// A legend that isn't a native <legend> is a <ui-field-legend>.
+function defineFieldElements() {
+  defineParts(field, {
+    root: {
+      tag: owner,
+      display: "block",
+      // `invalid` is three-way, so its property writes "false" for false, and
+      // reads undefined without the attribute, which leaves it to the browser.
+      kinds: { invalid: (value) => value !== "false" },
+      // Empty errors show the current message.
+      render(el, instance) {
+        const update = () => {
+          for (const error of Array.from(el.querySelectorAll<HTMLElement>("ui-field-error"))) {
+            if (error.closest(owner) !== el) continue
+            if (!("message" in error.dataset) && error.childNodes.length) continue
+            error.dataset.message = ""
+            const message = instance.api.internal.message()
+            if (error.textContent !== message) error.textContent = message
+          }
+        }
+        queueMicrotask(update)
+        return instance.subscribe(update)
+      },
+    },
+    label: { tag: "ui-field-label", display: "block" },
+    // Describes the nearest field, or the whole field set when no field is closer.
+    description: { tag: "ui-field-description", owners: ["ui-field-set"], display: "block" },
+    error: { tag: "ui-field-error", display: "block" },
+  })
+  defineParts(fieldSet, {
+    // Wraps a native <fieldset> and its <legend>, so `disabled` disables every
+    // control inside it the way the browser does.
+    root: {
+      tag: "ui-field-set",
+      display: "contents",
+      children: {
+        set: (el) => el.querySelector(":scope > fieldset"),
+        legend: (el) => el.querySelector(":scope > fieldset > legend"),
+      },
+      optionalChildren: ["legend"],
+    },
+    legend: { tag: "ui-field-legend", display: "block" },
+  })
+  defineParts(fieldGroup, {
+    root: { tag: "ui-field-group", self: "group", display: "block" },
+  })
+}
+
+export { defineFieldElements }

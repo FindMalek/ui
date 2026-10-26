@@ -1,0 +1,72 @@
+---
+title: Popups
+description: Place popup content, control dismissal, and choose when it stays mounted.
+---
+
+Popovers, menus, selects, and dialogs use the browser's top layer. They render in place, above the page, so you don't need a portal or Positioner part.
+
+## Place the Content
+
+Set placement on the content part:
+
+```svelte
+<script lang="ts">
+import { Popover, PopoverClose, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/svelte/popover"
+</script>
+
+<Popover>
+  <PopoverTrigger>Details</PopoverTrigger>
+  <PopoverContent side="bottom" align="start" sideOffset={8}>
+    <PopoverTitle>Project Details</PopoverTitle>
+    <p>Last updated today.</p>
+    <PopoverClose>Done</PopoverClose>
+  </PopoverContent>
+</Popover>
+```
+
+The popup flips or shifts when there isn't enough room.
+
+| Prop               | What It Does                                                                                         |
+| ------------------ | ---------------------------------------------------------------------------------------------------- |
+| `side`             | Chooses `top`, `bottom`, `left`, `right`, `start`, or `end`. Start and end follow reading direction. |
+| `align`            | Aligns the popup to the start, center, or end of that side.                                          |
+| `sideOffset`       | Sets the gap from the anchor, in pixels.                                                             |
+| `alignOffset`      | Shifts it along its side.                                                                            |
+| `collisionPadding` | Leaves space from the window's edges.                                                                |
+
+An `anchor` positions the popup against another element. The component's page lists the anchors it accepts.
+
+## Control Dismissal
+
+Set `dismissible` to false to stop Escape, outside presses, focus leaving, Back, and sheet swipes from closing it. The trigger, Close part, and controller can still close it:
+
+```svelte
+<script lang="ts">
+import { Popover, PopoverClose, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/svelte/popover"
+</script>
+
+<Popover dismissible={false}>
+  <PopoverTrigger>Details</PopoverTrigger>
+  <PopoverContent>
+    <PopoverTitle>Project Details</PopoverTitle>
+    <p>Last updated today.</p>
+    <PopoverClose>Done</PopoverClose>
+  </PopoverContent>
+</Popover>
+```
+
+Use `onDismissAttempt` to hear each refused dismissal. [State and Events](./state-and-events) shows how to cancel just one reason.
+
+## Modals and Sheets
+
+`modal` set to true makes the rest of the page inert and locks scrolling. Each component documents its default.
+
+Menu, Select, Combobox, Autocomplete, Popover, and Dialog support `presentation="auto"` to become a sheet on small touch screens. Use `presentation="sheet"` to always show a sheet.
+
+## Mounting and Containers
+
+Closed content unmounts after its exit animation. `keepMounted` leaves it in the page, hidden. `onOpenChangeComplete` runs when opening or closing finishes, including animations.
+
+Use `container` to render into another element. Keep a dialog containing a form outside any surrounding form, or move its content with `container`, to avoid nested forms.
+
+[Styling and Animation](./styling-and-animation) covers transitions. For toasts and confirms, mount `OverlayHost` once near your app's root; [Toast](./components/toast) and [Alert Dialog](./components/alert-dialog) show the setup.

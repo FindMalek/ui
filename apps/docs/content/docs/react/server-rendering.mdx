@@ -1,0 +1,94 @@
+---
+title: Server Rendering
+description: Render the initial HTML on the server and add interactions when React hydrates.
+---
+
+ui-sdk parts render their initial HTML on the server, including ARIA state and keyboard tab stops. Hydration connects the event handlers in the browser.
+
+## Render from a Server Component
+
+In an app with React Server Components, such as Next.js, you can render ui-sdk components directly from a server page. Their modules already include `"use client"`:
+
+```tsx
+import { Toggle } from "@ui-sdk/react/toggle"
+
+function Page() {
+  return <Toggle defaultPressed>Bold</Toggle>
+}
+
+export { Page }
+```
+
+The server sends a button with `aria-pressed="true"`. It can toggle after hydration. Native HTML behavior, such as submitting a form, can work before hydration.
+
+## Wrappers in a Server Component
+
+A wrapper that only renders markup can stay on the server. `renderElement` lets it support the same `render` prop as other parts:
+
+```tsx
+import { renderElement, type PartProps } from "@ui-sdk/react/primitive"
+
+function Card({ render, ...props }: PartProps<"div">) {
+  return renderElement("div", { ...props, "data-card": "" }, render)
+}
+
+function Page() {
+  return (
+    <Card render={<section />} className="card">
+      Your plan renews on May 1.
+    </Card>
+  )
+}
+
+export { Card, Page }
+```
+
+The server renders a `section` with the card’s props.
+
+Put custom parts built with `usePrimitive`, `usePart`, or `createParts` in a client module. A Server Component can then render those exported parts, just like `Toggle` above.
+
+## Add Your Own Client Boundary
+
+If your component owns React state, callbacks, or render functions, put `"use client"` at the top of its entry file:
+
+```tsx title="mute-button.tsx"
+"use client"
+
+import { Toggle } from "@ui-sdk/react/toggle"
+import { useState } from "react"
+
+function MuteButton() {
+  const [muted, setMuted] = useState(false)
+
+  return (
+    <>
+      <Toggle pressed={muted} onPressedChange={setMuted}>
+        Mute
+      </Toggle>
+      <output>{muted ? "Sound is off" : "Sound is on"}</output>
+    </>
+  )
+}
+
+export { MuteButton }
+```
+
+Render `MuteButton` from your server page. Clicking Mute changes its pressed state and the output; the button keeps the same accessible name.
+
+Keep ordinary callbacks and render functions inside the client boundary. They cannot cross from a Server Component as props.
+
+## Keep the First Render Consistent
+
+Use the same initial values on the server and client. Read browser-only values in an effect or event handler, after hydration.
+
+### IDs
+
+Parts generate IDs for their relationships, such as a Dialog trigger’s `aria-controls` and a Field label’s `for`. You usually do not need to supply them.
+
+Pass an explicit `id` when something outside the component needs to refer to a part. On the server, render order matters: if a Field label renders before a control with your ID, the label initially uses the generated ID. Hydration updates the reference to yours. The same applies to Dialog triggers, titles, and descriptions.
+
+Keep a part with your ID in the same Suspense boundary as the parts that reference it so they hydrate together. Pass the ID to the part or its `render` element; an ID assigned inside a render function cannot be read ahead and is picked up during hydration.
+
+Use classes or data attributes for styling, rather than generated IDs.
+
+Popups render in place, so they don't need a portal root in your server layout. [Popups](./popups) covers their placement and containers; [Forms](./forms) covers submission and validation.

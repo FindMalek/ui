@@ -1,0 +1,96 @@
+import * as React from "react"
+import { createHistory, definePrimitive, matchesShortcut } from "@ui-sdk/core"
+import { createParts } from "@ui-sdk/react/primitive"
+
+type PixelsState = {
+  painted: string[]
+  canUndo: boolean
+  canRedo: boolean
+}
+
+const pixels = definePrimitive({
+  name: "pixels",
+  state: (): PixelsState => ({ painted: [], canUndo: false, canRedo: false }),
+  api: (context) => {
+    const { store } = context
+    const history = createHistory<string[]>([])
+    const show = (painted: string[] | undefined) => {
+      if (painted) store.set({ painted })
+      store.set({ canUndo: history.canUndo(), canRedo: history.canRedo() })
+    }
+    const api = {
+      toggle(cell: string) {
+        const { painted } = store.get()
+        const next = painted.includes(cell) ? painted.filter((other) => other !== cell) : [...painted, cell]
+        history.record(next)
+        show(next)
+      },
+      undo: () => show(history.undo()),
+      redo: () => show(history.redo()),
+      keydown(event: KeyboardEvent) {
+        if (matchesShortcut(event, "mod+z")) api.undo()
+        else if (matchesShortcut(event, "mod+shift+z") || matchesShortcut(event, "control+y")) api.redo()
+        else return
+        event.preventDefault()
+      },
+    }
+    return api
+  },
+  slots: (slot) => ({
+    root: slot({ on: { keydown: (event, { api }) => api.keydown(event) } }),
+    cell: slot<{ value: string }, { painted: boolean }>({
+      props: { value: "string" },
+      state: (state, { key }) => ({ painted: state.painted.includes(key) }),
+      attrs: (state, { key }) => ({
+        type: "button",
+        "aria-pressed": String(state.painted.includes(key)),
+        "data-painted": state.painted.includes(key) ? "" : undefined,
+      }),
+      press: ({ api, key }) => api.toggle(key),
+    }),
+    undo: slot({
+      attrs: (state) => ({ type: "button", disabled: state.canUndo ? undefined : "" }),
+      press: ({ api }) => api.undo(),
+    }),
+    redo: slot({
+      attrs: (state) => ({ type: "button", disabled: state.canRedo ? undefined : "" }),
+      press: ({ api }) => api.redo(),
+    }),
+  }),
+})
+
+const parts = createParts(pixels, { root: "div", cell: "button", undo: "button", redo: "button" })
+
+const Pixels = parts.Root
+
+const PixelsCell = parts.Cell
+
+const PixelsUndo = parts.Undo
+
+const PixelsRedo = parts.Redo
+
+const cells = Array.from({ length: 36 }, (_, index) => `${Math.floor(index / 6)}:${index % 6}`)
+const button = "rounded-md border border-border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+
+function Example() {
+  return (
+    <Pixels className="flex flex-col items-center gap-2">
+      <div role="group" aria-label="Pixels" className="grid grid-cols-6 gap-1">
+        {cells.map((cell) => (
+          <PixelsCell
+            key={cell}
+            value={cell}
+            aria-label={`Row ${Number(cell[0]) + 1}, column ${Number(cell[2]) + 1}`}
+            className="size-7 rounded-sm bg-muted outline-none focus-visible:ring-2 focus-visible:ring-ring/50 data-painted:bg-primary"
+          />
+        ))}
+      </div>
+      <div className="flex gap-2">
+        <PixelsUndo className={button}>Undo</PixelsUndo>
+        <PixelsRedo className={button}>Redo</PixelsRedo>
+      </div>
+    </Pixels>
+  )
+}
+
+export { Example, pixels, Pixels, PixelsCell, PixelsRedo, PixelsUndo, type PixelsState }

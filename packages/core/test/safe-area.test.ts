@@ -1,0 +1,49 @@
+import { afterEach, describe, expect, test, vi } from "vitest"
+import { createSafeArea } from "../src/components/menu/safe-area"
+
+// A submenu to the right of a trigger that ends at x = 200.
+const submenu = {
+  getBoundingClientRect: () => ({ left: 200, right: 360, top: 100, bottom: 300 }),
+} as HTMLElement
+
+afterEach(() => vi.useRealTimers())
+
+describe("safe area", () => {
+  test("moves toward the submenu inside the triangle are protected", () => {
+    const area = createSafeArea()
+    area.start({ x: 190, y: 120 }, submenu)
+    expect(area.contains({ x: 195, y: 140 }, () => {})).toBe(true)
+  })
+
+  test("moves away from the submenu are not", () => {
+    const area = createSafeArea()
+    area.start({ x: 190, y: 120 }, submenu)
+    expect(area.contains({ x: 150, y: 140 }, () => {})).toBe(false)
+  })
+
+  test("moves outside the triangle are not", () => {
+    const area = createSafeArea()
+    area.start({ x: 190, y: 120 }, submenu)
+    expect(area.contains({ x: 195, y: 400 }, () => {})).toBe(false)
+  })
+
+  test("resting inside the triangle expires the protection", () => {
+    vi.useFakeTimers()
+    const area = createSafeArea({ restTimeout: 300 })
+    area.start({ x: 190, y: 120 }, submenu)
+    let rested = false
+    expect(area.contains({ x: 195, y: 140 }, () => (rested = true))).toBe(true)
+    vi.advanceTimersByTime(300)
+    expect(rested).toBe(true)
+    expect(area.contains({ x: 196, y: 141 }, () => {})).toBe(false)
+  })
+
+  test("works when the submenu flipped to the left", () => {
+    const left = {
+      getBoundingClientRect: () => ({ left: 0, right: 100, top: 100, bottom: 300 }),
+    } as HTMLElement
+    const area = createSafeArea()
+    area.start({ x: 110, y: 120 }, left)
+    expect(area.contains({ x: 105, y: 140 }, () => {})).toBe(true)
+  })
+})
