@@ -16,7 +16,7 @@ const config = {
   // The examples route reads examples/dist at runtime, so those files ship
   // with its function.
   outputFileTracingIncludes: {
-    "/examples/[...path]": ["../../examples/dist/**/*.js"],
+    "/examples/**": ["../../examples/dist/**/*.js"],
   },
   async redirects() {
     const frameworks = ["react", "vue", "svelte", "web-components", "solid"]
