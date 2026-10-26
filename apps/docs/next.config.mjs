@@ -13,6 +13,11 @@ const config = {
   // examples/vite.config.ts compiles them, and the browser loads them.
   transpilePackages: ["@ui-sdk/core", "@ui-sdk/react"],
   turbopack: { root: path.resolve(import.meta.dirname, "../..") },
+  // The examples route reads examples/dist at runtime, so those files ship
+  // with its function.
+  outputFileTracingIncludes: {
+    "/examples/[...path]": ["../../examples/dist/**/*.js"],
+  },
   async redirects() {
     const frameworks = ["react", "vue", "svelte", "web-components", "solid"]
     const pages = "components|utilities|rendering"
