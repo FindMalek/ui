@@ -149,10 +149,11 @@ jobs:
           browsers: ${{ needs.plan.outputs.suite == 'affected-engines' && 'chromium webkit firefox' || 'chromium' }}
 
       # A pull request against its base branch, a push to main against the
-      # commit main was at before it.
+      # commit main was at before it. A repository's first push has no such
+      # commit (GitHub sends all zeros), so it falls back to origin/main.
       - name: Run Playwright
         env:
-          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || github.event.before || 'origin/main' }}
+          BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || (github.event.before != '0000000000000000000000000000000000000000' && github.event.before) || 'origin/main' }}
           ENGINES: ${{ needs.plan.outputs.suite == 'affected-engines' && '--engines' || '' }}
         run: node scripts/affected-specs.mjs --base "$BASE" $ENGINES
 
