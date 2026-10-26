@@ -2,6 +2,7 @@ import { frameworkScript } from "@/lib/sections"
 import { themeScript } from "@/lib/theme"
 import type { Metadata } from "next"
 import { Geist } from "next/font/google"
+import { Analytics } from "@vercel/analytics/next"
 import Script from "next/script"
 import "./global.css"
 
@@ -31,6 +32,7 @@ export default function Layout({ children }: LayoutProps<"/">) {
       </head>
       <body className="min-h-dvh bg-canvas font-sans text-foreground">
         {children}
+        <Analytics />
       </body>
     </html>
   )
