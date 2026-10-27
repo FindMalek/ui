@@ -21,8 +21,8 @@ async function record(page: Page, steps: () => Promise<void>) {
   return log
 }
 
-// The reference also says "not expanded" for the trigger, which reads as
-// "collapsed" once the dialog closes. Without aria-expanded, it doesn't.
+// The trigger has no aria-expanded, so it never reads as "collapsed" once the
+// dialog closes.
 test(
   "announcements while using the dialog with a keyboard",
   { tag: "@enhancement" },

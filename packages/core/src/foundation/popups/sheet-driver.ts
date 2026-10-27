@@ -68,8 +68,8 @@ type SheetDriver = {
 
 // An open starts on the sheet's first drawn frame, not at a time picked in
 // advance. The frame that builds the sheet can be long: a start time from
-// before it skips the rise's first frames, which made opens stutter on an
-// iPhone in the drawer lab, and a fixed delay either waits too long or not
+// before it skips the rise's first frames, which makes opens stutter on an
+// iPhone, and a fixed delay either waits too long or not
 // long enough. So the open's animation is created at once, held closed by a
 // start time this far ahead, and moved to the time of the sheet's first drawn
 // frame by `afterFirstFrame`.

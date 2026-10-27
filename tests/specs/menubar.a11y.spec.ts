@@ -15,7 +15,6 @@ test("no axe violations at rest", async ({ page, open }) => {
   expect(await audit(page)).toEqual([])
 })
 
-// The reference fails this one: its open menu leaves focusable elements under aria-hidden.
 test("no axe violations with a menu open", { tag: "@enhancement" }, async ({ page, open, tab }) => {
   await open("menubar")
   await enter(page, tab)
@@ -24,7 +23,6 @@ test("no axe violations with a menu open", { tag: "@enhancement" }, async ({ pag
   expect(await audit(page)).toEqual([])
 })
 
-// The reference fails this one: its open menu leaves focusable elements under aria-hidden.
 test("no axe violations with a submenu open", { tag: "@enhancement" }, async ({ page, open }) => {
   await open("menubar")
   await trigger(page, "File").click()

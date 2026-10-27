@@ -5,9 +5,8 @@ import { changedItems } from "../fixtures/select"
 // Items that change while the list is open, like options streamed in or
 // sorted by the app. The list follows its items at once: the order on screen
 // is the order the keys move through, and the selection and the highlight
-// stay on their items while those items stay in the list. The reference keeps
-// the highlight on the same index, and focus leaves an item that moved, so the
-// tests where the highlight stays on its item are tagged @enhancement.
+// stay on their items while those items stay in the list. The tests where the
+// highlight stays on its item are tagged @enhancement.
 
 const trigger = (page: Page) => page.getByRole("combobox", { name: "Fruit" })
 const listbox = (page: Page) => page.getByRole("listbox")

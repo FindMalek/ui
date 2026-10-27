@@ -45,7 +45,6 @@ test("no axe violations with a toast over a modal dialog", async ({ page, open }
   expect(await audit(page)).toEqual([])
 })
 
-// The reference has no overlay host.
 test(
   "no axe violations with the overlay host's toasts and question",
   { tag: "@enhancement" },
@@ -65,7 +64,6 @@ test("a toast is named by its title and described by its description", async ({ 
   await expect(toast).toHaveAccessibleDescription(basic.description)
 })
 
-// The reference makes each toast a dialog, so its tree differs by design.
 test(
   "the accessibility tree is the same in every framework",
   { tag: "@enhancement" },

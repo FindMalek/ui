@@ -9,17 +9,13 @@ out
 coverage
 .turbo
 *.log
-apps/*/ios
-apps/*/android
 .env*
+!.env.example
 blob-report
 
 dist-ssr
 
 .svelte-kit*
-
-# Local decision logs from long agent runs.
-.audit/
 
 # Files the docs walkthrough tests extract from the docs.
 packages/*/test/.walkthrough/

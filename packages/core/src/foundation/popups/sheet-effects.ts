@@ -3,8 +3,7 @@
 // behind it, the sheets it's stacked on, and the browser's theme color.
 //
 // Three paths, so the main thread never writes effects frame by frame while
-// the sheet moves on its own (the drawer lab traced an iPhone's opening
-// stutter to exactly that):
+// the sheet moves on its own (on an iPhone, that makes the open stutter):
 // - a finger drives the frame: `apply(extent)` writes once per frame;
 // - the sheet settles on its own: `play(motion)` hands each curve to WAAPI as
 //   a `linear()` easing sampled from the same spring, started at the same

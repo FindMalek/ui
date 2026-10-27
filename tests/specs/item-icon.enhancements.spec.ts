@@ -23,8 +23,8 @@ function warnings(page: Page) {
 }
 
 test.describe("enhancements", { tag: "@enhancement" }, () => {
-  // The reference matches an item's whole text, so "📌Pin" isn't found by "p"
-  // unless every item with an icon repeats its text in a `label` prop.
+  // Typeahead reads an item's text, not its icon's, so "📌Pin" is found by "p"
+  // without a `label` prop.
   test("menu typeahead finds an item by its text, not its icon's", async ({ page, open }) => {
     await open("item-icons")
     await page.getByRole("button", { name: f.menu.trigger }).focus()

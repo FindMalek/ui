@@ -52,7 +52,6 @@ test("the drawer's accessibility tree is a dialog with its handle, title and act
   `)
 })
 
-// The reference has no grabber part.
 test("the handle is a button that controls the drawer", { tag: "@enhancement" }, async ({ page, open }) => {
   await open("drawer", { snap: "0.25,0.5,1" })
   await drawerTrigger(page).click()

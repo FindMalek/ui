@@ -6,7 +6,7 @@ import { expect, isSheet, lastAction, test, waitForStill } from "../fixtures"
 // Focus stays in the input, and aria-activedescendant points at the highlighted option.
 
 const input = (page: Page) => page.getByRole("combobox", { name: "Country" })
-// The reference names its list only sometimes, so it's found by role.
+// The list is found by role.
 const listbox = (page: Page) => page.getByRole("listbox")
 const option = (page: Page, name: string) => page.getByRole("option", { name, exact: true })
 const options = (page: Page) => listbox(page).getByRole("option")
@@ -190,7 +190,6 @@ test.describe("trigger and clear", () => {
 
   test("the trigger button opens and closes the list", async ({ page, fixtureOptions }) => {
     test.skip(isSheet(fixtureOptions), "A sheet is modal by default, so the trigger behind it is inert.")
-    // The reference hides the rest of the page from assistive technology while open.
     const trigger = page.getByRole("button", { name: "Show countries", includeHidden: true })
     await trigger.click()
     await expect(listbox(page)).toBeVisible()

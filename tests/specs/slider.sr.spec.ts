@@ -39,8 +39,8 @@ test("announcements while moving to a slider with a keyboard", async ({ page, op
   ])
 })
 
-// The reference adds "start range" to the value, and gives every thumb the
-// whole range, so a screen reader can't tell how far a thumb can go.
+// Each thumb announces the range it can move in, so a screen reader can tell
+// how far it can go.
 test(
   "a range thumb announces how far it can go and its formatted value",
   { tag: "@enhancement" },

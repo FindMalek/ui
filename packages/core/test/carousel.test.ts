@@ -80,7 +80,7 @@ describe("loop", () => {
 
   test("loops seamlessly only with a page's step of room to either side", () => {
     expect(canLoop(measureTrack(row(3, 300), 0)!, { ...view, maxScroll: 600 })).toBe(true)
-    // Two slides one to a view rewind, like Embla.
+    // Two slides one to a view rewind.
     expect(canLoop(measureTrack(row(2, 300), 0)!, { ...view, maxScroll: 300 })).toBe(false)
     // Five slides three to a view, in pages of one: a 200px range holds 100px each way.
     expect(canLoop(measureTrack(row(5, 100), 0)!, { ...view, maxScroll: 200 })).toBe(true)

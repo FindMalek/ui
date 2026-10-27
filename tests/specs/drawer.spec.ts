@@ -265,8 +265,8 @@ test.describe("touch", () => {
   })
 })
 
-// The reference has no grabber part, no way to refuse a dismissal and no
-// modality per snap point, so these three groups are enhancements.
+// The handle, refusing a dismissal and modality per snap point go past the
+// pattern, so these three groups are enhancements.
 test.describe("handle", { tag: "@enhancement" }, () => {
   test.beforeEach(async ({ open, page }) => {
     await open("drawer", { snap: "0.25,0.5,1", scroll: "" })

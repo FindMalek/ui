@@ -6,7 +6,7 @@ import { expect, isSheet, lastAction, test, waitForStill } from "../fixtures"
 // Focus moves to the options while the list is open.
 
 const trigger = (page: Page) => page.getByRole("combobox", { name: "Fruit" })
-// The reference leaves the list unnamed, so it's found by role. Naming it is an enhancement.
+// The list is found by role. Naming it is an enhancement.
 const listbox = (page: Page) => page.getByRole("listbox")
 const option = (page: Page, name: string) => page.getByRole("option", { name, exact: true })
 

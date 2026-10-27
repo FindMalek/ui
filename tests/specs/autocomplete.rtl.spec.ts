@@ -15,7 +15,6 @@ test("the suggestions line up with the field's right edge", async ({ page, open 
   expect(Math.abs(popup.x + popup.width - (field.x + field.width))).toBeLessThanOrEqual(1)
 })
 
-// The reference fills in the whole label, with nothing selected.
 test(
   "inline completion selects the rest after the caret",
   { tag: "@enhancement" },

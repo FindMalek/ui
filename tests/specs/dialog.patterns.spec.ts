@@ -25,7 +25,6 @@ test.beforeEach(async ({ open }) => {
   await open("dialog-patterns")
 })
 
-// The reference does these too.
 test.describe("opening a dialog from a menu item", () => {
   test("choosing the item closes the menu and moves focus into the dialog", async ({ page }) => {
     await fileTrigger(page).click()

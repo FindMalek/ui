@@ -113,7 +113,7 @@
     animation: spin 300ms linear infinite;
   }
 
-  /* Popover. The reference only gets class names, so each rule targets both. */
+  /* Popover. Each rule targets the class and the data-slot. */
   [data-slot="popover-content"] {
     min-width: 180px;
     padding: 12px;
@@ -628,7 +628,7 @@
     white-space: nowrap;
   }
 
-  /* Dialog and alert dialog. The reference only gets class names. */
+  /* Dialog and alert dialog. */
   .dialog-backdrop {
     position: fixed;
     inset: 0;
@@ -695,7 +695,7 @@
   }
 
   /* Drawer. The sheet's position, the dim's opacity and the viewport come
-     from the drawer; these give it a surface. The reference only gets class names. */
+     from the drawer; these give it a surface. */
   .drawer-backdrop {
     position: fixed;
     inset: 0;
@@ -908,7 +908,7 @@
     gap: 8px;
     align-items: center;
   }
-  /* Select and Combobox. The reference only gets class names, so each rule targets both. */
+  /* Select and Combobox. Each rule targets the class and the data-slot. */
   .select-form {
     display: flex;
     flex-wrap: wrap;
@@ -1190,7 +1190,7 @@
   }
 }
 
-/* Command. The reference only gets class names, so each rule targets both. */
+/* Command. Each rule targets the class and the data-slot. */
 @layer fixtures {
   .command,
   [data-slot="command-root"] {
@@ -1224,7 +1224,7 @@
   }
 }
 
-/* Toasts. The reference only gets class names. Newest first in the DOM, so a
+/* Toasts. Newest first in the DOM, so a
    region on the bottom edge lists them upward. */
 @layer fixtures {
   .toast-region {

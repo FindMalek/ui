@@ -4,12 +4,11 @@
 //
 // Degree 2 needs four samples here, not three: three samples fit exactly, and
 // a hard deceleration between them (a coarse mouse drag, a dropped frame)
-// can flip the end slope's sign, which turned a fling up into a dismissal in
-// the drawer lab (test/gesture/velocity.test.ts).
+// can flip the end slope's sign and turn a fling up into a dismissal.
 //
-// The horizon is 70ms, not the research's 100ms: a slow drag that ends in a
+// The horizon is 70ms, not 100ms: a slow drag that ends in a
 // 50ms flick to 2px/ms reads 1.43px/ms over 100ms at 120Hz, because a quadratic
-// can't follow the kink, and 1.9px/ms over 70ms (test/gesture/velocity.test.ts).
+// can't follow the kink, and 1.9px/ms over 70ms.
 
 const defaults = {
   /** How far back samples count, in ms before the newest. Defaults to 70. */

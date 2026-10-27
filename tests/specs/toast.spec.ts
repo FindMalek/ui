@@ -53,7 +53,6 @@ test.describe("showing", () => {
     await expect(items.nth(1)).toHaveCSS("--toast-index", "1")
   })
 
-  // The reference marks no toast as the front one.
   test("the newest toast is marked as the front one", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast")
     await page.getByRole("button", { name: basic.trigger }).click()
@@ -68,7 +67,6 @@ test.describe("showing", () => {
     await expect(toastNamed(page, error.title)).toHaveAttribute("data-type", "error")
   })
 
-  // The reference has no placement; its viewport is placed by CSS alone.
   test("the region sits on its side and alignment", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast", { side: "top", align: "start" })
     await page.getByRole("button", { name: success.trigger }).click()
@@ -79,7 +77,6 @@ test.describe("showing", () => {
     expect(box.x).toBeLessThan(100)
   })
 
-  // The reference portals to the body instead.
   test("it shows above everything, in the top layer", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast")
     await page.getByRole("button", { name: success.trigger }).click()
@@ -120,7 +117,6 @@ test.describe("closing", () => {
     await expect(toastNamed(page, "Stays")).toBeVisible()
   })
 
-  // The reference hides Close from screen readers until the stack expands, so it can't be found by role.
   test("the Dismiss button closes it", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast")
     await page.getByRole("button", { name: basic.trigger }).click()
@@ -128,7 +124,6 @@ test.describe("closing", () => {
     await expect(toastNamed(page, basic.title)).toHaveCount(0)
   })
 
-  // The reference leaves closing to the action's handler.
   test("the action runs and closes it", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast")
     await page.getByRole("button", { name: basic.trigger }).click()
@@ -155,7 +150,6 @@ test.describe("closing", () => {
     await expect(page.locator(".toast[data-ending-style]")).toHaveCount(1)
   })
 
-  // The reference has no option to refuse dismissal.
   test("a toast that can't be dismissed ignores Escape", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast")
     await show(page, { title: "Required", dismissible: false })
@@ -184,7 +178,6 @@ test.describe("timers", () => {
     await expect(toastNamed(page, success.title)).toHaveCount(0)
   })
 
-  // The reference pauses only for focus it would show a focus ring for.
   test("focus in the region pauses its timers", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast", { duration: "600" })
     await page.getByRole("button", { name: success.trigger }).click()
@@ -197,7 +190,6 @@ test.describe("timers", () => {
 })
 
 test.describe("keyboard", () => {
-  // The reference's F6 focuses the region, not a toast, and only enters it.
   test(
     "F6 moves focus to the newest toast, and again back where it was",
     { tag: "@enhancement" },
@@ -213,7 +205,6 @@ test.describe("keyboard", () => {
     },
   )
 
-  // The reference's F6 can't be changed.
   test("the shortcut is configurable", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast", { shortcut: "alt+t" })
     await page.getByRole("button", { name: success.trigger }).click()
@@ -222,7 +213,6 @@ test.describe("keyboard", () => {
     await expect(toastNamed(page, success.title)).toBeFocused()
   })
 
-  // The reference puts no aria-keyshortcuts on its region.
   test("the region names its shortcut", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast")
     await page.getByRole("button", { name: success.trigger }).click()
@@ -249,7 +239,6 @@ test.describe("keyboard", () => {
 })
 
 test.describe("stacking", () => {
-  // The reference keeps toasts past its limit in the page, inert.
   test("only max toasts show; the rest wait for room", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast", { max: "2" })
     for (const title of ["One", "Two", "Three"])
@@ -260,7 +249,6 @@ test.describe("stacking", () => {
     await expect(toastNamed(page, "One")).toBeVisible()
   })
 
-  // The reference expands only for focus it would show a focus ring for.
   test("the stack expands while hovered or focused", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast")
     await page.getByRole("button", { name: success.trigger }).click()
@@ -270,14 +258,12 @@ test.describe("stacking", () => {
     await expect(toastNamed(page, success.title)).toHaveAttribute("data-expanded", "")
   })
 
-  // The reference has no option to keep it expanded.
   test("expanded keeps the stack expanded", { tag: "@enhancement" }, async ({ page, open }) => {
     await open("toast", { expanded: "" })
     await page.getByRole("button", { name: success.trigger }).click()
     await expect(region(page)).toHaveAttribute("data-expanded", "")
   })
 
-  // The reference names its variables differently.
   test(
     "toasts measure their heights and offsets for the stack",
     { tag: "@enhancement" },
@@ -351,7 +337,6 @@ test.describe("swiping", () => {
 })
 
 test.describe("over a modal dialog", () => {
-  // The reference's toasts sit beneath a modal dialog's backdrop.
   test(
     "a toast shown from a modal dialog is visible, usable and above it",
     { tag: "@enhancement" },

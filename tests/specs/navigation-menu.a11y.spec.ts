@@ -18,7 +18,6 @@ test("no axe violations while closed", async ({ page, open }) => {
   expect(await audit(page)).toEqual([])
 })
 
-// The reference's focus guards are focusable inside aria-hidden elements while open.
 test("no axe violations while a panel is open", { tag: "@enhancement" }, async ({ page, open }) => {
   await open("navigation-menu")
   await trigger(page, "Products").click()

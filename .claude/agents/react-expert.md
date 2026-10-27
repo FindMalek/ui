@@ -27,6 +27,6 @@ The bar: a React expert reading `@ui-sdk/react` says "yes, this is the best way 
 
 ## Rules
 
-- Read only unless the task says to fix. Never commit, push, open PRs or publish. The project is confidential: nothing leaves the repo.
-- Ignore styling and design tokens. Ignore size and performance unless pathological. Don't compare with Zag or Ark.
+- Read only unless the task says to fix. Never commit, push, open PRs or publish.
+- Ignore styling and design tokens. Ignore size and performance unless pathological.
 - Run tests through `scripts/test-slot.sh`, give every server its own port, and check exit codes.

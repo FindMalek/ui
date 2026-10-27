@@ -18,7 +18,6 @@ test("no axe violations while closed", async ({ page, open }) => {
   expect(await audit(page)).toEqual([])
 })
 
-// The reference leaves focusable elements inside its aria-hidden outside, and an unlabelled input, while open.
 test.describe("while open", { tag: "@enhancement" }, () => {
   test("no axe violations while open, with a suggestion highlighted", async ({ page, open }) => {
     await open("autocomplete")

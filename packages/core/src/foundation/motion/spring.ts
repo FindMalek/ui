@@ -1,7 +1,7 @@
 // An analytic damped spring, parameterized like SwiftUI: `response` (the period
 // of the undamped oscillation, in seconds) and `dampingRatio` (1 is critical).
 // Positions are in px, times in ms and velocities in px/ms, so one solver
-// serves every driver and the lab's fits.
+// serves every driver.
 
 // Solves x'' = −ω²x − 2ζωx' for a start displacement (position − target) and
 // velocity, and returns closures over the coefficients, so sampling it every

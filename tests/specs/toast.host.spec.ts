@@ -5,7 +5,7 @@ import { toastFixture, toastRole } from "../fixtures/toast"
 const role = () => toastRole
 
 // The overlay host: one component that renders what toast() and confirm()
-// open from anywhere. The reference has neither.
+// open from anywhere.
 test.describe("the overlay host", { tag: "@enhancement" }, () => {
   const { basic, confirm } = toastFixture
   const region = (page: Page) => page.getByRole("region", { name: toastFixture.region })

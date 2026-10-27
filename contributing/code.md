@@ -1,0 +1,68 @@
+# Code standard
+
+Write code a highly skilled team would be glad to read, review and extend. Readable first, then fast, and never clever for its own sake. This applies to every file: core, adapters, tests, fixtures, examples and scripts.
+
+## Style
+
+- No semicolons. Double quotes. Prettier formats everything: `pnpm format` checks, `pnpm format:write` fixes.
+- Comments are full sentences ending in a period.
+- Never annotate function return types; let them infer.
+- Prefer inline types.
+- Named exports, listed once at the end of the file.
+- `pnpm lint` (`scripts/check-code.mjs`) checks the rules a script can. Every new convention lands with its lint rule.
+
+## Structure
+
+- **One job per module.** Split a file by concern once it passes about 500 lines, or earlier when it holds two ideas. A component's core is usually: state and API, keyboard and focus, and parts and attributes.
+- **Three folders in core.** `packages/core/src/foundation/` holds what components build on, `packages/core/src/components/` one folder per component, and `packages/core/src/page/` what works across a page. Imports go downward only; `import-layers` checks it. See [architecture.md](architecture.md).
+- **One way to split a component.** A component's core starts in `<name>.ts`. Once it passes about 400 lines, `<name>-api.ts` (state and methods, with the function that builds the api, like `comboboxApi`) and `<name>-parts.ts` (slots) go beside the definition, and its keys go in `<name>-keyboard.ts`. `pnpm lint` checks the api file (`api-files`).
+- **Exports at the end.** Declare everything without `export`, and list a file's exports once, in an `export { }` at its end, with re-exports and a default export after it, so one look at the bottom shows a file's whole surface. `pnpm lint` checks it (`exports-at-end`).
+- **Entries are public.** Everything a package entry exports is public API, so an entry names its exports one by one, never `export *` or `export type *`. What only adapters need lives in a module that isn't an entry: core's goes out through `@ui-sdk/core/renderer`, an adapter's in a file like `toast-parts.tsx`. `pnpm lint` flags an `@internal` export an entry reaches (`internal-exports`). An adapter's entry for a component re-exports every type core's entry for it exports, by name, so each framework offers the same types. When the entry gives one of those names to something else, like the `SelectValue` component, it exports core's type with `Data` added (`SelectValueData`, `ToastData`). `pnpm lint` checks it (`entry-types`).
+- **Share before you copy.** Before writing a helper, look in core's foundation folders and the adapters. If two components need the same logic, move it into one shared module in the same change.
+- **Keep behavior in core,** and keep adapters thin and generic. If a component needs an adapter change, it must help every primitive.
+- **Parts through the contract.** A component's parts come from `createParts` (web: `defineParts`), typed and documented from the primitive's schema. Write a part by hand with `usePart` only when it renders something of its own, and say why in a comment. Schemas are plain object literals, never spreads, so esbuild can drop unused primitives.
+- **Side effects at the edges.** Decisions are pure functions with plain inputs, and they're unit tested. `bind`, listeners and DOM writes call them.
+- **No dead code:** no commented-out code, unused exports, leftover probes or `console.log`.
+- **No dependencies.** Shipped packages depend only on `@ui-sdk/core` and their framework as a peer. Write it yourself before adding a package: core's positioning is its own. Dev tooling is fine.
+
+## Names and functions
+
+- **Names say what a thing is or does,** in full words: `highlightedItem`, not `hi`. Booleans read as questions: `isOpen`, `hasValue`.
+- **Short functions with one level of abstraction.** Return early instead of nesting. Name complex conditions with a well-named `const` or a small function.
+- **Prefer plain data and functions** over classes and inheritance. Closures over hidden module state.
+- **Comments explain why** (a browser bug, an APG rule, a trade-off), never what the next line does. Link the spec or the test that pins the behavior. Examples have no comments: their docs page explains them.
+
+## Types
+
+- **Precise types that infer well;** no `any`. `unknown` plus narrowing at boundaries is fine.
+- **Non-null assertions (`!`) and casts only with a reason** the code makes obvious, or a comment. No `as never`.
+- **Public types carry JSDoc on every field.** That's the API reference. Every export of core's public entries and of every adapter entry has a JSDoc comment too, components and hooks included, since agents read the types to build components and people learn a part from its hover in their editor. Say what the part is and anything they must know, like the role it renders or where it goes, in the words of its docs page and the same words in every framework. A Svelte component takes a `<!-- @component -->` comment at the top of its file instead. `pnpm lint` checks it (`public-docs`).
+- **Every public export says how settled it is,** with `@stable` (follows semver) or `@experimental` (may change in any minor release). New blocks start experimental. `pnpm lint` checks it (`stability`).
+- **Avoid `Required<…>` on option types that grow.** Adding an option becomes a breaking type change for every caller.
+
+## Performance
+
+- **No layout reads inside loops,** and never read layout after a write in the same frame. Batch reads, then writes.
+- **No allocations or object identity churn on hot paths:** pointer moves, scroll, highlight, typing. Keep render-state arrays and objects stable.
+- **Linear work over collections.** Watch for O(n²) hiding in `find` inside `map`, or in repeated `querySelectorAll`.
+- **Measure before optimizing,** and say what you measured.
+- **Live state never causes framework renders.**
+
+## Tests
+
+- **One behavior per test,** titled as a plain sentence a reader can check. Docs pages list behavior from spec titles.
+- **Role-based locators,** and waits on real conditions, never fixed sleeps.
+- **Fixtures as small as the behavior needs.**
+- **A fix comes with the test that fails without it.**
+
+## Before you finish: review your own diff
+
+Read your whole diff as a strict reviewer would, and fix what you find:
+
+- Is every name clear?
+- Is any function doing two things?
+- Is anything duplicated that exists elsewhere?
+- Is any file now too long?
+- Any dead code, debug output, stray `any` or unexplained casts?
+- Any hot-path allocation or layout thrash?
+- Would a new teammate understand each module from its first screen?

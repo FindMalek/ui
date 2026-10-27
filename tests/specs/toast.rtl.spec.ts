@@ -24,7 +24,6 @@ async function drag(page: Page, name: string, dx: number) {
   await page.mouse.up()
 }
 
-// The reference has no alignment.
 test("a region aligned to the end sits on the left", { tag: "@enhancement" }, async ({ page, open }) => {
   await open("toast", { dir: "rtl" })
   await show(page, { title: "Saved" })

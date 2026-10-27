@@ -7,8 +7,8 @@ import { changedItems } from "../fixtures/combobox"
 // is the order the keys move through, and the selection and the highlight
 // stay on their items while those items stay in the list. Focus stays in the
 // input, and aria-activedescendant points at the highlighted option.
-// The reference keeps the highlight on the same index when items move, so the
-// tests where it stays on its item are tagged @enhancement.
+// The tests where the highlight stays on its item as items move are tagged
+// @enhancement.
 
 const input = (page: Page) => page.getByRole("combobox", { name: "Country" })
 const listbox = (page: Page) => page.getByRole("listbox")

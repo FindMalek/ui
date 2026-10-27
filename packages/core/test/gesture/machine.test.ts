@@ -10,8 +10,7 @@ import {
 import { sheetPhysics } from "../../src/foundation/motion/physics"
 import { rubberBand } from "../../src/foundation/motion/rubber-band"
 
-// The research defaults the lab's machine tests were written against: UIScrollView's
-// projection and band. The fitted preset has its own tests below and in golden.test.ts.
+// Defaults that follow UIScrollView's projection and band. The fitted preset has its own tests below and in golden.test.ts.
 const iosPhysics = {
   ...sheetPhysics.ios,
   projectionRate: 0.998,

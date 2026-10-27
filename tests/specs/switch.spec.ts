@@ -36,7 +36,6 @@ test("Space toggles it", async ({ page }) => {
 })
 
 // Native switches (<input type="checkbox" switch>) submit on Enter, like checkboxes.
-// The reference toggles instead, which the APG allows but the platform doesn't do.
 test("Enter submits the form and never toggles it", { tag: "@enhancement" }, async ({ page }) => {
   await fillRequired(page)
   const airplane = switchNamed(page, "Airplane mode")

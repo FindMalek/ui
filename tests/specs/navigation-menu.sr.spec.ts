@@ -21,7 +21,6 @@ async function record(page: Page, steps: () => Promise<void>) {
   return log
 }
 
-// The reference also announces "not disabled" on every trigger.
 test(
   "announcements while opening a panel and tabbing through it",
   { tag: "@enhancement" },

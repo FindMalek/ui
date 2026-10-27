@@ -159,7 +159,7 @@ function loopPage(boxes: readonly CarouselSlideBox[], group: number[], view: Car
 /**
  * Whether a track is long enough to loop seamlessly: the scroll range holds a
  * page's step to either side of the current page. Two slides one to a view
- * don't, and the carousel rewinds instead, like Embla.
+ * don't, and the carousel rewinds instead.
  */
 function canLoop(track: CarouselTrack, view: CarouselLoopView) {
   const groups = loopGroups(track, view)

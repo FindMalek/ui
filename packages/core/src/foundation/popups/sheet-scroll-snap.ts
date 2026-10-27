@@ -4,7 +4,7 @@
 // moving while the main thread is busy. Scroll position s shows extent
 // s + extentAtTop. Bottom sheets only; other sides use the pointer driver.
 //
-// From the drawer lab and React Aria's Sheet:
+// How it moves:
 // - Programmatic moves (open, close, the handle) set the scroll position at
 //   once and play the difference back as a spring on the sheet's `translate`,
 //   since `scrollTo({ behavior: "smooth" })` has a fixed curve. The sheet

@@ -6,8 +6,8 @@ import { changedItems } from "../fixtures/autocomplete"
 // sorted by the app. The list follows its items at once: the order on screen
 // is the order the arrow keys move through, the highlight stays on its item
 // while that item stays in the list, and the text stays what was typed.
-// The reference keeps the highlight on the same index when items move, so the
-// tests where it stays on its item are tagged @enhancement.
+// The tests where the highlight stays on its item as items move are tagged
+// @enhancement.
 
 const input = (page: Page) => page.getByRole("combobox", { name: "Fruit" })
 const listbox = (page: Page) => page.getByRole("listbox")

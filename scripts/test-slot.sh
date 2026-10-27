@@ -5,7 +5,7 @@
 # Example: scripts/test-slot.sh npx playwright test specs/slider --project react
 
 slots=${UI_SDK_TEST_SLOTS:-2}
-dir=/private/tmp/ui-sdk-test-slots
+dir=/tmp/ui-sdk-test-slots
 mkdir -p "$dir"
 
 claim() {
@@ -33,15 +33,6 @@ until slot=$(claim); do
   waited=$((waited + 5))
 done
 
-# Headless Edge leaves a ~155 MB folder in the temp directory on every launch
-# (675 of them filled 18 GB on 2026-10-09). Remove the ones older than 30
-# minutes after each run, so browsers still running keep theirs.
-clean_edge_temp() {
-  [ "$(uname)" = Darwin ] || return 0
-  find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'com.microsoft.edgemac.*' -mmin +30 -exec rm -rf {} + 2>/dev/null
-  return 0
-}
-
-trap 'rm -rf "$slot"; clean_edge_temp' EXIT
+trap 'rm -rf "$slot"' EXIT
 trap 'exit 130' INT TERM
 "$@"
