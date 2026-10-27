@@ -5,19 +5,28 @@ description: Request access to the UI SDK private preview.
 
 ## 1. Ask for Access
 
-Ping @shadcn in [#project-ui-sdk](https://vercel.enterprise.slack.com/archives/C0CCDNFV1M2) on Slack to request access to the private preview.
+Ping @shadcn in [#project-ui-sdk](https://vercel.enterprise.slack.com/archives/C0CCDNFV1M2) on Slack to request your custom `.npmrc` file for the private preview.
 
-## 2. Install the Packages
+## 2. Add the `.npmrc` File
 
-shadcn will send you an `.npmrc` configuration. Copy it into `~/.npmrc` in your home directory. If the file already exists, add the new lines to it.
+Copy the lines you received into a `.npmrc` file at the root of your project, next to `package.json`. If the file already exists, add the new lines to it. It looks like this:
 
-Then install the packages. For React:
+```ini title=".npmrc"
+@ui-sdk:registry=https://ui-sdk-registry.labs.vercel.dev/
+//ui-sdk-registry.labs.vercel.dev/:_authToken=uisdk_yourname_...
+```
+
+The first line points installs of `@ui-sdk` packages at the registry, and the second is your personal token. Add `.npmrc` to the project's `.gitignore` so the token stays out of git.
+
+## 3. Install the Packages
+
+Install the packages. For React:
 
 ```bash
 npm install @ui-sdk/react @ui-sdk/core
 ```
 
-## 3. Set Up Your Agent
+## 4. Set Up Your Agent
 
 Copy this prompt into `AGENTS.md` in your project root, then ask your agent to start building:
 
@@ -27,6 +36,6 @@ node_modules/@ui-sdk/react/docs/llms.txt. For a component ui-sdk doesn't ship, r
 ("Build a Component", "All Behaviors") and docs/rendering.md in the same folder.
 ```
 
-## 4. Send Feedback and Suggestions
+## 5. Send Feedback and Suggestions
 
-If you have feedback or suggestions, please ping @shadcn in #project-ui-sdk on Slack.
+If you have feedback or suggestions, join [#project-ui-sdk](https://vercel.enterprise.slack.com/archives/C0CCDNFV1M2) on Slack and let us know. The code lives at [vercel-labs/ui-sdk](https://github.com/vercel-labs/ui-sdk), and pull requests are welcome.
