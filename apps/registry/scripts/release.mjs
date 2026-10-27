@@ -11,7 +11,7 @@
 // exact version, so an app installs one core, the one they were built with. Each package lands at
 // `packages/@ui-sdk/<name>/<name>-<version>.tgz`, then its
 // `packages/@ui-sdk/<name>/index.json` gains the version and points
-// `latest` at it. `lib/registry.ts` serves that layout, at /npm on the docs site.
+// `latest` at it. `lib/registry.ts` serves that layout, at the root of the registry's host.
 import { get, put } from "@vercel/blob"
 import { execFileSync } from "node:child_process"
 import { createHash } from "node:crypto"
@@ -111,7 +111,7 @@ function blobStore() {
   // Stores connected with OIDC get BLOB_STORE_ID and VERCEL_OIDC_TOKEN, older ones BLOB_READ_WRITE_TOKEN.
   if (!process.env.BLOB_STORE_ID && !process.env.BLOB_READ_WRITE_TOKEN)
     throw new Error(
-      `No Blob store credentials in ${envFile}. Run \`vercel env pull .env.local\` in apps/docs, after connecting the store to the project's Development environment.`,
+      `No Blob store credentials in ${envFile}. Run \`vercel env pull .env.local\` in apps/registry, after connecting the store to the project's Development environment.`,
     )
   return {
     async read(pathname) {

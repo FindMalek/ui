@@ -15,7 +15,7 @@ const files: Record<string, string> = {
 }
 const downloads: { username: string; name: string; version: string }[] = []
 const handle = createRegistry({
-  base: "/npm",
+  base: "",
   read: async (pathname) => (pathname in files ? new Response(files[pathname]).body : null),
   findTokenHash: async (username) =>
     username === "alice" ? createHash("sha256").update(token).digest("hex") : undefined,
@@ -26,7 +26,7 @@ const handle = createRegistry({
 
 function request(path: string, authorization: string | null = `Bearer ${token}`) {
   return handle(
-    new Request(`https://docs.test/npm${path}`, authorization ? { headers: { authorization } } : {}),
+    new Request(`https://registry.test${path}`, authorization ? { headers: { authorization } } : {}),
   )
 }
 
@@ -55,7 +55,7 @@ describe("registry", () => {
     }
     expect(body["dist-tags"].latest).toBe("0.0.0-1.gabc")
     expect(body.versions["0.0.0-1.gabc"].dist.tarball).toBe(
-      "https://docs.test/npm/@ui-sdk/react/-/react-0.0.0-1.gabc.tgz",
+      "https://registry.test/@ui-sdk/react/-/react-0.0.0-1.gabc.tgz",
     )
   })
 

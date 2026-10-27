@@ -28,7 +28,7 @@
 // `@ui-sdk/core` beside it. A package that needs another `@ui-sdk` package
 // takes it as a peer, never a dependency, so an app ends up with one copy.
 //
-// The release (apps/docs/scripts/release.mjs) and CI run it.
+// The release (apps/registry/scripts/release.mjs) and CI run it.
 import { execFileSync, spawnSync } from "node:child_process"
 import {
   cpSync,

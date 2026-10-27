@@ -25,16 +25,15 @@ const username = positionals[0]
 if (!username || !/^[a-z0-9-]{1,40}$/.test(username))
   throw new Error("Pass a username of lowercase letters, digits and dashes: pnpm invite alice")
 
-// The registry answers at /npm on the docs site.
-const site = process.env.SITE_URL?.replace(/\/$/, "")
-if (!site) throw new Error("Pass the docs site's address: SITE_URL=https://example.com pnpm invite alice")
-const registry = `${site}/npm`
+// The registry answers at the root of its own host.
+const registry = process.env.SITE_URL?.replace(/\/$/, "")
+if (!registry) throw new Error("Pass the registry's address: SITE_URL=https://example.com pnpm invite alice")
 
 // Global Config was called Edge Config, and older connections still set EDGE_CONFIG.
 const connection = process.env.GLOBAL_CONFIG ?? process.env.EDGE_CONFIG
 const globalConfigId = connection && parseConnectionString(connection)?.id
 if (!globalConfigId)
-  throw new Error(`No GLOBAL_CONFIG in ${envFile}. Run \`vercel env pull .env.local\` in apps/docs.`)
+  throw new Error(`No GLOBAL_CONFIG in ${envFile}. Run \`vercel env pull .env.local\` in apps/registry.`)
 
 const token = `uisdk_${username}_${randomBytes(32).toString("base64url")}`
 const key = `token_${username}`
