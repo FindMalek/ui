@@ -26,6 +26,7 @@ import {
   selectedKeys,
   subscribe,
   warn,
+  writeStyle,
 } from "@ui-sdk/core/renderer"
 import { waitList } from "./action"
 
@@ -308,15 +309,27 @@ const display = new Map<string, PartDisplay>()
 // Parts that take an `align` prop. Chromium and WebKit map `align` on any
 // element to the legacy text alignment, so these inherit it instead.
 const aligned = new Set<string>()
-let sheet: HTMLStyleElement | undefined
+// The document's style with the rules, in its own cascade layer, declared
+// first in the document, so it loses to every other style, including
+// utilities that frameworks like Tailwind put in layers. Each copy of this
+// package lists only the tags it defined, so each writes its own style,
+// numbered across the copies on the page.
+let styleId: string | undefined
+function documentStyle() {
+  if (styleId) return styleId
+  const copies = globalThis as Record<symbol, number | undefined>
+  const key = Symbol.for("ui-sdk.web-styles@1")
+  copies[key] = (copies[key] ?? 0) + 1
+  return (styleId = `ui-sdk-web-${copies[key]}`)
+}
+// The rules as the document's style has them, empty until a part needs one.
+let css = ""
 // Counts changes to the rules, so a copy of them knows it's behind.
 let rulesVersion = 0
 // The same rules for shadow roots, which the document's styles don't reach.
 // One sheet for each document, since a constructed sheet can only be adopted
 // into the document it was made for.
 const constructed = new WeakMap<Document, { sheet: CSSStyleSheet; version: number }>()
-// And for other documents an element moves into, like an iframe's.
-const copies = new WeakMap<Document, HTMLStyleElement>()
 /**
  * Gives elements matching `selector` a default display, like a part's tag,
  * or the elements a part generates inside it.
@@ -325,15 +338,9 @@ function setDisplay(selector: string, value?: PartDisplay, align = false) {
   if (align) aligned.add(selector)
   if (!value && !align) return
   if (value) display.set(selector, value)
-  sheet ??= styleIn(document)
-  sheet.textContent = rules()
+  css = rules()
+  writeStyle(document, documentStyle(), css)
   rulesVersion++
-}
-
-// In its own cascade layer, declared first in the document, so it loses to
-// every other style, including utilities that frameworks like Tailwind put in layers.
-function styleIn(doc: Document) {
-  return doc.head.insertAdjacentElement("afterbegin", doc.createElement("style")) as HTMLStyleElement
 }
 
 function rules() {
@@ -384,12 +391,12 @@ function sharedSheet(doc: Document) {
   return entry.sheet
 }
 
+// The element's document gets the rules, and any defined since they were
+// copied: another document an element moves into, like an iframe's, and this
+// one again after the page replaces its adopted sheets, which take them when
+// the page's csp-nonce tag has no nonce. Unchanged, it's one lookup.
 function copyStyles(doc: Document) {
-  if (doc === document || !sheet) return
-  let copy = copies.get(doc)
-  if (!copy) copies.set(doc, (copy = styleIn(doc)))
-  // Rules defined since it was copied.
-  if (copy.textContent !== sheet.textContent) copy.textContent = sheet.textContent
+  if (css) writeStyle(doc, documentStyle(), css)
 }
 
 type Part = {
