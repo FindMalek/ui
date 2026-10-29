@@ -1,6 +1,6 @@
 # UI SDK
 
-A library of UI behaviors for building interfaces: keyboard navigation, focus, selection, dismissal, popups, drag and drop and the ARIA they need, in `@ui-sdk/core`, with adapters for React, Vue, web components, Solid and Svelte.
+A library of UI behaviors for building accessible interfaces: keyboard navigation, focus, selection, dismissal, popups, drag and drop and the ARIA they need, in `@ui-sdk/core`, with adapters for React, Vue, Svelte, Solid and Web Components.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="./assets/behaviors-dark.svg">
