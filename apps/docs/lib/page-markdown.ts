@@ -25,9 +25,10 @@ type PageLinks = (target: LinkTarget) => string | null
  * `compact` writes a page for a file that holds many pages, like a
  * framework's llms.txt: no examples or test lists, one sentence per prop,
  * reasons and state as names, and links to the page's own headings go to the
- * page.
+ * page. `lean` writes a page for the packaged docs: every example after the
+ * page's first drops its static class lists, which are most of its size.
  */
-type PageOptions = { compact?: boolean }
+type PageOptions = { compact?: boolean; lean?: boolean }
 
 // The tag's attributes: `name="text"`, `name='text'`, `name={["a", "b"]}`, `name={false}` or `name={{ key: "text" }}`.
 function attributes(source: string) {
@@ -98,6 +99,19 @@ async function replaceAsync(text: string, pattern: RegExp, replace: (...match: s
   return text.replace(pattern, () => values[index++])
 }
 
+// Example code without its static class lists, except ones holding a class
+// the code selects, like `.grid`. A tag whose other attributes now fit on one
+// line is joined back onto it.
+const unstyled = (code: string) =>
+  code
+    .replace(/\s+(?:class|className)="([^"]*)"/g, (list, names: string) =>
+      names.split(/\s+/).some((name) => name && code.includes(`.${name}`)) ? list : "",
+    )
+    .replace(/^( *)<([\w.:-]+)((?:\n +[^\n<>]+)*)\n *(\/?>)$/gm, (tag, indent, name, attrs, end) => {
+      const line = `${indent}<${[name, ...attrs.split("\n").map((attr: string) => attr.trim())].filter(Boolean).join(" ")}${end === "/>" ? " />" : ">"}`
+      return line.length <= 110 ? line : tag
+    })
+
 // A component's tag, self-closing, with attributes that may span lines.
 const tag = (name: string) =>
   new RegExp(`<${name}\\b((?:\\s+\\w+(?:="[^"]*"|='[^']*'|=\\{\\{[^}]*\\}\\}|=\\{[^}]*\\}))*)\\s*\\/>`, "g")
@@ -111,7 +125,7 @@ async function pageMarkdown(
   file: string,
   framework: Framework | undefined,
   link: PageLinks,
-  { compact = false }: PageOptions = {},
+  { compact = false, lean = false }: PageOptions = {},
 ) {
   const { title, description, body } = readPage(file)
   const dir = path.relative(contentDir, path.dirname(file)).split(path.sep).join("/")
@@ -138,6 +152,10 @@ async function pageMarkdown(
       slugs = [framework, slugs[0] === "utilities" ? utilitiesFolder(framework) : slugs[0], ...slugs.slice(1)]
     return link({ slugs, hash })
   }
+
+  // With `lean`, only the page's first example keeps its class lists.
+  const [, firstExample = ""] = tag("ComponentExample").exec(body) ?? []
+  const styledExample = lean ? attributes(firstExample).name : undefined
 
   let text = body
   text = await outsideCode(text, async (prose) => {
@@ -222,10 +240,16 @@ async function pageMarkdown(
       // Core guides show their shared primitives and framework bindings inline.
       const { name, caption } = attributes(attrs)
       if (compact || !framework) return caption ?? ""
+      const styled = !lean || name === styledExample
       const sources = await readExampleSources(name, framework)
       if (!sources) return caption ?? ""
       const blocks = (files: { name: string; lang: string; code: string }[]) =>
-        files.map((file) => `\`\`\`${file.lang} title="${file.name}"\n${file.code}\n\`\`\``).join("\n\n")
+        files
+          .map(
+            (file) =>
+              `\`\`\`${file.lang} title="${file.name}"\n${styled ? file.code : unstyled(file.code)}\n\`\`\``,
+          )
+          .join("\n\n")
       const block = blocks(sources.files)
       return [block, caption].filter(Boolean).join("\n\n")
     })

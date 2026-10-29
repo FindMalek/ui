@@ -86,7 +86,7 @@ function index(name: string, framework: Framework | undefined) {
   const core = docPage(["core"])!
   const agents = docPage(["agents"])!
   const llms = framework
-    ? `Start with [llms.txt](./llms.txt): how the components fit together, then every component's parts, props, state and styling hooks, in one file for an agent's context. Each page below has the rest.\n\n`
+    ? `Start with [llms.txt](./llms.txt): how the components fit together, then an index of every component, in one file for an agent's context. Each page below has the rest.\n\n`
     : `[llms.txt](./llms.txt) is the Core docs, the same as core.md, under the name agents look for.\n\n`
   const shared = `## Core and Agents
 
@@ -150,8 +150,11 @@ async function writePackageDocs(names = Object.keys(packageFrameworks)) {
       ? await frameworkLlms(framework, linksFrom("llms.txt", framework))
       : await sectionMarkdown("core", (slugs, hash) => linksFrom("llms.txt", framework)({ slugs, hash }))
     if (framework)
+      // Component and utility pages are in folders; guides keep every example styled.
       for (const { page, file } of frameworkFiles(framework))
-        files[file] = await pageMarkdown(page.file, framework, linksFrom(file, framework))
+        files[file] = await pageMarkdown(page.file, framework, linksFrom(file, framework), {
+          lean: file.includes("/"),
+        })
     for (const [file, text] of Object.entries(files)) {
       await mkdir(path.dirname(path.join(dir, file)), { recursive: true })
       await writeFile(path.join(dir, file), text)
