@@ -4,7 +4,7 @@ A library of UI behaviors for building interfaces: keyboard navigation, focus, s
 
 ## Contributing
 
-Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) to get the repo
+Contributions are welcome. See [contributing](./contributing) to get the repo
 running locally and land a change, and use
 [issues](https://github.com/vercel-labs/ui/issues) for issues. By
 participating, you agree to our [Code of Conduct](CODE_OF_CONDUCT.md).
