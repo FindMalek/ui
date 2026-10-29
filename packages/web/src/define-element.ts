@@ -1641,6 +1641,7 @@ export {
   type RootOptions,
   reconfigureInside,
   setDisplay,
+  upgradeProperties,
   whenGone,
   wrappedButton,
   wrappedChild,
