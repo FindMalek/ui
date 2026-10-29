@@ -9,9 +9,9 @@ A library of UI behaviors for building interfaces: keyboard navigation, focus, s
 
 ## Example
 
-Every component in ui-sdk is built from behaviors, and you can build your own the same way. Let's make a search field with a button that clears it.
+Every component in ui-sdk is built from behaviors. You start by creating the primitive with behaviors.
 
-The clear button disappears when you press it, which would drop focus to the page. `createFocusRecovery` sends focus back to the input. Define the field once in `search-field.ts`:
+Don't worry you don't need to learn how to write this. Your agents will. And we made them really good at it.
 
 ```ts
 import { createFocusRecovery, definePrimitive } from "@ui-sdk/core"
