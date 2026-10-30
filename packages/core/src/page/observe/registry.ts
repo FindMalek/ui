@@ -196,6 +196,13 @@ function componentLabel(parts: Bound[]) {
   const group = keyless("group") ?? keyless("root")
   const name = group && accessibleName(group)
   if (name) return name
+  // Then its field's name, like a date picker's input labelled "Due date",
+  // before a heading that changes with what it shows, like "November 2026".
+  // Not a search field in its popup, which comes and goes.
+  const input = parts.find((part) => part.slot === "input")?.el
+  const popup = parts.find((part) => part.slot === "content")?.el
+  const field = input && !popup?.contains(input) && accessibleName(input)
+  if (field) return field
   // Then what names it on screen: a title, a heading, a trigger or the button it is.
   const root = keyless("root")
   const button =
