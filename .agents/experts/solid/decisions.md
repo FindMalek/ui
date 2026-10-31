@@ -2,7 +2,7 @@
 
 What's already decided about `@ui-sdk/solid`, and what's known and open. The expert never re-raises a **Settled** item as a finding.
 
-Last reviewed: `afb7ffa` (2026-10-30, the group contexts for Checkbox and Toggle in PR 85).
+Last reviewed: PRs 86 to 92 (2026-10-30, the Nuxt UI audit fixes).
 
 
 ## Settled

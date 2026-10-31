@@ -2,7 +2,7 @@
 
 What's already decided about `@ui-sdk/react`, and what's known and open. The expert never re-raises a **Settled** item as a finding.
 
-Last reviewed: `afb7ffa` (2026-10-30, the group contexts for Checkbox and Toggle in PR 85).
+Last reviewed: PRs 86 to 92 (2026-10-30, the Nuxt UI audit fixes).
 
 
 ## Settled
@@ -34,6 +34,7 @@ Last reviewed: `afb7ffa` (2026-10-30, the group contexts for Checkbox and Toggle
 - **A Checkbox in its own Field inside a CheckboxGroup** is unnamed in server markup until hydration, as Radio was before PR 13.
 - **A popup stays shown when its anchor is clipped by a scroll container.** A marker like `data-anchor-hidden` is a public API and waits on discussion.
 - **An anchor moved by the Web Animations API** is followed by positioning's 500ms slow check, not on the next frame.
+- **An author value equal to the part's own counts as the part's** on a `direct` attribute: a `SelectTrigger` given the select's own label id loses it when `SelectLabel` unmounts (PR 86). Harmless, since the id dangles then anyway.
 
 ## Revisit
 
