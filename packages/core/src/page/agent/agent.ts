@@ -240,9 +240,11 @@ function buttonsOf(parts: Bound[]) {
   return [...found]
 }
 
+const rootOf = (parts: Bound[]) => parts.find((part) => part.slot === "root" && !part.key)?.el
+
 // The button a component is, like a Button's root, which `press` presses with no text.
 function ownButton(parts: Bound[]) {
-  const root = parts.find((part) => part.slot === "root" && !part.key)?.el
+  const root = rootOf(parts)
   if (root && (root.tagName === "BUTTON" || root.getAttribute("role") === "button")) return root
 }
 
@@ -340,8 +342,15 @@ function describe(entry: Entry, instance: PrimitiveInstance, parts: Bound[]) {
   if (confirm) out.confirm = confirm
   const buttons = state.open === true ? buttonsOf(parts).map((el) => textOf(el)) : []
   if (buttons.length) out.buttons = buttons
+  const fields = parts.filter((part) => part.el.matches("input, textarea, select"))
   const disabled =
-    state.disabled === true || state.readOnly === true || ownButton(parts)?.matches(":disabled")
+    state.disabled === true ||
+    state.formDisabled === true ||
+    state.readOnly === true ||
+    // A disabled fieldset disables a native root, like a Button's, and every field a component holds,
+    // like a DatePicker's inputs. One disabled radio, or a stepper button at its max, leaves it usable.
+    rootOf(parts)?.matches(":disabled") ||
+    (fields.length > 0 && fields.every((part) => part.el.matches(":disabled")))
   if (disabled) out.disabled = true
   else {
     out.actions = actionsOf(entry, api)
