@@ -1072,7 +1072,12 @@ describe("agent act", () => {
 
   // A row's actions popover whose Remove button renders once it opens, the
   // way an adapter renders its content, and every open change it hears.
-  async function mountActions({ confirm }: { confirm?: string } = {}) {
+  async function mountActions({
+    confirm,
+    disabled,
+    ariaDisabled,
+    inDisabledFieldset,
+  }: { confirm?: string; disabled?: boolean; ariaDisabled?: boolean; inDisabledFieldset?: boolean } = {}) {
     const { popover } = await import("../src/components/popover/popover")
     const onClick = vi.fn()
     const changes: [boolean, string][] = []
@@ -1085,8 +1090,14 @@ describe("agent act", () => {
         const remove = document.createElement("button")
         remove.textContent = "Remove"
         if (confirm) remove.setAttribute("data-agent-confirm", confirm)
+        remove.disabled = !!disabled
+        if (ariaDisabled) remove.setAttribute("aria-disabled", "true")
         remove.addEventListener("click", onClick)
-        content.append(remove)
+        if (inDisabledFieldset) {
+          const fieldset = content.appendChild(document.createElement("fieldset"))
+          fieldset.disabled = true
+          fieldset.append(remove)
+        } else content.append(remove)
       },
     })
     const trigger = document.createElement("button")
@@ -1108,6 +1119,63 @@ describe("agent act", () => {
       steps: [{ result: expect.stringMatching(/^Pressed "Remove", after opening c\d+\.$/) }],
     })
     expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  test("a press on a disabled button fails, and closes the popup it opened", async () => {
+    const agent = createAgent()
+    const { instance, onClick } = await mountActions({ disabled: true })
+    const outcome = await agent.act({ steps: [{ ref: "Tom Becker", action: "press", args: ["Remove"] }] })
+    expect(outcome).toMatchObject({ ok: false, error: { message: expect.stringContaining('"Remove"') } })
+    expect(outcome.error?.message).toContain("disabled")
+    expect(instance.get().open).toBe(false)
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
+  test("a press on an aria-disabled button fails, and closes the popup it opened", async () => {
+    const agent = createAgent()
+    const { instance, onClick } = await mountActions({ ariaDisabled: true })
+    const outcome = await agent.act({ steps: [{ ref: "Tom Becker", action: "press", args: ["Remove"] }] })
+    expect(outcome).toMatchObject({ ok: false, error: { message: expect.stringContaining('"Remove"') } })
+    expect(outcome.error?.message).toContain("disabled")
+    expect(instance.get().open).toBe(false)
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
+  test("a press on a disabled button in a popup the person opened fails, and leaves it open", async () => {
+    const agent = createAgent()
+    const { instance, onClick } = await mountActions({ disabled: true })
+    ;(instance.api as unknown as { setOpen: (open: boolean) => void }).setOpen(true)
+    await vi.waitFor(() => expect(instance.get().open).toBe(true))
+    const outcome = await agent.act({ steps: [{ ref: "Tom Becker", action: "press", args: ["Remove"] }] })
+    expect(outcome.ok).toBe(false)
+    expect(instance.get().open).toBe(true)
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
+  test("a press on a button a disabled fieldset disables fails", async () => {
+    const agent = createAgent()
+    const { onClick } = await mountActions({ inDisabledFieldset: true })
+    const outcome = await agent.act({ steps: [{ ref: "Tom Becker", action: "press", args: ["Remove"] }] })
+    expect(outcome).toMatchObject({ ok: false, error: { message: expect.stringContaining("disabled") } })
+    expect(onClick).not.toHaveBeenCalled()
+  })
+
+  test("a press on a button disabled while its confirmation is pending fails, and closes the popup", async () => {
+    let answer: ((allowed: boolean) => void) | undefined
+    const agent = createAgent({
+      allow: (step) => !step.confirm || new Promise<boolean>((resolve) => (answer = resolve)),
+    })
+    const { instance, onClick } = await mountActions({ confirm: "Removes Tom from the team" })
+    const outcome = agent.act({ steps: [{ ref: "Tom Becker", action: "press", args: ["Remove"] }] })
+    await vi.waitFor(() => expect(answer).toBeDefined())
+    const remove = [...document.querySelectorAll("button")].find((el) => el.textContent === "Remove")!
+    remove.disabled = true
+    answer!(true)
+    const result = await outcome
+    expect(result).toMatchObject({ ok: false, error: { message: expect.stringContaining('"Remove"') } })
+    expect(result.error?.message).toContain("disabled")
+    expect(instance.get().open).toBe(false)
+    expect(onClick).not.toHaveBeenCalled()
   })
 
   test("a press allow refuses doesn't open the popup", async () => {
