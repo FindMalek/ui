@@ -25,7 +25,9 @@ import {
   schemaOf,
   selectedKeys,
   subscribe,
+  validityChanged,
   warn,
+  writeFromScript,
   writeStyle,
 } from "@ui-sdk/core/renderer"
 import { waitList } from "./action"
@@ -832,13 +834,15 @@ function defineRootElement<P extends Primitive>(tagName: string, primitive: P, c
       // State set from script commits without events, like a native input's
       // `value`, so a page that renders the state back never hears its own write.
       #quietly(write: () => void) {
-        if (quiet.has(this)) return write()
+        const nested = quiet.has(this)
         quiet.add(this)
         try {
-          write()
+          writeFromScript(this, write)
         } finally {
-          quiet.delete(this)
+          if (!nested) quiet.delete(this)
         }
+        // Fields read validity again on `input` and `change`, which this write doesn't fire.
+        if (!nested) validityChanged(this)
       }
 
       connectedCallback() {
