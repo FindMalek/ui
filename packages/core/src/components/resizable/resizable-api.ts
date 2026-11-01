@@ -258,13 +258,24 @@ function resizableApi(context: PrimitiveContext<ResizableOptions, State, string>
   }
 
   // Panels joined, left or changed their sizes. Not a change: nobody moved anything.
-  function setPanels(ids: string[], panelSizes: PanelSizes[]) {
+  function setPanels(ids: string[], panelSizes: PanelSizes[], measured = space) {
     sizes = panelSizes
+    if (measured > 0) space = measured
     const rem = remSize()
     const constraints = panelSizes.map((panel) => constraintsOf(panel, space, rem))
     const state = store.get()
     const idsChanged = ids.length !== state.ids.length || ids.some((id, index) => id !== state.ids[index])
     if (!idsChanged && sameConstraints(constraints, state.constraints)) return
+    // New bounds on the same panels move them like new space does, with the
+    // `resize` reason. During a drag the drag's own moves fit them.
+    if (!idsChanged) {
+      store.set({ constraints })
+      if (drag) return
+      request(fitLayout(current(), constraints), "resize")
+      // No interaction completes this one, so a controlled owner that ignores it leaves nothing asked.
+      requested = undefined
+      return
+    }
     const layout = idsChanged ? startLayout(ids, constraints) : fitLayout(state.layout, constraints)
     requested = undefined
     store.set({ ids, constraints, layout })
@@ -420,6 +431,9 @@ function resizableApi(context: PrimitiveContext<ResizableOptions, State, string>
         if (!ended) return
         drag = undefined
         store.set({ dragging: null })
+        // Bounds or space that changed since the last move fit as part of the
+        // drag, once it's over, so this write can't end it a second time.
+        request(fitLayout(current(), store.get().constraints), "drag", event)
         complete(ended.base, "drag", event)
       },
       keydown(event: KeyboardEvent, key: string, el: HTMLElement) {
