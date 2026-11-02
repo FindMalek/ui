@@ -42,24 +42,27 @@ test("steps: arrows step by the step, Shift and Alt by the large and small steps
   await expect(quantity).toHaveValue("9")
 })
 
-test("scale: 1 kHz sits past halfway on a log scale and near the start on a linear one, and keys step positions", async ({
+test("scale: the slider turns the needle, and a log scale gives small angles most of the slider", async ({
   page,
 }) => {
   await openExamples(page, "/docs/core/number")
+  const angle = page.locator("[data-angle]")
   const position = page.locator("[data-position]")
-  await expect(page.locator("[data-frequency]")).toHaveText("1K Hz")
-  await expect(position).toHaveText("57% along")
+  const slider = page.getByRole("slider", { name: "Rotation" })
+  await expect(angle).toHaveText("45°")
+  await expect(position).toHaveText("73% along")
   await page.getByRole("radio", { name: "Linear" }).click()
-  await expect(position).toHaveText("5% along")
-  const slider = page.getByRole("slider", { name: "Frequency" })
-  await slider.focus()
-  // 1 kHz sits off the position grid, so the first step lands on it, like stepUp().
-  await page.keyboard.press("ArrowRight")
-  await page.keyboard.press("ArrowRight")
-  await expect(position).toHaveText("6% along")
-  await expect(slider).toHaveAttribute("aria-valuetext", "1.2K Hz")
-  await page.keyboard.press("End")
-  await expect(slider).toHaveAttribute("aria-valuenow", "20000")
+  await expect(angle).toHaveText("45°")
+  await expect(position).toHaveText("25% along")
+  await slider.fill("0.5")
+  await expect(angle).toHaveText("91°")
+  await page.getByRole("radio", { name: "Log" }).click()
+  await slider.fill("0.5")
+  await expect(angle).toHaveText("13°")
+  await expect(slider).toHaveAttribute("aria-valuetext", "13°")
+  await expect(page.locator("[data-needle]")).toHaveAttribute("style", /rotate\(-13\.4\d*deg\)/)
+  await slider.fill("1")
+  await expect(angle).toHaveText("180°")
 })
 
 test("format: the value, its range and its parts follow the locale and the style", async ({ page }) => {

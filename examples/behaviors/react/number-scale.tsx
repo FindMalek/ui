@@ -1,16 +1,15 @@
 import * as React from "react"
-import { formatNumber, fractionOf, stepBy, stepFromKey, valueAt, type NumberScale } from "@ui-sdk/core/number"
+import { formatNumber, fractionOf, valueAt } from "@ui-sdk/core/number"
 
-const range = { min: 20, max: 20000 }
-const positions = { min: 0, max: 1, step: 0.01, largeStep: 0.1 }
+const range = { min: 1, max: 180 }
 
 function Example() {
-  const [scale, setScale] = React.useState<NumberScale>("log")
-  const [value, setValue] = React.useState(1000)
-  const fraction = fractionOf(value, range, scale)
-  const text = formatNumber(value, "en-US", { notation: "compact", maximumFractionDigits: 1 }) + " Hz"
+  const [scale, setScale] = React.useState<"linear" | "log">("log")
+  const [angle, setAngle] = React.useState(45)
+  const position = fractionOf(angle, range, scale)
+  const degrees = `${formatNumber(angle, "en-US", { maximumFractionDigits: 0 })}°`
   return (
-    <div className="flex w-80 flex-col gap-3 text-sm">
+    <div className="flex w-72 flex-col items-center gap-4 text-sm">
       <div className="flex gap-2" role="radiogroup" aria-label="Scale">
         {(["linear", "log"] as const).map((option) => (
           <button
@@ -25,35 +24,29 @@ function Example() {
           </button>
         ))}
       </div>
-      <div
-        role="slider"
-        tabIndex={0}
-        aria-label="Frequency"
-        aria-valuemin={range.min}
-        aria-valuemax={range.max}
-        aria-valuenow={Math.round(value)}
-        aria-valuetext={text}
-        onKeyDown={(event) => {
-          const move = stepFromKey(event)
-          if (!move) return
-          event.preventDefault()
-          setValue(valueAt(stepBy(fraction, move, positions), range, scale))
-        }}
-        onPointerDown={(event) => {
-          const box = event.currentTarget.getBoundingClientRect()
-          setValue(valueAt((event.clientX - box.left) / box.width, range, scale))
-        }}
-        className="relative h-6 cursor-pointer rounded-full bg-muted outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
+      <div className="relative size-28 rounded-full border border-border">
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-foreground/80"
-          style={{ width: `${fraction * 100}%` }}
+          data-needle
+          className="absolute top-1/2 left-1/2 h-1 w-12 origin-left rounded-full bg-foreground"
+          style={{ transform: `translateY(-50%) rotate(${-angle}deg)` }}
         />
+        <div className="absolute top-1/2 left-1/2 size-3 -translate-1/2 rounded-full bg-foreground" />
       </div>
-      <p className="m-0 flex justify-between font-mono text-xs">
-        <span data-frequency>{text}</span>
+      <input
+        type="range"
+        aria-label="Rotation"
+        aria-valuetext={degrees}
+        min={0}
+        max={1}
+        step={0.001}
+        value={position}
+        onChange={(event) => setAngle(valueAt(Number(event.target.value), range, scale))}
+        className="w-full accent-foreground"
+      />
+      <p className="m-0 flex w-full justify-between font-mono text-xs">
+        <span data-angle>{degrees}</span>
         <span data-position className="text-muted-foreground">
-          {Math.round(fraction * 100)}% along
+          {Math.round(position * 100)}% along
         </span>
       </p>
     </div>

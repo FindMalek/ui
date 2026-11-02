@@ -96,7 +96,7 @@ const squared = { to: Math.sqrt, from: (position: number) => position * position
 
 <ComponentExample
   name="behaviors/number-scale"
-  caption="Press along the track or use the arrow keys, then switch between Linear and Log. On the log scale, 1 kHz sits past halfway, and keys step evenly through the positions."
+  caption="Drag the slider to turn the needle from 1° to 180°, then switch between Linear and Log. On the log scale, small angles get most of the slider: 45° sits 73% along, and halfway turns it only 13°."
 />
 
 To step a scaled control evenly, step its position and read the value back, like `valueAt(stepBy(fraction, move, { min: 0, max: 1, step: 0.01 }), range, "log")`.
