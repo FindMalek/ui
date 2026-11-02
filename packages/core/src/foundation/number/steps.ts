@@ -65,10 +65,7 @@ function maxOnGrid(range: StepRange) {
   return roundTo(base + steps * range.step, precisionOf(range))
 }
 
-/**
- * The nearest value on the step grid, within the bounds.
- * @experimental
- */
+// The nearest value on the step grid, within the bounds. Public as `scrubTo` without snap points.
 function snapToStep(value: number, range: StepRange) {
   if (!(range.step > 0)) return clamp(value, range.min, range.max)
   const base = stepBase(range)
@@ -111,7 +108,18 @@ function wrap(value: number, min: number, max: number) {
 type NumberMove = { direction: 1 | -1; size: "step" | "large" | "small" } | { bound: "min" | "max" }
 
 /**
- * A step range with the larger and smaller steps a move can ask for.
+ * Values a scrub lands on when it comes close, like a timeline's chapters or keyframes.
+ * @experimental
+ */
+type NumberSnap = {
+  /** The values to land on. */
+  points: readonly number[]
+  /** How close a value comes before it lands on a point, in the range's units. */
+  threshold: number
+}
+
+/**
+ * A step range with the larger and smaller steps a move can ask for, and the points it snaps to.
  * @experimental
  */
 type NumberRange = StepRange & {
@@ -119,23 +127,56 @@ type NumberRange = StepRange & {
   largeStep?: number
   /** What Alt moves by, on a grid of its own. @defaultValue the step */
   smallStep?: number
+  /** Points `scrubTo` and `stepBy` land on when they come close. */
+  snap?: NumberSnap
 }
 
 /**
  * The value a move lands on: a step on the grid, a large step snapped back to
  * it, a small step on its own grid, or a bound, where `max` is the highest
- * value on the grid.
+ * value on the grid. With `range.snap`, a step stops at the first point it
+ * reaches ahead, and leaves the point it's on freely; `{ snap: false }` steps past them.
  * @experimental
  */
-function stepBy(value: number, move: NumberMove, range: NumberRange) {
+function stepBy(value: number, move: NumberMove, range: NumberRange, { snap = true } = {}) {
   if ("bound" in move) return move.bound === "min" ? range.min : maxOnGrid(range)
-  if (move.size === "large") {
-    const large = range.largeStep ?? range.step * 10
-    return snapToStep(clamp(value + move.direction * large, range.min, range.max), range)
+  const next =
+    move.size === "large"
+      ? snapToStep(
+          clamp(value + move.direction * (range.largeStep ?? range.step * 10), range.min, range.max),
+          range,
+        )
+      : move.size === "small" && range.smallStep
+        ? stepValue(value, move.direction, { ...range, step: range.smallStep })
+        : stepValue(value, move.direction, range)
+  if (!snap || !range.snap) return next
+  const { points, threshold } = range.snap
+  const direction = move.direction
+  let stop: number | undefined
+  for (const point of points) {
+    const ahead = (point - value) * direction > 0
+    const reached = (next + direction * threshold - point) * direction >= 0
+    if (ahead && reached && (stop === undefined || (point - stop) * direction < 0)) stop = point
   }
-  if (move.size === "small" && range.smallStep)
-    return stepValue(value, move.direction, { ...range, step: range.smallStep })
-  return stepValue(value, move.direction, range)
+  return stop === undefined ? next : clamp(stop, range.min, range.max)
+}
+
+/**
+ * Where a value lands in a range: on the nearest of `range.snap`'s points
+ * within its threshold, or else on the step grid within the bounds. Pass
+ * `{ snap: false }` for exact values, like typed numbers, or to scrub freely while Cmd is held.
+ * @experimental
+ */
+function scrubTo(value: number, range: NumberRange, { snap = true } = {}) {
+  let nearest: number | undefined
+  if (snap && range.snap)
+    for (const point of range.snap.points)
+      if (
+        Math.abs(point - value) <= range.snap.threshold &&
+        (nearest === undefined || Math.abs(point - value) < Math.abs(nearest - value))
+      )
+        nearest = point
+  return nearest === undefined ? snapToStep(value, range) : clamp(nearest, range.min, range.max)
 }
 
 export {
@@ -144,7 +185,9 @@ export {
   maxOnGrid,
   type NumberMove,
   type NumberRange,
+  type NumberSnap,
   roundTo,
+  scrubTo,
   snapToStep,
   type StepRange,
   stepBy,

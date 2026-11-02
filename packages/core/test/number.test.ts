@@ -6,6 +6,7 @@ import {
   formatNumberRange,
   formatNumberToParts,
   fractionOf,
+  scrubTo,
   stepBy,
   stepFromKey,
   valueAt,
@@ -251,5 +252,54 @@ describe("@ui-sdk/core/number", () => {
     expect(press("ArrowRight", 50, true)).toBe(70)
     expect(press("End", 50)).toBe(100)
     expect(press("Tab", 50)).toBeNull()
+  })
+
+  test("arrows: horizontal leaves Up and Down to the page", () => {
+    expect(stepFromKey({ key: "ArrowUp" }, { arrows: "horizontal" })).toBeNull()
+    expect(stepFromKey({ key: "ArrowDown" }, { arrows: "horizontal" })).toBeNull()
+    expect(stepFromKey({ key: "ArrowRight" }, { arrows: "horizontal" })).toEqual({
+      direction: 1,
+      size: "step",
+    })
+    expect(stepFromKey({ key: "ArrowRight" }, { arrows: "horizontal", dir: "rtl" })).toEqual({
+      direction: -1,
+      size: "step",
+    })
+  })
+})
+
+describe("scrubbing", () => {
+  // A minute-long timeline with sections, landing within 1.5 seconds of each.
+  const timeline = {
+    min: 0,
+    max: 60,
+    step: 0.1,
+    largeStep: 5,
+    snap: { points: [0, 9.5, 24, 38.5, 52], threshold: 1.5 },
+  }
+
+  test("scrubTo lands on the nearest point within the threshold, or else on the step grid", () => {
+    expect(scrubTo(23, timeline)).toBe(24)
+    expect(scrubTo(25.4, timeline)).toBe(24)
+    expect(scrubTo(25.6, timeline)).toBe(25.6)
+    expect(scrubTo(30.04, timeline)).toBe(30)
+    expect(scrubTo(23, timeline, { snap: false })).toBe(23)
+    expect(scrubTo(23, { ...timeline, snap: { points: [22, 23.5], threshold: 2 } })).toBe(23.5)
+    expect(scrubTo(1, { min: 0, max: 10, step: 1, snap: { points: [-1], threshold: 3 } })).toBe(0)
+  })
+
+  test("a step stops at the first point it reaches ahead, and leaves the point it's on", () => {
+    const right = { direction: 1, size: "step" } as const
+    const left = { direction: -1, size: "step" } as const
+    expect(stepBy(22.4, right, timeline)).toBe(24)
+    expect(stepBy(22.3, right, timeline)).toBe(22.4)
+    expect(stepBy(24, right, timeline)).toBe(24.1)
+    expect(stepBy(24.1, left, timeline)).toBe(24)
+    // A large step stops at the first point it passes.
+    expect(stepBy(5, { direction: 1, size: "large" }, timeline)).toBe(9.5)
+    expect(stepBy(24, { direction: 1, size: "large" }, timeline)).toBe(29)
+    // Bounds don't snap, and `snap: false` steps past points.
+    expect(stepBy(30, { bound: "max" }, timeline)).toBe(60)
+    expect(stepBy(22.4, right, timeline, { snap: false })).toBe(22.5)
   })
 })

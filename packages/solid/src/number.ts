@@ -10,7 +10,7 @@ export {
   numberFormatter,
   parseNumber,
   roundTo,
-  snapToStep,
+  scrubTo,
   stepBy,
   stepFromKey,
   stepValue,
@@ -23,5 +23,6 @@ export type {
   NumberMove,
   NumberRange,
   NumberScale,
+  NumberSnap,
   StepRange,
 } from "@ui-sdk/core/number"

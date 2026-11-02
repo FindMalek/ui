@@ -31,7 +31,7 @@ function fractionOf(value: number, range: { min: number; max: number }, scale: N
 
 /**
  * The value at a fraction from 0 to 1 between `min` and `max`, along a scale,
- * like where a press on a track lands. Unsnapped; `snapToStep` puts it on a grid.
+ * like where a press on a track lands. Unsnapped; `scrubTo` puts it on the grid.
  * @experimental
  */
 function valueAt(fraction: number, range: { min: number; max: number }, scale: NumberScale = "linear") {

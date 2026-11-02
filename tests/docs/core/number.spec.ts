@@ -3,8 +3,8 @@ import { openExamples } from "./behaviors/helpers"
 
 test("every example renders without errors", async ({ page }) => {
   const { errors } = await openExamples(page, "/docs/core/number")
-  await expect(page.locator("[data-example]")).toHaveCount(4)
-  await expect(page.locator("figure > figcaption")).toHaveCount(4)
+  await expect(page.locator("[data-example]")).toHaveCount(5)
+  await expect(page.locator("figure > figcaption")).toHaveCount(5)
   expect(errors).toEqual([])
 })
 
@@ -63,6 +63,47 @@ test("scale: the slider turns the needle, and a log scale gives small angles mos
   await expect(page.locator("[data-needle]")).toHaveAttribute("style", /rotate\(-13\.4\d*deg\)/)
   await slider.fill("1")
   await expect(angle).toHaveText("180°")
+})
+
+test("scrub: the playhead snaps to sections, keys stop at them, and Command scrubs freely", async ({
+  page,
+}) => {
+  await openExamples(page, "/docs/core/number")
+  const slider = page.getByRole("slider", { name: "Playhead" })
+  const time = page.locator("[data-time]")
+  const section = page.locator("[data-section]")
+  await slider.fill("23")
+  await expect(time).toHaveText("0:24.0")
+  await expect(section).toHaveText("Chorus")
+  await expect(slider).toHaveAttribute("aria-valuetext", "0:24.0, Chorus")
+  await slider.fill("30")
+  await expect(section).toHaveText("Between sections")
+  // Keys stop at a section ahead, and leave the one they're on.
+  await slider.fill("22.4")
+  await slider.focus()
+  await page.keyboard.press("ArrowRight")
+  await expect(time).toHaveText("0:24.0")
+  await page.keyboard.press("ArrowRight")
+  await expect(time).toHaveText("0:24.1")
+  await page.keyboard.press("ArrowLeft")
+  await expect(time).toHaveText("0:24.0")
+  await slider.fill("22.4")
+  await page.keyboard.press("Meta+ArrowRight")
+  await expect(time).toHaveText("0:22.5")
+  // A press near a section lands on it, and with Command held, where it was pressed. A press on the
+  // thumb itself changes nothing, so it starts away from there.
+  await slider.scrollIntoViewIfNeeded()
+  const box = (await slider.boundingBox())!
+  const at = (seconds: number) => ({ x: box.x + (box.width * seconds) / 60, y: box.y + box.height / 2 })
+  await slider.fill("5")
+  await page.mouse.click(at(23.2).x, at(23.2).y)
+  await expect(time).toHaveText("0:24.0")
+  await slider.fill("5")
+  await page.keyboard.down("Meta")
+  await page.mouse.click(at(23.2).x, at(23.2).y)
+  await page.keyboard.up("Meta")
+  await expect(section).toHaveText("Between sections")
+  await expect(time).not.toHaveText("0:05.0")
 })
 
 test("format: the value, its range and its parts follow the locale and the style", async ({ page }) => {

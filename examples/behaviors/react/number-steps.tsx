@@ -1,5 +1,5 @@
 import * as React from "react"
-import { formatNumber, parseNumber, snapToStep, stepBy, stepFromKey } from "@ui-sdk/core/number"
+import { formatNumber, parseNumber, scrubTo, stepBy, stepFromKey } from "@ui-sdk/core/number"
 
 const range = { min: 0, max: 20, step: 0.5, largeStep: 5, smallStep: 0.1 }
 
@@ -9,7 +9,7 @@ function Example() {
   const shown = formatNumber(value, "en-US", { maximumFractionDigits: 1 })
   const current = () => {
     const parsed = typed === null ? null : parseNumber(typed, "en-US")
-    return parsed === null ? value : snapToStep(parsed, range)
+    return parsed === null ? value : scrubTo(parsed, range)
   }
   const commit = () => {
     setValue(current())
