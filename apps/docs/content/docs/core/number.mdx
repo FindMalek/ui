@@ -1,0 +1,170 @@
+---
+title: Numbers
+description: Step, scale, format and read numbers in someone's language, with one keyboard map for numeric controls.
+---
+
+`@ui-sdk/core/number` provides steps and bounds, scales, formatting, parsing and the keyboard map numeric controls share.
+
+The helpers are plain functions that run without a DOM. Slider, Number Input, Progress and Meter use the same helpers, so a control of your own steps, formats and reads numbers the way they do.
+
+## Bounds and Steps
+
+### Snap to a Step
+
+`snapToStep` puts a value on the step grid within the bounds, and `stepValue` moves a number of steps from it. Both round away floating point noise, so `0.1 + 0.2` steps land on `0.3`:
+
+```ts
+import { clamp, roundTo, snapToStep, stepValue } from "@ui-sdk/core/number"
+
+const range = { min: 0, max: 10, step: 0.25 }
+
+snapToStep(3.3, range) // 3.25
+stepValue(3.3, 1, range) // 3.5, off the grid moves onto it first
+stepValue(9.9, 1, range) // 10
+clamp(14, 0, 10) // 10
+roundTo(0.1 + 0.2, 2) // 0.3
+```
+
+The grid starts at `min` when it's finite, like a native range input, so `{ min: 1, max: 10, step: 2 }` steps through 1, 3, 5, 7 and 9. `maxOnGrid` returns that highest value, and `decimalsOf` counts a number's decimals.
+
+### Loops
+
+`wrap` keeps a value in a loop, for hues, angles, clock faces and carousels that go round:
+
+```ts
+import { wrap } from "@ui-sdk/core/number"
+
+wrap(370, 0, 360) // 10
+wrap(-15, 0, 360) // 345
+wrap(slide + 1, 0, slides.length) // the next slide, back to the first after the last
+```
+
+## Keys
+
+### One Keyboard Map
+
+`stepFromKey` reads a key into a move, as the APG's slider and spinbutton patterns describe: Up and Right step up, Down and Left step down, Shift takes the large step and Alt the small one, Page Up and Down take the large step, and Home and End go to the bounds. `stepBy` applies the move:
+
+```ts
+import { stepBy, stepFromKey } from "@ui-sdk/core/number"
+
+const range = { min: 0, max: 20, step: 0.5, largeStep: 5, smallStep: 0.1 }
+
+function onKeyDown(event: KeyboardEvent) {
+  const move = stepFromKey(event, { arrows: "vertical" })
+  if (!move) return
+  event.preventDefault()
+  value = stepBy(value, move, range)
+}
+```
+
+<ComponentExample
+  name="behaviors/number-steps"
+  caption="Focus the quantity and press the arrows, with Shift or Alt for bigger and smaller steps, then Home and End."
+/>
+
+Right to left flips Left and Right on a horizontal control, as `{ dir: "rtl" }`; a vertical one keeps them. `{ arrows: "vertical" }` leaves Left and Right to a text caret, as a number field does. Without `largeStep`, a large step is ten steps; without `smallStep`, a small step is one.
+
+A move is `{ direction, size }` or `{ bound }`, so a control can treat a bound its own way, like a slider's thumb that stops at its neighbor.
+
+## Positions and Scales
+
+### Value to Position
+
+`fractionOf` gives where a value sits between bounds, from 0 to 1, and `valueAt` gives the value at a position. Together they place a thumb, fill a bar and turn a press into a value:
+
+```ts
+import { fractionOf, snapToStep, valueAt } from "@ui-sdk/core/number"
+
+fractionOf(30, { min: 0, max: 120 }) // 0.25
+const pressed = valueAt((event.clientX - box.left) / box.width, range)
+snapToStep(pressed, range)
+```
+
+Values outside the bounds sit at an end, and bounds that are the same give 0.
+
+### Log and Custom Scales
+
+On a log scale, each tenfold takes the same distance, as frequency, volume and zoom controls need. Pass `"log"`, with a positive `min`, or a `to` and `from` pair that maps values into an even space and back:
+
+```ts
+fractionOf(200, { min: 20, max: 20000 }, "log") // 0.33: 20 to 200 is a third of the way
+valueAt(0.5, { min: 20, max: 20000 }, "log") // 632, halfway by ratio
+
+const squared = { to: Math.sqrt, from: (position: number) => position * position }
+```
+
+<ComponentExample
+  name="behaviors/number-scale"
+  caption="Press along the track or use the arrow keys, then switch between Linear and Log. On the log scale, 1 kHz sits past halfway, and keys step evenly through the positions."
+/>
+
+To step a scaled control evenly, step its position and read the value back, like `valueAt(stepBy(fraction, move, { min: 0, max: 1, step: 0.01 }), range, "log")`.
+
+## Formatting
+
+### Numbers in Any Language
+
+`formatNumber` shows a value through `Intl.NumberFormat` in a locale: currencies, percents, units and compact counts, with the locale's own digits and separators. Pass a function for text of your own. Null and values that aren't finite show as empty text:
+
+```ts
+import { formatNumber } from "@ui-sdk/core/number"
+
+formatNumber(1234.5, "de-DE", { style: "currency", currency: "EUR" }) // "1.234,50 €"
+formatNumber(0.256, "en-US", { style: "percent", maximumFractionDigits: 1 }) // "25.6%"
+formatNumber(1234567, "en-US", { notation: "compact" }) // "1.2M"
+formatNumber(3, "en-US", (value) => `${value} of 5 stars`) // "3 of 5 stars"
+```
+
+Use the same text for a control's `aria-valuetext`, so screen readers hear what's shown. `numberFormatter` returns the `Intl.NumberFormat` itself, built once per locale and options.
+
+### Ranges and Parts
+
+`formatNumberRange` writes what both ends share once, and `formatNumberToParts` returns each digit group and symbol, to style them apart or roll digits like an odometer:
+
+```ts
+import { formatNumberRange, formatNumberToParts } from "@ui-sdk/core/number"
+
+formatNumberRange(5, 10, "en-US", { style: "currency", currency: "USD" }) // "$5.00 – $10.00"
+formatNumberToParts(1234.5, "en-US", { style: "currency", currency: "USD" })
+// [{ type: "currency", value: "$" }, { type: "integer", value: "1" }, { type: "group", value: "," }, …]
+```
+
+<ComponentExample
+  name="behaviors/number-format"
+  caption="Pick a locale and a style. The large number is built from its parts, with the fraction and currency dimmed, and the range shares what both ends have."
+/>
+
+## Typing a Number
+
+### Read What People Type
+
+`parseNumber` reads a number typed in a locale's format: its digits, group and decimal separators, minus signs, and currency, percent and unit text. It returns null for text that isn't a number, and percent formats divide by 100. `isPartialNumber` says whether text could still become one, so a field can wait on a lone `"-"` instead of rejecting it:
+
+```ts
+import { isPartialNumber, parseNumber } from "@ui-sdk/core/number"
+
+parseNumber("1.234,5", "de-DE") // 1234.5
+parseNumber("٣٫٥", "ar-EG") // 3.5
+parseNumber("50 %", "fr-FR", { style: "percent" }) // 0.5
+parseNumber("-", "de-DE") // null
+isPartialNumber("-", "de-DE") // true
+```
+
+<ComponentExample
+  name="behaviors/number-parse"
+  caption="Type an amount the way the locale writes it, or switch the locale. A number that's on its way waits; text that can't become one is marked."
+/>
+
+## API Reference
+
+All of these functions come from `@ui-sdk/core/number`.
+
+| You Want To                               | Use                                                                                                       |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Keep a value on a step grid within bounds | [`snapToStep`, `stepValue`, `clamp`, `roundTo`, `decimalsOf`, `maxOnGrid`](#snap-to-a-step)               |
+| Keep a value in a loop                    | [`wrap`](#loops)                                                                                          |
+| Turn keys into steps                      | [`stepFromKey`, `stepBy`](#one-keyboard-map)                                                              |
+| Map values to positions and back          | [`fractionOf`, `valueAt`](#value-to-position)                                                             |
+| Show numbers in someone's language        | [`formatNumber`, `formatNumberRange`, `formatNumberToParts`, `numberFormatter`](#numbers-in-any-language) |
+| Read typed numbers                        | [`parseNumber`, `isPartialNumber`](#read-what-people-type)                                                |

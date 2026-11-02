@@ -1,0 +1,27 @@
+// What the rest of core may import from number's files. import-layers checks every
+// import from another folder against this list. Nothing imports this file, so bundles
+// don't pay for it.
+export {
+  displayOptions,
+  formatNumber,
+  formatNumberRange,
+  formatNumberToParts,
+  type NumberFormat,
+  numberFormatter,
+} from "./format"
+export { type NumberKeyOptions, stepFromKey } from "./keys"
+export { isPartialNumber, parseNumber, parseRange } from "./parse"
+export { fractionOf, type NumberScale, valueAt } from "./scale"
+export {
+  clamp,
+  decimalsOf,
+  maxOnGrid,
+  type NumberMove,
+  type NumberRange,
+  roundTo,
+  snapToStep,
+  type StepRange,
+  stepBy,
+  stepValue,
+  wrap,
+} from "./steps"

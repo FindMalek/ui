@@ -7,7 +7,7 @@
 import type { PrimitiveContext } from "../kernel/primitive-types"
 import { css } from "../kernel/inline-style"
 import { announce } from "../platform/announce"
-import { clamp } from "../text/number"
+import { clamp } from "../../foundation/number/steps"
 import { createDragSession, dragThreshold } from "../drag-and-drop/pointer"
 
 /**

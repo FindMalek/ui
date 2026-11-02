@@ -1,14 +1,16 @@
 import { describe, expect, test } from "vitest"
+import { displayOptions, formatNumber } from "../src/foundation/number/format"
+import { isPartialNumber, parseNumber, parseRange } from "../src/foundation/number/parse"
+import { decimalsOf, maxOnGrid, snapToStep, stepValue } from "../src/foundation/number/steps"
 import {
-  decimalsOf,
-  displayOptions,
-  formatNumber,
-  maxOnGrid,
-  parseRange,
-  snapToStep,
-  stepValue,
-} from "../src/foundation/text/number"
-import { isPartialNumber, parseNumber } from "../src/components/number-input/number-input-parse"
+  formatNumberRange,
+  formatNumberToParts,
+  fractionOf,
+  stepBy,
+  stepFromKey,
+  valueAt,
+  wrap,
+} from "../src/foundation/number/number"
 import { formatRange } from "../src/components/slider/slider-api"
 
 describe("steps", () => {
@@ -146,5 +148,108 @@ describe("ranges", () => {
     expect(parseRange("20/80")).toEqual([20, 80])
     expect(parseRange("20/x")).toBe(null)
     expect(parseRange("42")).toEqual([42])
+  })
+})
+
+describe("@ui-sdk/core/number", () => {
+  test("wrap keeps a value in a loop, like an angle or a carousel index", () => {
+    expect(wrap(370, 0, 360)).toBe(10)
+    expect(wrap(-10, 0, 360)).toBe(350)
+    expect(wrap(360, 0, 360)).toBe(0)
+    expect(wrap(7, 0, 5)).toBe(2)
+    expect(wrap(3, 2, 2)).toBe(2)
+  })
+
+  test("stepBy moves by the step, the large step and the small step, and to the bounds", () => {
+    const range = { min: 0, max: 10, step: 0.5, largeStep: 2, smallStep: 0.1 }
+    expect(stepBy(1, { direction: 1, size: "step" }, range)).toBe(1.5)
+    expect(stepBy(1, { direction: -1, size: "large" }, range)).toBe(0)
+    expect(stepBy(1, { direction: 1, size: "small" }, range)).toBe(1.1)
+    expect(stepBy(9.5, { direction: 1, size: "large" }, range)).toBe(10)
+    expect(stepBy(4, { bound: "min" }, range)).toBe(0)
+    expect(stepBy(4, { bound: "max" }, { min: 0, max: 10, step: 3 })).toBe(9)
+    // Without a large step, it's ten steps; without a small one, the step.
+    expect(stepBy(0, { direction: 1, size: "large" }, { min: 0, max: 100, step: 1 })).toBe(10)
+    expect(stepBy(0, { direction: 1, size: "small" }, { min: 0, max: 100, step: 1 })).toBe(1)
+  })
+
+  test("fractionOf and valueAt map between values and positions, evenly or along a scale", () => {
+    const range = { min: 20, max: 20000 }
+    expect(fractionOf(50, { min: 0, max: 200 })).toBe(0.25)
+    expect(valueAt(0.25, { min: 0, max: 200 })).toBe(50)
+    expect(fractionOf(-5, { min: 0, max: 10 })).toBe(0)
+    expect(fractionOf(15, { min: 0, max: 10 })).toBe(1)
+    expect(fractionOf(5, { min: 3, max: 3 })).toBe(0)
+    // A log scale puts each tenfold at the same distance, as a frequency or volume control does.
+    expect(fractionOf(200, { min: 2, max: 2000 }, "log")).toBeCloseTo(2 / 3)
+    expect(valueAt(0.5, range, "log")).toBeCloseTo(Math.sqrt(20 * 20000))
+    expect(valueAt(fractionOf(1234, range, "log"), range, "log")).toBeCloseTo(1234)
+    const squared = {
+      to: (value: number) => Math.sqrt(value),
+      from: (position: number) => position * position,
+    }
+    expect(fractionOf(25, { min: 0, max: 100 }, squared)).toBe(0.5)
+    expect(valueAt(0.5, { min: 0, max: 100 }, squared)).toBe(25)
+  })
+
+  test("formatNumberRange writes what both ends share once, and a format function joins its texts", () => {
+    expect(
+      formatNumberRange(5, 10, "en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }),
+    ).toMatch(/^\$5\s?[–-]\s?\$?10$/)
+    expect(formatNumberRange(1, 3, "en-US", (value) => `${value} km`)).toBe("1 km – 3 km")
+    expect(formatNumberRange(1, Number.NaN, "en-US")).toBe("")
+  })
+
+  test("formatNumberToParts splits a value into its digits and symbols", () => {
+    const parts = formatNumberToParts(1234.5, "en-US", { style: "currency", currency: "USD" })
+    expect(parts.map((part) => part.type)).toEqual([
+      "currency",
+      "integer",
+      "group",
+      "integer",
+      "decimal",
+      "fraction",
+    ])
+    expect(parts.map((part) => part.value).join("")).toBe("$1,234.50")
+    expect(formatNumberToParts(2, "en-US", (value) => `${value}×`)).toEqual([
+      { type: "literal", value: "2×" },
+    ])
+    expect(formatNumberToParts(null)).toEqual([])
+  })
+
+  test("stepFromKey reads the APG keys into a move", () => {
+    expect(stepFromKey({ key: "ArrowUp" })).toEqual({ direction: 1, size: "step" })
+    expect(stepFromKey({ key: "ArrowRight" })).toEqual({ direction: 1, size: "step" })
+    expect(stepFromKey({ key: "ArrowLeft", shiftKey: true })).toEqual({ direction: -1, size: "large" })
+    expect(stepFromKey({ key: "ArrowDown", altKey: true })).toEqual({ direction: -1, size: "small" })
+    expect(stepFromKey({ key: "PageUp" })).toEqual({ direction: 1, size: "large" })
+    expect(stepFromKey({ key: "PageDown" })).toEqual({ direction: -1, size: "large" })
+    expect(stepFromKey({ key: "Home" })).toEqual({ bound: "min" })
+    expect(stepFromKey({ key: "End" })).toEqual({ bound: "max" })
+    expect(stepFromKey({ key: "a" })).toBeNull()
+  })
+
+  test("right to left flips Left and Right only on a horizontal control, and a field leaves them to the caret", () => {
+    expect(stepFromKey({ key: "ArrowRight" }, { dir: "rtl" })).toEqual({ direction: -1, size: "step" })
+    expect(stepFromKey({ key: "ArrowLeft" }, { dir: "rtl" })).toEqual({ direction: 1, size: "step" })
+    expect(stepFromKey({ key: "ArrowRight" }, { dir: "rtl", orientation: "vertical" })).toEqual({
+      direction: 1,
+      size: "step",
+    })
+    expect(stepFromKey({ key: "ArrowUp" }, { dir: "rtl" })).toEqual({ direction: 1, size: "step" })
+    expect(stepFromKey({ key: "ArrowLeft" }, { arrows: "vertical" })).toBeNull()
+    expect(stepFromKey({ key: "ArrowUp" }, { arrows: "vertical" })).toEqual({ direction: 1, size: "step" })
+  })
+
+  test("a key's move applied with stepBy is what a slider does", () => {
+    const range = { min: 0, max: 100, step: 5, largeStep: 20 }
+    const press = (key: string, value: number, shiftKey = false) => {
+      const move = stepFromKey({ key, shiftKey })
+      return move && stepBy(value, move, range)
+    }
+    expect(press("ArrowRight", 50)).toBe(55)
+    expect(press("ArrowRight", 50, true)).toBe(70)
+    expect(press("End", 50)).toBe(100)
+    expect(press("Tab", 50)).toBeNull()
   })
 })

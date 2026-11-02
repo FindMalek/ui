@@ -1,7 +1,9 @@
 // The decisions a slider makes, as pure functions of its values and bounds:
 // where each thumb may go, what a key does, and which thumb a press moves.
 // slider.ts wires them to the DOM. Unit tested in test/slider.test.ts.
-import { clamp, maxOnGrid, snapToStep, stepValue, type StepRange } from "../../foundation/text/number"
+import { stepFromKey } from "../../foundation/number/keys"
+import { fractionOf, valueAt } from "../../foundation/number/scale"
+import { clamp, maxOnGrid, snapToStep, type StepRange, stepBy } from "../../foundation/number/steps"
 
 type SliderRange = StepRange & {
   // How far apart neighbouring thumbs stay, in steps.
@@ -42,7 +44,7 @@ function normalizeValues(values: readonly number[], range: StepRange) {
   return values.map((value) => clamp(value, range.min, range.max)).sort((a, b) => a - b)
 }
 
-/** What a key does to a thumb's value, or null for keys a slider ignores. */
+/** What a key does to a thumb's value, or null for keys a slider ignores. Home and End go to the thumb's own bounds. */
 function keyTarget(
   key: string,
   { shiftKey = false, rtl = false, orientation = "horizontal" as "horizontal" | "vertical" } = {},
@@ -50,28 +52,10 @@ function keyTarget(
   bounds: { lower: number; upper: number },
   range: SliderRange,
 ) {
-  // Right and Up increase on both axes, as the APG says. Only a horizontal
-  // slider flips Left and Right right to left, since only it lays out that way.
-  const flip = rtl && orientation === "horizontal" ? -1 : 1
-  const directions: Record<string, number> = {
-    ArrowRight: flip,
-    ArrowUp: 1,
-    ArrowLeft: -flip,
-    ArrowDown: -1,
-  }
-  if (key === "Home") return bounds.lower
-  if (key === "End") return bounds.upper
-  if (key === "PageUp" || key === "PageDown") {
-    const direction = key === "PageUp" ? 1 : -1
-    return largeStepValue(value, direction, range)
-  }
-  const direction = directions[key]
-  if (direction === undefined) return null
-  return shiftKey ? largeStepValue(value, direction, range) : stepValue(value, direction, range)
-}
-
-function largeStepValue(value: number, direction: number, range: SliderRange) {
-  return snapToStep(clamp(value + direction * range.largeStep, range.min, range.max), range)
+  const move = stepFromKey({ key, shiftKey }, { orientation, dir: rtl ? "rtl" : "ltr" })
+  if (!move) return null
+  if ("bound" in move) return move.bound === "min" ? bounds.lower : bounds.upper
+  return stepBy(value, move, range)
 }
 
 /**
@@ -107,7 +91,7 @@ function thumbForDirection(stack: readonly number[], direction: number) {
 /** Where a value sits between the bounds, from 0 to 100, for positioning. */
 function percentOf(value: number, range: StepRange) {
   if (!(range.max > range.min)) return 0
-  return roundPercent(((clamp(value, range.min, range.max) - range.min) / (range.max - range.min)) * 100)
+  return roundPercent(fractionOf(value, range) * 100)
 }
 
 // Four decimals keep positions exact to well under a pixel, and the markup short.
@@ -130,11 +114,6 @@ function fractionAlong(
       ? (box.left + box.width - point.x) / box.width
       : (point.x - box.left) / box.width
   return Number.isFinite(fraction) ? clamp(fraction, 0, 1) : 0
-}
-
-/** The value at a fraction of the track, unsnapped, so presses pick thumbs by distance. */
-function valueAt(fraction: number, range: StepRange) {
-  return range.min + clamp(fraction, 0, 1) * (range.max - range.min)
 }
 
 export {
