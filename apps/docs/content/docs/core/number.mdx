@@ -91,7 +91,8 @@ On a log scale, each tenfold takes the same distance, as frequency, volume and z
 fractionOf(200, { min: 20, max: 20000 }, "log") // 0.33: 20 to 200 is a third of the way
 valueAt(0.5, { min: 20, max: 20000 }, "log") // 632, halfway by ratio
 
-const squared = { to: Math.sqrt, from: (position: number) => position * position }
+const area = { to: Math.sqrt, from: (position: number) => position * position }
+fractionOf(25, { min: 0, max: 100 }, area) // 0.5: a size that feels even by area, like a brush
 ```
 
 <ComponentExample
