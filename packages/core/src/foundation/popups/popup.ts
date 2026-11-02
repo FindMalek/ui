@@ -30,7 +30,7 @@ import { resolveBehavior, type PopupBehavior, type PopupBehaviorName } from "./p
 import { registerPopupElement } from "./popup-elements"
 import type { Anchor, position, PositionOptions } from "../platform/position"
 import { animateIn, animateOut, writeOpen } from "../motion/presence"
-import { nextTabbable, positiveTabStops, tabbables } from "../focus/tabbable"
+import { nextTabbable, positiveTabStops, radioGroup, tabbables } from "../focus/tabbable"
 
 /** How a popup was last opened. Decides where focus goes. */
 type PopupOpener = "pointer" | "touch" | "keyboard" | "hover" | "imperative" | "initial"
@@ -967,6 +967,16 @@ function createPopupLayer<State extends { open: boolean; mounted: boolean }, Rea
       if (event.shiftKey ? atStart : atEnd) {
         event.preventDefault()
         ;((event.shiftKey ? last : first) ?? popup).focus({ preventScroll: true })
+        return
+      }
+      // WebKit and Firefox skip a radio group whose checked radio is behind
+      // the popup, so the trap steps into such a group itself.
+      const index = list.indexOf(active as HTMLElement)
+      const next = index < 0 ? undefined : list[index + (event.shiftKey ? -1 : 1)]
+      const group = next && !(next as HTMLInputElement).checked ? radioGroup(next) : []
+      if (group.some((radio) => radio.checked) && !group.includes(active as HTMLInputElement)) {
+        event.preventDefault()
+        next?.focus({ preventScroll: true })
       }
       return
     }
