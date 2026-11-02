@@ -9,7 +9,7 @@ function Example() {
   const shown = formatNumber(value, "en-US", { maximumFractionDigits: 1 })
   const current = () => {
     const parsed = typed === null ? null : parseNumber(typed, "en-US")
-    return parsed === null ? value : scrubTo(parsed, range)
+    return parsed === null ? value : scrubTo(parsed, range).value
   }
   const commit = () => {
     setValue(current())

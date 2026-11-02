@@ -16,6 +16,7 @@ export {
   clamp,
   decimalsOf,
   maxOnGrid,
+  onGrid,
   type NumberMove,
   type NumberRange,
   type NumberSnap,

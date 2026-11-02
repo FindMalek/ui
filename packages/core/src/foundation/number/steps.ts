@@ -65,12 +65,17 @@ function maxOnGrid(range: StepRange) {
   return roundTo(base + steps * range.step, precisionOf(range))
 }
 
+// A value on the step grid, rounded with `round`, like `Math.floor` for where a drag on a track starts; not bounded.
+function onGrid(value: number, range: StepRange, round: (steps: number) => number = Math.round) {
+  if (!(range.step > 0)) return value
+  const base = stepBase(range)
+  return roundTo(base + round(stepCount(value - base, range.step)) * range.step, precisionOf(range))
+}
+
 // The nearest value on the step grid, within the bounds. Public as `scrubTo` without snap points.
 function snapToStep(value: number, range: StepRange) {
   if (!(range.step > 0)) return clamp(value, range.min, range.max)
-  const base = stepBase(range)
-  const snapped = base + Math.round(stepCount(value - base, range.step)) * range.step
-  return roundTo(clamp(snapped, range.min, maxOnGrid(range)), precisionOf(range))
+  return roundTo(clamp(onGrid(value, range), range.min, maxOnGrid(range)), precisionOf(range))
 }
 
 /**
@@ -171,22 +176,44 @@ function stepBy(value: number, move: NumberMove, range: NumberRange, { snap = tr
 }
 
 /**
+ * Where a scrub is: its `value`, and the snap `point` it's pulled to, or
+ * undefined when it's on its own, so a release can commit `point ?? value`.
+ * @experimental
+ */
+type NumberScrub = { value: number; point: number | undefined }
+
+/**
  * Where a value lands in a range: on the nearest of `range.snap`'s points
  * within its threshold, or else on the step grid within the bounds.
  * `{ snap: false }` ignores the points, like for typed numbers or while Cmd is
  * held, and keeps the grid; a range with a step of 0 keeps values exactly.
+ *
+ * With `ease`, a value near a point moves toward it instead of jumping there:
+ * not at all at the threshold, faster as it closes in, and onto the point at
+ * the end. `true` pulls in proportion to closeness, from 0 at the threshold to
+ * 1 on the point; pass a curve over closeness to change it.
  * @experimental
  */
-function scrubTo(value: number, range: NumberRange, { snap = true } = {}) {
+function scrubTo(
+  value: number,
+  range: NumberRange,
+  { snap = true, ease }: { snap?: boolean; ease?: boolean | ((closeness: number) => number) } = {},
+) {
   let nearest: number | undefined
+  const threshold = range.snap?.threshold ?? 0
   if (snap && range.snap)
     for (const point of range.snap.points)
       if (
-        Math.abs(point - value) <= range.snap.threshold &&
+        Math.abs(point - value) <= threshold &&
         (nearest === undefined || Math.abs(point - value) < Math.abs(nearest - value))
       )
         nearest = point
-  return nearest === undefined ? snapToStep(value, range) : clamp(nearest, range.min, range.max)
+  if (nearest === undefined) return { value: snapToStep(value, range), point: undefined }
+  const point = clamp(nearest, range.min, range.max)
+  if (!ease || !(threshold > 0)) return { value: point, point }
+  const closeness = 1 - Math.abs(point - value) / threshold
+  const pull = ease === true ? closeness : ease(closeness)
+  return { value: clamp(value + (point - value) * pull, range.min, range.max), point }
 }
 
 export {
@@ -195,7 +222,9 @@ export {
   maxOnGrid,
   type NumberMove,
   type NumberRange,
+  type NumberScrub,
   type NumberSnap,
+  onGrid,
   roundTo,
   scrubTo,
   snapToStep,

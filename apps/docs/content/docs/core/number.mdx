@@ -18,7 +18,7 @@ import { clamp, roundTo, scrubTo, stepValue } from "@ui-sdk/core/number"
 
 const range = { min: 0, max: 10, step: 0.25 }
 
-scrubTo(3.3, range) // 3.25
+scrubTo(3.3, range).value // 3.25
 stepValue(3.3, 1, range) // 3.5, off the grid moves onto it first
 stepValue(9.9, 1, range) // 10
 clamp(14, 0, 10) // 10
@@ -78,7 +78,7 @@ import { fractionOf, scrubTo, valueAt } from "@ui-sdk/core/number"
 
 fractionOf(30, { min: 0, max: 120 }) // 0.25
 const pressed = valueAt((event.clientX - box.left) / box.width, range)
-scrubTo(pressed, range)
+scrubTo(pressed, range).value
 ```
 
 Values outside the bounds sit at an end, and bounds that are the same give 0.
@@ -113,8 +113,8 @@ import { scrubTo, stepBy, stepFromKey } from "@ui-sdk/core/number"
 
 const range = { min: 0, max: 60, step: 0.1, snap: { points: [0, 9.5, 24, 38.5, 52], threshold: 1.5 } }
 
-scrubTo(23, range) // 24
-scrubTo(23, range, { snap: false }) // 23
+scrubTo(23, range) // { value: 24, point: 24 }
+scrubTo(23, range, { snap: false }) // { value: 23, point: undefined }
 
 function onKeyDown(event: KeyboardEvent) {
   const move = stepFromKey(event)
@@ -131,7 +131,7 @@ function onKeyDown(event: KeyboardEvent) {
   type="range"
   onPointerDown={(event) => (free = event.metaKey)}
   onPointerMove={(event) => (free = event.metaKey)}
-  onChange={(event) => setTime(scrubTo(Number(event.target.value), range, { snap: !free }))}
+  onChange={(event) => setTime(scrubTo(Number(event.target.value), range, { snap: !free }).value)}
 />
 ```
 
@@ -139,6 +139,15 @@ function onKeyDown(event: KeyboardEvent) {
   name="behaviors/number-scrub"
   caption="Drag the slider: the playhead snaps to each section as it comes within 1.5 seconds, and arrow keys stop at each one. Hold Command or Ctrl to scrub and step freely."
 />
+
+`point` says which snap point a value is pulled to, so a release can commit `point ?? value`. With `{ ease: true }`, a value near a point moves toward it instead of jumping: not at all at the threshold, faster as it closes in, and onto the point at the end. Show `value` while dragging, and land on `point`:
+
+```ts
+scrubTo(23.25, range, { ease: true }) // { value: 23.625, point: 24 }
+scrubTo(22.5, range, { ease: true }) // { value: 22.5, point: 24 }, at the threshold
+```
+
+Pass a curve over closeness, from 0 at the threshold to 1 on the point, like `{ ease: (t) => t * t }`, to change how the pull builds. [Collapse Past a Threshold](./behaviors/drag-and-drop#collapse-past-a-threshold) eases a sidebar into collapsing.
 
 A control that leaves Up and Down to the page, like a timeline in a list of tracks, passes `{ arrows: "horizontal" }` to `stepFromKey`.
 

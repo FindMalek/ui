@@ -62,7 +62,9 @@ function Example() {
         value={time}
         onPointerDown={track}
         onPointerMove={track}
-        onChange={(event) => setTime(scrubTo(Number(event.target.value), range, { snap: !free.current }))}
+        onChange={(event) =>
+          setTime(scrubTo(Number(event.target.value), range, { snap: !free.current }).value)
+        }
         onKeyDown={(event) => {
           const move = stepFromKey(event)
           if (!move) return

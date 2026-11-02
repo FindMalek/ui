@@ -221,6 +221,7 @@ export type {
   NumberMove,
   NumberRange,
   NumberScale,
+  NumberScrub,
   NumberSnap,
   StepRange,
 } from "@ui-sdk/core/number"

@@ -17,6 +17,7 @@ export {
   maxOnGrid,
   type NumberMove,
   type NumberRange,
+  type NumberScrub,
   type NumberSnap,
   roundTo,
   scrubTo,

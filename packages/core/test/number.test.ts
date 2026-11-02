@@ -279,17 +279,35 @@ describe("scrubbing", () => {
   }
 
   test("scrubTo lands on the nearest point within the threshold, or else on the step grid", () => {
-    expect(scrubTo(23, timeline)).toBe(24)
-    expect(scrubTo(25.4, timeline)).toBe(24)
-    expect(scrubTo(25.6, timeline)).toBe(25.6)
-    expect(scrubTo(30.04, timeline)).toBe(30)
-    expect(scrubTo(23, timeline, { snap: false })).toBe(23)
+    expect(scrubTo(23, timeline).value).toBe(24)
+    expect(scrubTo(25.4, timeline).value).toBe(24)
+    expect(scrubTo(25.6, timeline).value).toBe(25.6)
+    expect(scrubTo(30.04, timeline).value).toBe(30)
+    expect(scrubTo(23, timeline, { snap: false }).value).toBe(23)
     // Without the points it still lands on the grid; a step of 0 keeps the value exactly, within the bounds.
-    expect(scrubTo(23.456, timeline, { snap: false })).toBe(23.5)
-    expect(scrubTo(23.456, { ...timeline, step: 0 }, { snap: false })).toBe(23.456)
-    expect(scrubTo(70, { ...timeline, step: 0 }, { snap: false })).toBe(60)
-    expect(scrubTo(23, { ...timeline, snap: { points: [22, 23.5], threshold: 2 } })).toBe(23.5)
-    expect(scrubTo(1, { min: 0, max: 10, step: 1, snap: { points: [-1], threshold: 3 } })).toBe(0)
+    expect(scrubTo(23.456, timeline, { snap: false }).value).toBe(23.5)
+    expect(scrubTo(23.456, { ...timeline, step: 0 }, { snap: false }).value).toBe(23.456)
+    expect(scrubTo(70, { ...timeline, step: 0 }, { snap: false }).value).toBe(60)
+    expect(scrubTo(23, { ...timeline, snap: { points: [22, 23.5], threshold: 2 } }).value).toBe(23.5)
+    expect(scrubTo(1, { min: 0, max: 10, step: 1, snap: { points: [-1], threshold: 3 } }).value).toBe(0)
+    expect(scrubTo(23, timeline)).toEqual({ value: 24, point: 24 })
+    expect(scrubTo(30, timeline)).toEqual({ value: 30, point: undefined })
+  })
+
+  test("eases toward a point: unchanged at the threshold, faster as it closes in, and onto the point", () => {
+    expect(scrubTo(22.5, timeline, { ease: true })).toEqual({ value: 22.5, point: 24 })
+    expect(scrubTo(23.25, timeline, { ease: true })).toEqual({ value: 23.625, point: 24 })
+    expect(scrubTo(24, timeline, { ease: true })).toEqual({ value: 24, point: 24 })
+    expect(scrubTo(23.25, timeline, { ease: (t) => t * t }).value).toBeCloseTo(23.4375)
+    // Two points a threshold apart on each side meet without a jump.
+    const collapse = { min: 0, max: 160, step: 1, snap: { points: [0, 160], threshold: 80 } }
+    const shown = [79.9, 80, 80.1].map((pointer) => scrubTo(pointer, collapse, { ease: true }).value)
+    expect(shown[1]).toBe(80)
+    expect(Math.abs(shown[2] - shown[0])).toBeLessThan(0.5)
+    expect(scrubTo(5, { ...collapse, snap: { points: [0], threshold: 0 } }, { ease: true })).toEqual({
+      value: 5,
+      point: undefined,
+    })
   })
 
   test("a step stops at the first point it reaches ahead, and leaves the point it's on", () => {
