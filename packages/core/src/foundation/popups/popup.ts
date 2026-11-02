@@ -30,7 +30,7 @@ import { resolveBehavior, type PopupBehavior, type PopupBehaviorName } from "./p
 import { registerPopupElement } from "./popup-elements"
 import type { Anchor, position, PositionOptions } from "../platform/position"
 import { animateIn, animateOut, writeOpen } from "../motion/presence"
-import { nextTabbable, tabbables } from "../focus/tabbable"
+import { nextTabbable, positiveTabStops, tabbables } from "../focus/tabbable"
 
 /** How a popup was last opened. Decides where focus goes. */
 type PopupOpener = "pointer" | "touch" | "keyboard" | "hover" | "imperative" | "initial"
@@ -930,6 +930,25 @@ function createPopupLayer<State extends { open: boolean; mounted: boolean }, Rea
     const active = activeElement()
     const atStart = !first || active === first || active === popup
     const atEnd = !last || active === last
+    // The browser visits every positive tabindex in the page before the rest,
+    // so the trap steps onto and off them itself. Between the others, and into
+    // shadow roots, Tab moves natively.
+    const ahead = mode === "trap" ? positiveTabStops(list, popup) : []
+    if (ahead.length) {
+      const order = [...ahead, ...list.filter((el) => !ahead.includes(el))]
+      const index = order.indexOf(active as HTMLElement)
+      const next =
+        active === popup
+          ? order.at(event.shiftKey ? -1 : 0)
+          : order.at((index + (event.shiftKey ? -1 : 1)) % order.length)
+      const crossing = ahead.includes(active as HTMLElement) || (!!next && ahead.includes(next))
+      const shadow = active?.shadowRoot
+      const entersShadow = !event.shiftKey && !!shadow && tabbables(shadow).length > 0
+      if (active !== popup && (index < 0 || !crossing || entersShadow)) return
+      event.preventDefault()
+      next?.focus({ preventScroll: true })
+      return
+    }
     if (mode === "trap") {
       if (event.shiftKey ? atStart : atEnd) {
         event.preventDefault()
