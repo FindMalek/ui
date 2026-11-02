@@ -28,6 +28,18 @@ test("steps: arrows step by the step, Shift and Alt by the large and small steps
   await expect(quantity).toHaveAttribute("aria-valuenow", "20")
   await page.keyboard.press("Home")
   await expect(quantity).toHaveAttribute("aria-valuenow", "0")
+  // Typed weights read when they're committed, and snap to the step.
+  await quantity.fill("4.3")
+  await page.keyboard.press("Enter")
+  await expect(quantity).toHaveAttribute("aria-valuenow", "4.5")
+  await expect(quantity).toHaveValue("4.5")
+  // A key while typing steps from what's typed.
+  await quantity.fill("7")
+  await page.keyboard.press("ArrowUp")
+  await expect(quantity).toHaveValue("7.5")
+  await quantity.fill("9.2")
+  await quantity.blur()
+  await expect(quantity).toHaveValue("9")
 })
 
 test("scale: 1 kHz sits past halfway on a log scale and near the start on a linear one, and keys step positions", async ({
