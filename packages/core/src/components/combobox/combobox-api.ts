@@ -288,7 +288,7 @@ function comboboxApi(context: PrimitiveContext<ComboboxOptions<any, any>, Combob
       })
     },
   })
-  const selection = createValueSelection({ store, options, listbox, toKey })
+  const selection = createValueSelection({ store, options, listbox, toKey, onDestroy: context.onDestroy })
   keepListing(store, listbox, {
     entry: (key, value) => (selection.isSelected(key, value) ? "s" : maxReached() ? "f" : ""),
     inputs: () => [store.get().value, store.get().multiple, store.get().maxSelected],
@@ -416,6 +416,7 @@ function comboboxApi(context: PrimitiveContext<ComboboxOptions<any, any>, Combob
   ) {
     const state = store.get()
     if (isDisabled(state) || (state.readOnly && reason !== "reset")) return false
+    selection.stopRestoring()
     const done = change("value", value, { reason, event })
     if (done && reason !== "reset" && reason !== "restore") dispatchChange(formElement())
     return done
@@ -708,8 +709,9 @@ function comboboxApi(context: PrimitiveContext<ComboboxOptions<any, any>, Combob
       setFormDisabled(formDisabled: boolean) {
         store.set({ formDisabled })
       },
+      // The browser restores a disabled or read-only control too, as a native one.
       restore(saved: string) {
-        setValue(selection.restored(saved), { reason: "restore" })
+        selection.restore(saved, (value) => change("value", value, { reason: "restore" }))
       },
     },
   }
@@ -775,7 +777,10 @@ function comboboxApi(context: PrimitiveContext<ComboboxOptions<any, any>, Combob
     if (multiple || dirty || committing) return
     const first = listOf(value)[0]
     const label = first === undefined ? "" : selection.labelOf(first)
-    if (store.get().query !== label) setQuery(label, { reason: "imperative" })
+    if (store.get().query === label) return
+    // A restore's late items show their label as quietly as the restore itself.
+    if (selection.isFilling() && options().query === undefined) store.set({ query: label, dirty: false })
+    else setQuery(label, { reason: "imperative" })
   })
 
   return api
