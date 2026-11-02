@@ -284,6 +284,10 @@ describe("scrubbing", () => {
     expect(scrubTo(25.6, timeline)).toBe(25.6)
     expect(scrubTo(30.04, timeline)).toBe(30)
     expect(scrubTo(23, timeline, { snap: false })).toBe(23)
+    // Without the points it still lands on the grid; a step of 0 keeps the value exactly, within the bounds.
+    expect(scrubTo(23.456, timeline, { snap: false })).toBe(23.5)
+    expect(scrubTo(23.456, { ...timeline, step: 0 }, { snap: false })).toBe(23.456)
+    expect(scrubTo(70, { ...timeline, step: 0 }, { snap: false })).toBe(60)
     expect(scrubTo(23, { ...timeline, snap: { points: [22, 23.5], threshold: 2 } })).toBe(23.5)
     expect(scrubTo(1, { min: 0, max: 10, step: 1, snap: { points: [-1], threshold: 3 } })).toBe(0)
   })

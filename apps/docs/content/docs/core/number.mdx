@@ -25,7 +25,7 @@ clamp(14, 0, 10) // 10
 roundTo(0.1 + 0.2, 2) // 0.3
 ```
 
-The grid starts at `min` when it's finite, like a native range input, so `{ min: 1, max: 10, step: 2 }` steps through 1, 3, 5, 7 and 9. `maxOnGrid` returns that highest value, and `decimalsOf` counts a number's decimals. Give the range `snap` points and `scrubTo` lands on those too, as [scrubbing](#snap-while-scrubbing) shows; pass `{ snap: false }` for exact values, like typed numbers.
+The grid starts at `min` when it's finite, like a native range input, so `{ min: 1, max: 10, step: 2 }` steps through 1, 3, 5, 7 and 9. `maxOnGrid` returns that highest value, and `decimalsOf` counts a number's decimals. Give the range `snap` points and `scrubTo` lands on those too, as [scrubbing](#snap-while-scrubbing) shows. A step of 0 has no grid, so values stay exactly as they are, within the bounds.
 
 ### Loops
 
@@ -124,7 +124,7 @@ function onKeyDown(event: KeyboardEvent) {
 }
 ```
 
-`{ snap: false }` scrubs freely, like while Cmd is held. A slider's `input` event doesn't say which keys are down, so read them from its pointer events:
+`{ snap: false }` ignores the points, like while Cmd is held or for a typed number, and still lands on the step grid. A slider's `input` event doesn't say which keys are down, so read them from its pointer events:
 
 ```tsx
 <input

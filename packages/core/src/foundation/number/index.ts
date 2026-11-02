@@ -24,6 +24,7 @@ export {
   snapToStep,
   type StepRange,
   stepBy,
+  stepOnGrid,
   stepValue,
   wrap,
 } from "./steps"

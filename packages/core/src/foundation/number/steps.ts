@@ -131,6 +131,23 @@ type NumberRange = StepRange & {
   snap?: NumberSnap
 }
 
+// A step, large step or small step on the grid, without snap points, so a
+// control that never snaps, like Slider, doesn't bundle them.
+function stepOnGrid(
+  value: number,
+  move: { direction: 1 | -1; size: "step" | "large" | "small" },
+  range: NumberRange,
+) {
+  if (move.size === "large")
+    return snapToStep(
+      clamp(value + move.direction * (range.largeStep ?? range.step * 10), range.min, range.max),
+      range,
+    )
+  if (move.size === "small" && range.smallStep)
+    return stepValue(value, move.direction, { ...range, step: range.smallStep })
+  return stepValue(value, move.direction, range)
+}
+
 /**
  * The value a move lands on: a step on the grid, a large step snapped back to
  * it, a small step on its own grid, or a bound, where `max` is the highest
@@ -140,15 +157,7 @@ type NumberRange = StepRange & {
  */
 function stepBy(value: number, move: NumberMove, range: NumberRange, { snap = true } = {}) {
   if ("bound" in move) return move.bound === "min" ? range.min : maxOnGrid(range)
-  const next =
-    move.size === "large"
-      ? snapToStep(
-          clamp(value + move.direction * (range.largeStep ?? range.step * 10), range.min, range.max),
-          range,
-        )
-      : move.size === "small" && range.smallStep
-        ? stepValue(value, move.direction, { ...range, step: range.smallStep })
-        : stepValue(value, move.direction, range)
+  const next = stepOnGrid(value, move, range)
   if (!snap || !range.snap) return next
   const { points, threshold } = range.snap
   const direction = move.direction
@@ -163,8 +172,9 @@ function stepBy(value: number, move: NumberMove, range: NumberRange, { snap = tr
 
 /**
  * Where a value lands in a range: on the nearest of `range.snap`'s points
- * within its threshold, or else on the step grid within the bounds. Pass
- * `{ snap: false }` for exact values, like typed numbers, or to scrub freely while Cmd is held.
+ * within its threshold, or else on the step grid within the bounds.
+ * `{ snap: false }` ignores the points, like for typed numbers or while Cmd is
+ * held, and keeps the grid; a range with a step of 0 keeps values exactly.
  * @experimental
  */
 function scrubTo(value: number, range: NumberRange, { snap = true } = {}) {
@@ -191,6 +201,7 @@ export {
   snapToStep,
   type StepRange,
   stepBy,
+  stepOnGrid,
   stepValue,
   wrap,
 }

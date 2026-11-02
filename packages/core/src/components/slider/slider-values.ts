@@ -2,8 +2,7 @@
 // where each thumb may go, what a key does, and which thumb a press moves.
 // slider.ts wires them to the DOM. Unit tested in test/slider.test.ts.
 import { stepFromKey } from "../../foundation/number/keys"
-import { fractionOf, valueAt } from "../../foundation/number/scale"
-import { clamp, maxOnGrid, snapToStep, type StepRange, stepBy } from "../../foundation/number/steps"
+import { clamp, maxOnGrid, snapToStep, type StepRange, stepOnGrid } from "../../foundation/number/steps"
 
 type SliderRange = StepRange & {
   // How far apart neighbouring thumbs stay, in steps.
@@ -55,7 +54,7 @@ function keyTarget(
   const move = stepFromKey({ key, shiftKey }, { orientation, dir: rtl ? "rtl" : "ltr" })
   if (!move) return null
   if ("bound" in move) return move.bound === "min" ? bounds.lower : bounds.upper
-  return stepBy(value, move, range)
+  return stepOnGrid(value, move, range)
 }
 
 /**
@@ -91,7 +90,7 @@ function thumbForDirection(stack: readonly number[], direction: number) {
 /** Where a value sits between the bounds, from 0 to 100, for positioning. */
 function percentOf(value: number, range: StepRange) {
   if (!(range.max > range.min)) return 0
-  return roundPercent(fractionOf(value, range) * 100)
+  return roundPercent(((clamp(value, range.min, range.max) - range.min) / (range.max - range.min)) * 100)
 }
 
 // Four decimals keep positions exact to well under a pixel, and the markup short.
@@ -114,6 +113,11 @@ function fractionAlong(
       ? (box.left + box.width - point.x) / box.width
       : (point.x - box.left) / box.width
   return Number.isFinite(fraction) ? clamp(fraction, 0, 1) : 0
+}
+
+/** The value at a fraction of the track, unsnapped, so presses pick thumbs by distance. */
+function valueAt(fraction: number, range: StepRange) {
+  return range.min + clamp(fraction, 0, 1) * (range.max - range.min)
 }
 
 export {
