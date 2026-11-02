@@ -59,6 +59,11 @@ test("format: the value, its range and its parts follow the locale and the style
   await expect(page.locator("[data-formatted]")).toHaveText("1.234,50 €")
   await page.getByLabel("Style").selectOption("Compact")
   await expect(page.locator("[data-plain]")).toHaveText("1,2 Mio.")
+  await page.getByLabel("Locale").first().selectOption("zh-CN")
+  await expect(page.locator("[data-plain]")).toHaveText("123万")
+  await page.getByLabel("Locale").first().selectOption("ja-JP")
+  await page.getByLabel("Style").selectOption("Currency")
+  await expect(page.locator("[data-plain]")).toHaveText("€1,234.50")
   await expect(page.locator("[data-range]")).not.toBeEmpty()
 })
 

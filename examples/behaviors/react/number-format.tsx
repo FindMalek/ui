@@ -1,7 +1,7 @@
 import * as React from "react"
 import { formatNumber, formatNumberRange, formatNumberToParts } from "@ui-sdk/core/number"
 
-const locales = ["en-US", "de-DE", "ja-JP", "ar-EG", "hi-IN"]
+const locales = ["en-US", "de-DE", "ja-JP", "zh-CN", "ar-EG", "hi-IN"]
 const styles: Record<string, Intl.NumberFormatOptions> = {
   Currency: { style: "currency", currency: "EUR" },
   Percent: { style: "percent", maximumFractionDigits: 1 },

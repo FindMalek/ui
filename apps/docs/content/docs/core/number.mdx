@@ -116,6 +116,17 @@ formatNumber(1234567, "en-US", { notation: "compact" }) // "1.2M"
 formatNumber(3, "en-US", (value) => `${value} of 5 stars`) // "3 of 5 stars"
 ```
 
+Each locale brings its own rules. Yen have no decimals, and Japanese and Chinese count compact numbers in 万 (ten thousand) and 億 or 亿 (a hundred million):
+
+```ts
+formatNumber(1234.5, "ja-JP", { style: "currency", currency: "JPY" }) // "￥1,235"
+formatNumber(123456789, "ja-JP", { notation: "compact" }) // "1.2億"
+formatNumber(1234.5, "zh-CN", { style: "currency", currency: "CNY" }) // "¥1,234.50"
+formatNumber(12345678, "zh-CN", { notation: "compact" }) // "1235万"
+formatNumber(12345678, "zh-TW", { notation: "compact" }) // "1235萬"
+formatNumber(2026, "zh-CN-u-nu-hanidec", { useGrouping: false }) // "二〇二六"
+```
+
 Use the same text for a control's `aria-valuetext`, so screen readers hear what's shown. `numberFormatter` returns the `Intl.NumberFormat` itself, built once per locale and options.
 
 ### Ranges and Parts
@@ -126,13 +137,14 @@ Use the same text for a control's `aria-valuetext`, so screen readers hear what'
 import { formatNumberRange, formatNumberToParts } from "@ui-sdk/core/number"
 
 formatNumberRange(5, 10, "en-US", { style: "currency", currency: "USD" }) // "$5.00 – $10.00"
+formatNumberRange(500, 1000, "ja-JP", { style: "currency", currency: "JPY" }) // "￥500 ～ ￥1,000"
 formatNumberToParts(1234.5, "en-US", { style: "currency", currency: "USD" })
 // [{ type: "currency", value: "$" }, { type: "integer", value: "1" }, { type: "group", value: "," }, …]
 ```
 
 <ComponentExample
   name="behaviors/number-format"
-  caption="Pick a locale and a style. The large number is built from its parts, with the fraction and currency dimmed, and the range shares what both ends have."
+  caption="Pick a locale and a style, like Compact in Chinese or Japanese, which counts in 万. The large number is built from its parts, with the fraction and currency dimmed, and the range shares what both ends have."
 />
 
 ## Typing a Number
