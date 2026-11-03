@@ -49,7 +49,7 @@ import {
 
 The dialog uses the `alertdialog` role and keeps the rest of the page inert while it is open. Screen readers announce its title and description. Add `AlertDialogBackdrop` when you want to dim the page, as the examples do.
 
-Put Cancel first. By default, a keyboard open focuses the first Close part. Escape closes the dialog, but pressing outside never does. [Dialog](./dialog#focus) covers other initial and final focus targets.
+Put Cancel first. By default, opening it focuses the first Close part. A touch open focuses the content instead, so no on-screen keyboard appears. Escape closes the dialog, but pressing outside never does. [Dialog](./dialog#focus) covers other initial and final focus targets.
 
 [Dialog](./dialog#keyboard-shortcut) covers trigger shortcuts. `AlertDialogShortcut` uses the same pattern.
 

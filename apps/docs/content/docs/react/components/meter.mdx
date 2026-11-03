@@ -11,7 +11,7 @@ description: Show a measurement within a known range, such as storage used or an
 ## Installation
 
 ```bash
-pnpm add @ui-sdk/react @ui-sdk/core
+npm install @ui-sdk/react @ui-sdk/core
 ```
 
 The examples use the [shared example theme](../styling-and-animation#example-theme).
@@ -41,7 +41,7 @@ The value is already part of the root's accessible description. The visible valu
 
 ### Bounds
 
-`min` and `max` set the range. They default to 0 and 100, and values outside the range are clamped. Here, 720 sits about 76% of the way from 300 to 850. Decimal formatting keeps the visible value as 720.
+`min` and `max` set the range. They default to 0 and 100. A value outside the range is clamped for the fill, the percentage and `aria-valuenow`, but the state's `value` and a format other than percent keep it as you passed it. Here, 720 sits about 76% of the way from 300 to 850. Decimal formatting keeps the visible value as 720.
 
 <ComponentExample
   name="meter/min-max"

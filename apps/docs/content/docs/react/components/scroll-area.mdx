@@ -86,13 +86,7 @@ Set `stickToEnd` for a chat, a log, or a streamed answer. The scroll area starts
 - Scroll to the bottom or press `ScrollAreaScrollToEnd` to follow again. The root has `data-sticking` while it follows.
 - Following pauses while you hold a pointer in the viewport, including when selecting text, and catches up when you release it.
 
-Following scrolls only this viewport, without flashing the scrollbars. Jump to latest animates toward the end as content grows and moves immediately when reduced motion is requested.
-
-`ScrollAreaScrollToEnd`, follows again. `data-sticking` is on the root while it follows.
-
-- **It never moves anything else.** It scrolls the viewport itself, never the page around it, and doesn't mark the scrollbars as scrolling, so they don't flash while text streams in.
-- **It waits for you.** While a mouse button is down in the viewport, like while selecting text, or a finger is on it, growth doesn't move the content. It catches up when you let go.
-- **Smooth scrolling.** `scroll-behavior: smooth` on the viewport doesn't slow it down. "Jump to latest" eases there, following content that keeps growing, and jumps at once for people who prefer reduced motion.
+Following scrolls only this viewport, without flashing the scrollbars, and `scroll-behavior: smooth` on the viewport doesn't slow it down. Jump to latest animates toward the end as content grows and moves immediately when reduced motion is requested.
 
 `ScrollAreaScrollToEnd` is a button that has `data-visible` while the view is away from the end, and is inert otherwise, so it can fade out without taking focus. Name it with its content. When it's pressed from the keyboard, focus moves to the viewport, since the button goes inert.
 

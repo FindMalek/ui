@@ -187,7 +187,7 @@ Arrow keys wrap by default. Set `loop` to `false` to stop at the ends.
 
 ### Controlled Group
 
-Use `v-model:value`. `@value-change` also receives the change details. A toggle's own `onPressedChange` runs before the group callback. Calling `details.cancel()` in either callback cancels the group change.
+Use `v-model:value`. `@value-change` also receives the change details. A toggle's own `@pressed-change` runs before the group's `@value-change`. Calling `details.cancel()` in either handler cancels the group change.
 
 Create a controller with `createToggleGroupController` from `@ui-sdk/vue/toggle` and pass it as `controller`. Its `setValue([])` method clears the group from another button.
 

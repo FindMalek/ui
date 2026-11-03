@@ -148,7 +148,7 @@ A disabled select can't be focused or changed and doesn't submit a value. A read
 
 `placeholder` appears while nothing is selected. Add `SelectClear` to return to that state. Clearing sets a single value to `null`, or multiple values to an empty array, and returns focus to the trigger.
 
-Keep the clear button beside the trigger: a button can't contain another button. `keepMounted` lets it stay in the DOM when there is nothing to clear.
+Keep the clear button beside the trigger: a button can't contain another button. `keep-mounted` lets it stay in the DOM when there is nothing to clear.
 
 <ComponentExample
   name="select/clearable"
@@ -320,7 +320,7 @@ The popup uses the top layer without a portal. Use `container` when it must rend
 
 ### Animation
 
-Select keeps closing content mounted until its exit animation finishes. `@open-change-complete` runs afterward. Use `keepMounted` when your animation library needs the closed content to remain in the DOM. [Styling and Animation](../styling-and-animation) covers the lifecycle attributes.
+Select keeps closing content mounted until its exit animation finishes. `@open-change-complete` runs afterward. Use `keep-mounted` when your animation library needs the closed content to remain in the DOM. [Styling and Animation](../styling-and-animation) covers the lifecycle attributes.
 
 ## Styling
 

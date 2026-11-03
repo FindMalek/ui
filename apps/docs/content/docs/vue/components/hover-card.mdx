@@ -45,7 +45,7 @@ The trigger is a link (an `<a>`, so give it an `href`), and pressing it follows 
 
 ### Delays
 
-`delay` is how long the pointer rests on the link, or keyboard focus stays on it, before the card opens: 600 milliseconds by default. `closeDelay` is how long it stays open once the pointer leaves the link and the card: 300 milliseconds by default. The pointer can cross the gap between the link and the card without closing it.
+`delay` is how long the pointer rests on the link, or keyboard focus stays on it, before the card opens: 600 milliseconds by default. `close-delay` is how long it stays open once the pointer leaves the link and the card: 300 milliseconds by default. The pointer can cross the gap between the link and the card without closing it.
 
 `disabled` stops the card from opening and leaves a plain link.
 
@@ -65,7 +65,7 @@ Start and end follow the text direction.
 
 ### Offsets
 
-`sideOffset` is the gap to the link, 4 pixels by default. `alignOffset` shifts along it, and `collisionPadding` is the space kept from the edges of the window.
+`side-offset` is the gap to the link, 4 pixels by default. `align-offset` shifts along it, and `collision-padding` is the space kept from the edges of the window.
 
 <ComponentExample
   name="hover-card/offsets"
@@ -74,7 +74,7 @@ Start and end follow the text direction.
 
 ### Arrow
 
-The arrow follows the side the card actually lands on, including after it flips away from an edge, and gets the same `data-side`. It points at the middle of the link, even after the card shifts, and keeps `arrowPadding` away from the corners. Change the side and alignment, then hover the link.
+The arrow follows the side the card actually lands on, including after it flips away from an edge, and gets the same `data-side`. It points at the middle of the link, even after the card shifts, and keeps `arrow-padding` away from the corners. Change the side and alignment, then hover the link.
 
 <ComponentExample
   name="hover-card/arrow"
@@ -124,10 +124,8 @@ Cards render in place and show in the top layer, so no ancestor clips or covers 
 ### Animation
 
 `@open-change-complete` runs once the card has finished opening or closing, after any
-animation, with the new open state. `keepMounted` on the content keeps the closed card in the page, hidden,
+animation, with the new open state. `keep-mounted` on the content keeps the closed card in the page, hidden,
 for animation libraries that drive the exit from state. See [Styling](#styling) for the attributes to animate.
-
-On the card, it's the `@open-change-complete` event, and `keep-mounted` on the content.
 
 <ComponentExample
   name="hover-card/animation"

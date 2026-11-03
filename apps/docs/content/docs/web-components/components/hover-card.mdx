@@ -134,10 +134,10 @@ Cards render in place and show in the top layer, so no ancestor clips or covers 
 ### Animation
 
 `openchangecomplete` runs once the card has finished opening or closing, after any
-animation, with the new open state. `keepMounted` on the content keeps the closed card in the page, hidden,
+animation, with the new open state. `keep-mounted` on the content keeps the closed card in the page, hidden,
 for animation libraries that drive the exit from state. See [Styling](#styling) for the attributes to animate.
 
-It's an `openchangecomplete` event with the open state in `event.detail.value`. Add `keep-mounted` to `<ui-hover-card-content>`.
+The open state is in `event.detail.value`.
 
 <ComponentExample
   name="hover-card/animation"

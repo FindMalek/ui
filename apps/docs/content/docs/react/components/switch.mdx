@@ -12,8 +12,8 @@ A switch changes a setting between on and off. Keep its label the same in both s
 
 ## Installation
 
-```package-install
-npm install @ui-sdk/react
+```bash
+npm install @ui-sdk/react @ui-sdk/core
 ```
 
 The styled examples use the shared [example theme](../styling-and-animation#example-theme).
@@ -101,7 +101,7 @@ Pass `checked` and update it in `onCheckedChange`. Use `defaultChecked` when the
 
 ### Form
 
-Give each switch a `name`. An on switch submits its `value`, which defaults to `"on"`; an off switch submits nothing. Use `form` to connect a switch outside the form, and Reset to restore the defaults. See [forms](../forms) for the shared validation and reset behavior.
+Give each switch a `name`. An on switch submits its `value`, which defaults to `"on"`; an off switch submits nothing. Use `form` to connect a switch outside the form, and Reset to restore the defaults. Space toggles the switch; Enter submits its form without toggling it, as a native switch does. See [forms](../forms) for the shared validation and reset behavior.
 
 <ComponentExample
   name="switch/form"

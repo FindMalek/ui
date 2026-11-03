@@ -12,8 +12,8 @@ A popover keeps a small task close to the thing it belongs to. Put fields, butto
 
 ## Installation
 
-```package-install
-npm install @ui-sdk/vue
+```bash
+npm install @ui-sdk/vue @ui-sdk/core
 ```
 
 The examples use the shared [example theme](../styling-and-animation#example-theme).
@@ -59,7 +59,7 @@ An ordinary form can save a value and then close the popover. Focus starts on th
 
 ### Keep It Open While Editing
 
-Set `dismissible` to false while there is unsaved work. Deliberate dismissal attempts report `onDismissAttempt`, so you can ask whether to discard it. Focus leaving is refused quietly. The trigger, Close parts, and controller can still close it explicitly.
+Set `dismissible` to false while there is unsaved work. Deliberate dismissal attempts emit `@dismiss-attempt`, so you can ask whether to discard it. Focus leaving is refused quietly. The trigger, Close parts, and controller can still close it explicitly.
 
 <ComponentExample
   name="popover/draft"
@@ -112,7 +112,7 @@ The default leaves the page usable and closes when focus leaves the popover. `mo
 
 ### Focus
 
-Use `initialFocus` to choose the first focused element, or `"none"` to leave focus where it is. `finalFocus` controls where focus returns. Hover opening leaves focus alone; touch opening focuses the panel itself so the keyboard does not appear unexpectedly.
+Use `initial-focus` to choose the first focused element, or `"none"` to leave focus where it is. `final-focus` controls where focus returns. Hover opening leaves focus alone; touch opening focuses the panel itself so the keyboard does not appear unexpectedly.
 
 <ComponentExample
   name="popover/focus"
@@ -168,7 +168,7 @@ Popovers render in place by default and use the browser’s top layer. `containe
 
 ### Animation
 
-Animate `data-starting-style` and `data-ending-style`; `onOpenChangeComplete` reports when each transition finishes. `keepMounted` leaves the closed content in the DOM, hidden. See [styling and animation](../styling-and-animation) for the common lifecycle.
+Animate `data-starting-style` and `data-ending-style`; `@open-change-complete` reports when each transition finishes. `keep-mounted` leaves the closed content in the DOM, hidden. See [styling and animation](../styling-and-animation) for the common lifecycle.
 
 <ComponentExample
   name="popover/animation"

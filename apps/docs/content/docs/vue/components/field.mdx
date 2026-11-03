@@ -8,7 +8,7 @@ description: Connect a form control to its label, description, and validation er
 ## Installation
 
 ```bash
-pnpm add @ui-sdk/vue @ui-sdk/core
+npm install @ui-sdk/vue @ui-sdk/core
 ```
 
 <span id="anatomy" />
@@ -36,7 +36,7 @@ The label names the control, and the description and any error that shows descri
 
 Group related fields in a [field set](#field-sets):
 
-```tsx
+```vue
 <FieldSet>
   <FieldLegend />
   <FieldDescription />
@@ -126,7 +126,7 @@ Give this error its own text and set `match` to `true`. Named matches such as `v
 
 ### Character Count
 
-Keep the text in state and display its length in the description. Set `maxLength` on the control to enforce the limit.
+Keep the text in state and display its length in the description. Set `maxlength` on the control to enforce the limit.
 
 <ComponentExample
   name="field/character-count"

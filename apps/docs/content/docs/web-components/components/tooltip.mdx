@@ -202,7 +202,7 @@ Tooltips render in place and show in the top layer, so no ancestor clips or cove
 animation, with the new open state. Skip the animation for tooltips that open at once, as the next one in a
 group does, with `data-instant`. See [Styling](#styling) for the attributes to animate.
 
-It's an `openchangecomplete` event with the open state in `event.detail.value`. Listen with `{ capture: true }`
+The open state is in `event.detail.value`. Listen with `{ capture: true }`
 and one listener hears every tooltip in a toolbar.
 
 <ComponentExample

@@ -20,21 +20,28 @@ The examples use the shared [Example Theme](../styling-and-animation#example-the
 
 A control handles presses around the track. Put a thumb on that track for each value.
 
-```tsx
+```vue
 <script setup lang="ts">
-import { Slider, SliderValue, SliderControl, SliderTrack, SliderIndicator, SliderThumb } from "@ui-sdk/vue/slider"
+import {
+  Slider,
+  SliderValue,
+  SliderControl,
+  SliderTrack,
+  SliderIndicator,
+  SliderThumb,
+} from "@ui-sdk/vue/slider"
 </script>
 
 <template>
-<Slider :default-value="50">
-  <SliderValue />
-  <SliderControl>
-    <SliderTrack>
-      <SliderIndicator />
-      <SliderThumb aria-label="Volume" />
-    </SliderTrack>
-  </SliderControl>
-</Slider>
+  <Slider :default-value="50">
+    <SliderValue />
+    <SliderControl>
+      <SliderTrack>
+        <SliderIndicator />
+        <SliderThumb aria-label="Volume" />
+      </SliderTrack>
+    </SliderControl>
+  </Slider>
 </template>
 ```
 

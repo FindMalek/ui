@@ -102,7 +102,7 @@ When mixing commands with and without icons, `data-has-icons` on the list and `d
 
 ### Suggestions
 
-Pass `emptyItems` alongside `items` to show suggested or recent commands while the first page’s search is empty. Once someone types, the full collection is searched.
+Pass `empty-items` alongside `items` to show suggested or recent commands while the first page’s search is empty. Once someone types, the full collection is searched.
 
 <ComponentExample
   name="command/suggestions"
@@ -144,7 +144,7 @@ Use [async options](../utilities/async-options) to wait for typing to pause and 
 
 ### Pending Actions
 
-Return a promise from `onAction` or an item’s `onSelect`. The command gets `data-pending` and `aria-busy` until it settles; further presses do not start another run. A rejection becomes the command’s `error` state, which clears when it runs again.
+Return a promise from the `@action` handler or an item’s `@select` handler. The command gets `data-pending` and `aria-busy` until it settles; further presses do not start another run. A rejection becomes the command’s `error` state, which clears when it runs again.
 
 An item’s `@select` runs before `@action`. Call `preventDefault()` on its event to stop the action.
 
@@ -212,7 +212,7 @@ The highlighted command, search text, and page stack are separate:
 | `query` | The search text.                    | `@query-change`     |
 | `pages` | An array of page values.            | `@pages-change`     |
 
-Supply a value and its change callback to control it, or use `defaultValue`, `defaultQuery`, and `defaultPages` for starting state. Change callbacks receive details; call `details.cancel()` to reject a change. `@action` reports activation, so moving the highlight alone does not run a command. [State and Events](../state-and-events) covers the shared binding pattern.
+Supply a value and its change callback to control it, or use `default-value`, `default-query`, and `default-pages` for starting state. Change callbacks receive details; call `details.cancel()` to reject a change. `value` is the highlighted command, not a chosen one, and it changes as the highlight moves. `@action` reports activation, so moving the highlight alone does not run a command. [State and Events](../state-and-events) covers the shared binding pattern.
 
 ### Controller
 

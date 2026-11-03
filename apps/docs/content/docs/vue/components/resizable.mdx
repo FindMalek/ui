@@ -20,17 +20,17 @@ The examples use the shared [Example Theme](../styling-and-animation#example-the
 
 Put a handle between the panels you want to resize.
 
-```tsx
+```vue
 <script setup lang="ts">
 import { Resizable, ResizablePanel, ResizableHandle } from "@ui-sdk/vue/resizable"
 </script>
 
 <template>
-<Resizable>
-  <ResizablePanel />
-  <ResizableHandle aria-label="Resize sidebar" />
-  <ResizablePanel />
-</Resizable>
+  <Resizable>
+    <ResizablePanel />
+    <ResizableHandle aria-label="Resize sidebar" />
+    <ResizablePanel />
+  </Resizable>
 </template>
 ```
 

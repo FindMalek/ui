@@ -12,8 +12,8 @@ A drawer gives a task its own sheet without leaving the page. It shares [Dialog�
 
 ## Installation
 
-```package-install
-npm install @ui-sdk/vue
+```bash
+npm install @ui-sdk/vue @ui-sdk/core
 ```
 
 The examples use the shared [example theme](../styling-and-animation#example-theme).
@@ -52,7 +52,7 @@ The content is the sheet. The drawer positions it inside a full-screen viewport 
 
 ### Scrollable Content
 
-Put long content in an inner `min-h-0 flex-1 overflow-y-auto` area. A downward drag scrolls that area first; when it reaches the top, the same gesture can move the drawer. `initialFocus="content"` starts focus on the sheet itself.
+Put long content in an inner `min-h-0 flex-1 overflow-y-auto` area. A downward drag scrolls that area first; when it reaches the top, the same gesture can move the drawer. `initial-focus="content"` starts focus on the sheet itself.
 
 <ComponentExample
   name="drawer/scrollable"
@@ -65,7 +65,7 @@ Put long content in an inner `min-h-0 flex-1 overflow-y-auto` area. A downward d
 
 `side` chooses bottom, top, left, or right. Logical `start` and `end` follow text direction. The content’s `data-side` tells you which physical edge to style.
 
-Side drawers can opt into `preventEdgeSwipe` to keep an edge gesture from starting iOS Safari’s back or forward navigation. It also prevents clicks right at those edges, so use it only when you need that tradeoff.
+Side drawers can opt into `prevent-edge-swipe` to keep an edge gesture from starting iOS Safari’s back or forward navigation. It also prevents clicks right at those edges, so use it only when you need that tradeoff.
 
 <ComponentExample
   name="drawer/sides"
@@ -76,7 +76,7 @@ Side drawers can opt into `preventEdgeSwipe` to keep an edge gesture from starti
 
 <span id="snap-points-1" />
 
-`snapPoints` are the places the drawer can rest. It opens at the first, or at `defaultSnapPoint`, and settles at another after a drag. A fast fling can skip intermediate points.
+`snap-points` are the places the drawer can rest. It opens at the first, or at `default-snap-point`, and settles at another after a drag. A fast fling can skip intermediate points.
 
 | Value              | Size                                       |
 | ------------------ | ------------------------------------------ |
@@ -106,7 +106,7 @@ For a sheet with one snap point, use a decorative bar instead of an inactive but
 
 ### Controlled
 
-Use `v-model:open` and `v-model:snap-point`. You can control opening and snap points independently. Cancel a proposed change with `details.cancel()`; a canceled swipe springs back. `onOpenChangeComplete` runs after the sheet settles.
+Use `v-model:open` and `v-model:snap-point`. You can control opening and snap points independently. Cancel a proposed change with `details.cancel()`; a canceled swipe springs back. `@open-change-complete` runs after the sheet settles.
 
 <ComponentExample
   name="drawer/controlled"
@@ -115,7 +115,7 @@ Use `v-model:open` and `v-model:snap-point`. You can control opening and snap po
 
 ### Not Dismissible
 
-With `dismissible` false, Escape, outside presses, back gestures, and swipes leave the drawer open. `onDismissAttempt` tells you what was tried, so you can offer a way to discard unsaved work. Close parts, triggers, and controllers can still close it deliberately.
+With `dismissible` false, Escape, outside presses, back gestures, and swipes leave the drawer open. `@dismiss-attempt` tells you what was tried, so you can offer a way to discard unsaved work. Close parts, triggers, and controllers can still close it deliberately.
 
 <ComponentExample
   name="drawer/non-dismissible"
@@ -126,7 +126,7 @@ With `dismissible` false, Escape, outside presses, back gestures, and swipes lea
 
 <span id="modality-per-snap-point" />
 
-Set `modalAbove` when the page should stay usable beside a small sheet. At or below that point there is no dim, inert page, scroll lock, or `aria-modal`. Above it, `modal` applies. The switch happens when the drawer settles and does not move focus; `data-interactive` exposes the usable-page state.
+Set `modal-above` when the page should stay usable beside a small sheet. At or below that point there is no dim, inert page, scroll lock, or `aria-modal`. Above it, `modal` applies. The switch happens when the drawer settles and does not move focus; `data-interactive` exposes the usable-page state.
 
 <ComponentExample
   name="drawer/non-modal"
@@ -135,7 +135,7 @@ Set `modalAbove` when the page should stay usable beside a small sheet. At or be
 
 ### Modal
 
-`modal` has the same choices as [Dialog](./dialog#modal): `true` blocks the page, `"trap-focus"` keeps Tab inside while leaving the page usable, and `false` allows focus to leave. A non-modal drawer closes on an outside press only when `closeOnOutsidePress` is enabled.
+`modal` has the same choices as [Dialog](./dialog#modal): `true` blocks the page, `"trap-focus"` keeps Tab inside while leaving the page usable, and `false` allows focus to leave. A click on the page also closes a `"trap-focus"` drawer, while a non-modal drawer closes on an outside press only when `close-on-outside-press` is enabled.
 
 <ComponentExample
   name="drawer/modal"
@@ -155,9 +155,9 @@ A drawer opened inside another joins its stack. Escape and outside presses affec
 
 ### Forms
 
-Handle a Close part’s `@action` event and return a Promise. The sheet stays open while it runs, including through Escape or a swipe. A rejection leaves the action’s error state available for a retry. See [Dialog’s async actions](./dialog#forms) for the shared pending and error contract.
+Handle a Close part’s `@action` event and return a Promise. The sheet stays open while it runs, including through Escape or a swipe. A rejection leaves the action’s error state available for a retry. See [Alert Dialog’s async action](./alert-dialog#async-action) for the shared pending and error contract.
 
-This example also uses `keepMounted` to preserve unfinished fields and `finalFocus` to return to the updated profile.
+This example also uses `keep-mounted` to preserve unfinished fields and `final-focus` to return to the updated profile.
 
 <ComponentExample
   name="drawer/form"
@@ -201,7 +201,7 @@ Put the least risky action first because a keyboard or code open starts there. U
 
 `driver="scroll-snap"` uses native scrolling and CSS snap points for a bottom sheet. `"pointer"` uses pointer dragging and spring motion on every side.
 
-The default `"auto"` chooses native scrolling for a bottom sheet on a touch screen. It uses pointer dragging for mouse and pen, other sides, `modalAbove`, or `expandOnScroll` false. `data-driver` reports the active choice. Both drivers use the same snap points and state.
+The default `"auto"` chooses native scrolling for a bottom sheet on a touch screen. It uses pointer dragging for mouse and pen, other sides, `modal-above`, or `expand-on-scroll` false. `data-driver` reports the active choice. Both drivers use the same snap points and state.
 
 <ComponentExample
   name="drawer/scroll-snap"
@@ -210,7 +210,7 @@ The default `"auto"` chooses native scrolling for a bottom sheet on a touch scre
 
 ### Theme Color
 
-`themeColor` dims an existing `<meta name="theme-color">` with the backdrop. It leaves pages without that tag alone. This demo supplies a neutral tag when needed so you can see the change in its readout.
+`theme-color` dims an existing `<meta name="theme-color">` with the backdrop. It leaves pages without that tag alone. This demo supplies a neutral tag when needed so you can see the change in its readout.
 
 <ComponentExample
   name="drawer/theme-color"
@@ -230,7 +230,7 @@ Override part of `sheetPhysics.ios` with `physics`. `response` changes spring ti
 
 ### Persistent Elements
 
-`persistentElements` keeps selected elements usable while the drawer is modal. Pass an array of elements or selectors, or a function returning elements. Something that must stay above the backdrop also needs its own top-layer surface, as the chat button has here.
+`persistent-elements` keeps selected elements usable while the drawer is modal. Pass an array of elements or selectors, or a function returning elements. Something that must stay above the backdrop also needs its own top-layer surface, as the chat button has here.
 
 <ComponentExample
   name="drawer/persistent"
@@ -239,7 +239,7 @@ Override part of `sheetPhysics.ios` with `physics`. `response` changes spring ti
 
 ### Container
 
-Drawers normally render in place and use the top layer. `container` moves the backdrop and viewport elsewhere, for example into a shadow root or out of a surrounding form. See the shared [popup guide](../popups).
+Drawers normally render in place and use the top layer. `container` moves the backdrop and viewport elsewhere, for example into a shadow root or out of a surrounding form. See the shared [popup guide](../popups#mounting-and-containers).
 
 <ComponentExample
   name="drawer/container"

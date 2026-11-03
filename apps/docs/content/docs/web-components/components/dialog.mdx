@@ -12,8 +12,8 @@ A dialog gives a task its own space: share a link, edit a record, or collect a f
 
 ## Installation
 
-```package-install
-npm install @ui-sdk/web
+```bash
+npm install @ui-sdk/web @ui-sdk/core
 ```
 
 The examples use the shared [example theme](../styling-and-animation#example-theme).
@@ -60,8 +60,8 @@ Keep the header and actions outside the scrolling area. A viewport height limit,
 `modal` controls how the dialog shares the page:
 
 - `true`, the default, makes the page inert, locks scrolling, and keeps Tab inside.
-- `"trap-focus"` keeps Tab inside while the page can still scroll and receive clicks.
-- `false` lets focus leave the dialog. Escape closes it while focus is inside; outside presses close it only when `closeOnOutsidePress` is enabled.
+- `"trap-focus"` keeps Tab inside while the page can still scroll and receive clicks. A click on the page also closes the dialog, unless `close-on-outside-press` is false.
+- `false` puts the dialog beside the page and lets focus leave it. Escape closes it while focus is inside; outside presses close it only when `close-on-outside-press` is enabled.
 
 <ComponentExample
   name="dialog/modal"
@@ -115,7 +115,7 @@ A form with `method="dialog"` closes the dialog on a valid submission. The submi
 
 ### Focus
 
-Use `initial-focus` to pick where focus starts, and `final-focus` to choose where it goes next. The default returns to the trigger or the element focused before a controller opened the dialog. See [popup focus](../popups) for the shared focus rules.
+Use `initial-focus` to pick where focus starts, and `final-focus` to choose where it goes next. The default returns to the trigger or the element focused before a controller opened the dialog. See [popup focus](../popups#focus) for the shared focus rules.
 
 <ComponentExample
   name="dialog/focus"
@@ -151,7 +151,7 @@ Keep a small part of the page usable while a modal dialog is open. `persistent-e
 
 ### Container
 
-Dialogs render where you put them and use the browser’s top layer. Set `container` when their DOM needs to live elsewhere. The shared [popup guide](../popups) covers containers, shadow roots, and iframes.
+Dialogs render where you put them and use the browser’s top layer. Set `container` when their DOM needs to live elsewhere. The shared [popup guide](../popups#hidden-content-and-containers) covers containers, shadow roots, and iframes.
 
 <ComponentExample
   name="dialog/container"

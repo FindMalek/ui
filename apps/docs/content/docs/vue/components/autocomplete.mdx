@@ -154,7 +154,7 @@ Suggestions can change while the list is open. The highlight stays with its sugg
 
 ### Recent Searches
 
-Pair `emptyItems` with `items` to show one collection while the field is empty and search the full collection once someone types. Add `open-on-focus` to show the recent searches on focus.
+Pair `empty-items` with `items` to show one collection while the field is empty and search the full collection once someone types. Add `open-on-focus` to show the recent searches on focus.
 
 <ComponentExample
   name="autocomplete/recent"
@@ -165,7 +165,7 @@ Pair `emptyItems` with `items` to show one collection while the field is empty a
 
 Use [async options](../utilities/async-options) to wait for typing to pause and discard stale results. Pass its `items` and `status`, set `filter` to `false`, and send text changes to its `setQuery()` method.
 
-`AutocompleteStatus` and `AutocompleteEmpty` provide loading, error, and empty messages. Without a status part, `announcement` controls what screen readers hear when typing pauses. `onLoadMore` can request another page when scrolling or highlighting reaches the last suggestion.
+`AutocompleteStatus` and `AutocompleteEmpty` provide loading, error, and empty messages. Without a status part, `announcement` controls what screen readers hear when typing pauses. `@load-more` can request another page when scrolling or highlighting reaches the last suggestion.
 
 <ComponentExample
   name="autocomplete/async"
@@ -406,7 +406,7 @@ What render functions, state-based class names and slots receive, per part.
 
 ## Accessibility
 
-The autocomplete follows the [WAI-ARIA combobox pattern with list autocomplete](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/), and [list and inline](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-both/) with `inlineComplete`. Every line below is an automated test.
+The autocomplete follows the [WAI-ARIA combobox pattern with list autocomplete](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-list/), and [list and inline](https://www.w3.org/WAI/ARIA/apg/patterns/combobox/examples/combobox-autocomplete-both/) with `inline-complete`. Every line below is an automated test.
 
 <SpecList spec="autocomplete" />
 

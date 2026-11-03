@@ -82,7 +82,7 @@ By default, a closed panel unmounts, so Tab skips its contents.
 
 ### Find in Page
 
-Set `hiddenUntilFound` on the panel to keep it in the DOM as `hidden="until-found"`. Browser Find and links to content inside the panel can reveal it. The panel opens without an animation so the match is visible immediately.
+Set `hidden-until-found` on the panel to keep it in the DOM as `hidden="until-found"`. Browser Find and links to content inside the panel can reveal it. The panel opens without an animation so the match is visible immediately.
 
 Vue renders `hidden="until-found"` on the server, so the panel can be found before hydration.
 
@@ -93,7 +93,7 @@ Vue renders `hidden="until-found"` on the server, so the panel can be found befo
 
 ### Keep Mounted
 
-Panels unmount when they close. Set `keepMounted` on the panel to keep it mounted and hidden, so a field keeps what you typed into it.
+Panels unmount when they close. Set `keep-mounted` on the panel to keep it mounted and hidden, so a field keeps what you typed into it.
 
 <ComponentExample
   name="collapsible/keep-mounted"

@@ -11,7 +11,7 @@ description: Choose, drop, or paste files, validate them, and submit them with a
 ## Installation
 
 ```bash
-pnpm add @ui-sdk/vue @ui-sdk/core
+npm install @ui-sdk/vue @ui-sdk/core
 ```
 
 The examples use the [shared example theme](../styling-and-animation#example-theme).
@@ -64,7 +64,7 @@ A trigger is enough when you only need the system file picker. The component hol
 
 ### Limits
 
-Use `maxFiles` to limit the total count, and `minSize` or `maxSize` for bytes per file. When too many files arrive, the component accepts the first ones that pass the other checks until the list is full.
+Use `max-files` to limit the total count, and `min-size` or `max-size` for bytes per file. When too many files arrive, the component accepts the first ones that pass the other checks until the list is full.
 
 <ComponentExample
   name="file-input/limits"
@@ -93,7 +93,7 @@ This example creates an object URL for each image preview and revokes it when th
 
 ### Attachments
 
-Combine a drop zone with a textarea to attach files to a message. File pastes inside the zone are accepted; text pastes keep their normal behavior. `pasteTarget` can also point to another element or `"document"`.
+Combine a drop zone with a textarea to attach files to a message. File pastes inside the zone are accepted; text pastes keep their normal behavior. `paste-target` can also point to another element or `"document"`.
 
 <ComponentExample
   name="file-input/prompt"
@@ -189,7 +189,7 @@ While a file drop zone is mounted, dropping a file outside all zones does not na
 
 ## Forms
 
-With `name`, the component submits its files through a native file input. A form reset returns to `defaultValue`. The server-rendered file input can submit before hydration. `form` connects a file input to a form elsewhere on the page. Rejected files never submit.
+With `name`, the component submits its files through a native file input. A form reset returns to `default-value`. The server-rendered file input can submit before hydration. `form` connects a file input to a form elsewhere on the page. Rejected files never submit.
 
 <ComponentExample
   name="file-input/form"

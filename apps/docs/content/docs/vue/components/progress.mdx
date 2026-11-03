@@ -11,7 +11,7 @@ description: Show a task’s progress, or an indeterminate state while its progr
 ## Installation
 
 ```bash
-pnpm add @ui-sdk/vue @ui-sdk/core
+npm install @ui-sdk/vue @ui-sdk/core
 ```
 
 The examples use the [shared example theme](../styling-and-animation#example-theme).
@@ -61,11 +61,11 @@ Pass the latest `value` as your task progresses. The parts get `data-progressing
   caption="Click Upload more to add 20%. At 100%, the button stops advancing the value. Click Reset to start at 0%."
 />
 
-Progress displays your state; it has no `onValueChange` callback.
+Progress displays your state; it has no `@value-change` event.
 
 ### Bounds
 
-`min` and `max` default to 0 and 100. Values outside that range are clamped. A value of 3 between 1 and 5 fills half the track.
+`min` and `max` default to 0 and 100. A value outside that range is clamped for the fill, the percentage and `aria-valuenow`, but the state's `value` and a format other than percent keep it as you passed it. A value of 3 between 1 and 5 fills half the track.
 
 <ComponentExample
   name="progress/min-max"

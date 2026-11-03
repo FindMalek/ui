@@ -60,7 +60,7 @@ Typing filters the options. Arrow keys move the highlight; Enter chooses it and 
 
 ### Clear Button
 
-`ComboboxClear` clears both the selection and the query, then keeps focus in the input. It appears while either has a value. Clearing the text by hand also clears a single selection. Escape brings the selection back while the list is still open.
+`ComboboxClear` clears both the selection and the query, then keeps focus in the input. It appears while either has a value. Deleting all the text by hand clears a single selection at once, not when the list closes. Escape brings the selection back while the list is still open; closing it any other way leaves it cleared.
 
 <ComponentExample
   name="combobox/clear"
@@ -123,7 +123,7 @@ Use `ComboboxGroup` and `ComboboxGroupLabel` to name groups. Filtering hides emp
 
 ### Recent Items
 
-`emptyItems` supplies suggestions while the query is empty. Pair it with `items` for the full searchable collection. Render the list from `state.items` so it follows the active collection.
+`empty-items` supplies suggestions while the query is empty. Pair it with `items` for the full searchable collection. Render the list from `state.items` so it follows the active collection.
 
 <ComponentExample
   name="combobox/recent"
@@ -165,7 +165,7 @@ Wrap the input and icon together, then use that wrapper as the popup’s `anchor
 
 ### Object Values
 
-Use `itemToValue` for an object’s string identity and form value, `itemToLabel` for its displayed text, and `isItemEqualToValue` when two different objects can represent the same option.
+Use `item-to-value` for an object’s string identity and form value, `item-to-label` for its displayed text, and `is-item-equal-to-value` when two different objects can represent the same option.
 
 <ComponentExample
   name="combobox/object-values"
@@ -176,7 +176,7 @@ Use `itemToValue` for an object’s string identity and form value, `itemToLabel
 
 Add `multiple` to make the value an array. Choosing an option toggles it, keeps the list open, and clears the query. Put `ComboboxValue` and the input inside `ComboboxChips`, then render each value as a chip with a removal button.
 
-Backspace in an empty input removes the last chip. Arrow keys move between chips. Supply `itemToLabel` when starting with values whose labels are not yet known from rendered items.
+Backspace in an empty input removes the last chip in one press. Unlike [Token Input](./token-input#deleting-tokens), there is no `token-deletion` option to select it first. Arrow keys move between chips. Supply `item-to-label` when starting with values whose labels are not yet known from rendered items.
 
 <ComponentExample
   name="combobox/multiple"
@@ -232,7 +232,7 @@ Use [async options](../utilities/async-options) to debounce a search and discard
 
 ### Load More
 
-`onLoadMore` runs when scrolling or highlighting reaches the last option, once per page and not while a page loads. Connect it to the async loader’s `loadMore()`; return `{ items, hasMore }` from each page.
+`@load-more` runs when scrolling or highlighting reaches the last option, once per page and not while a page loads. Connect it to the async loader’s `loadMore()`; return `{ items, hasMore }` from each page.
 
 <ComponentExample
   name="combobox/infinite"
@@ -241,7 +241,7 @@ Use [async options](../utilities/async-options) to debounce a search and discard
 
 ### Create Option
 
-`ComboboxCreate` offers the query when no label matches it exactly and it meets `min-length`. Use `onCreate` to save it; return a promise for asynchronous work. Creation does not change the selection itself: add the new item and select it after saving.
+`ComboboxCreate` offers the query when no label matches it exactly and it meets `min-length`. Use `:on-create` to save it; return a promise for asynchronous work. Creation does not change the selection itself: add the new item and select it after saving.
 
 While saving, the option reports `data-pending` and `aria-busy`. A rejected promise is available through its error state.
 
@@ -270,7 +270,7 @@ The input can live inside the popup, opened by a button showing the current valu
 
 ### Virtualized
 
-Supply `items` so filtering and keyboard navigation know about every option, even when only a few rows render. The list’s `state.items` contains matches, `onHighlight` reports the row to reveal, and each rendered item’s `index` gives its position in the full list to screen readers.
+Supply `items` so filtering and keyboard navigation know about every option, even when only a few rows render. The list’s `state.items` contains matches, `@highlight` reports the row to reveal, and each rendered item’s `index` gives its position in the full list to screen readers.
 
 This example windows 10,000 items. Keep the actual row height aligned with your virtualizer’s measurement, and use the scroller’s visible height when revealing a row.
 

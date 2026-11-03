@@ -108,7 +108,7 @@ Render your router's link to page on the client. The pagination's click handler 
 Here the page comes from the URL, like your router's search params, so the pagination is
 [controlled](#controlled) by the route.
 
-Pass the router's link to `render`, like `render={<Link />}`. It receives the part's props, `href` included.
+Pass the router's link to `render`, like `render={<Link />}`. It receives the part's props, with the `href` from [`getHref`](#links).
 
 <ComponentExample
   name="pagination/router"

@@ -11,7 +11,7 @@ description: Show an image with a fallback while it loads or if it fails.
 ## Installation
 
 ```bash
-pnpm add @ui-sdk/vue @ui-sdk/core
+npm install @ui-sdk/vue @ui-sdk/core
 ```
 
 The examples use the [shared example theme](../styling-and-animation#example-theme).
@@ -57,7 +57,7 @@ When you replace a loaded image, the browser keeps it visible while the next sou
 
 ### Image Attributes
 
-Pass image attributes such as `srcSet`, `crossOrigin`, and `referrerPolicy` to the image. They work on the same `img` the browser loads. For avatars farther down a page, use `loading="lazy"`.
+Pass image attributes such as `srcset`, `crossorigin`, and `referrerpolicy` to the image. They work on the same `img` the browser loads. For avatars farther down a page, use `loading="lazy"`.
 
 <ComponentExample
   name="avatar/referrer"
