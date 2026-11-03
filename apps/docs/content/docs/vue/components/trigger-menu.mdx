@@ -100,7 +100,7 @@ While a load runs, `aria-busy` marks the list, or the content when there's no `T
 
 ### Custom Items
 
-Compose `TriggerMenuItem`s with any content, in groups. `label` is what's matched and inserted, and `keywords` adds words to match. A trigger's `spaces`, `pattern` and `max-length` decide what its query may hold, `filter` how it narrows the items, and `insert` what replaces the trigger and query. An item's own `:on-select` callback runs first and can insert something else with `details.insert()`.
+Compose `TriggerMenuItem`s with any content, in groups. `label` is what's matched and inserted, and `keywords` adds words to match. A trigger's `spaces`, `pattern` and `maxLength` decide what its query may hold, `filter` how it narrows the items, and `insert` what replaces the trigger and query. An item's own `:on-select` callback runs first and can insert something else with `details.insert()`.
 
 <ComponentExample
   name="trigger-menu/custom-items"
