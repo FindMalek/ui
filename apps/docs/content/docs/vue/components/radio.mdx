@@ -18,7 +18,7 @@ To use the examples' Tailwind classes, add the [example theme](../styling-and-an
 
 ## Usage
 
-Give each radio a `value` and put it inside a named `RadioGroup`. The group's value is the checked radio's value. Without `defaultValue`, nothing starts checked and Tab enters on the first enabled radio.
+Give each radio a `value` and put it inside a named `RadioGroup`. The group's value is the checked radio's value. Without `default-value`, nothing starts checked and Tab enters on the first enabled radio.
 
 <span id="anatomy" />
 
@@ -114,7 +114,7 @@ See [State and Events](../state-and-events) for controlled state, cancellation a
 
 ### Read Only
 
-Set `readOnly` on the group to keep the value fixed while letting users focus and read the options. Arrow keys still move focus. The current value still submits with a form.
+Set `read-only` on the group to keep the value fixed while letting users focus and read the options. Arrow keys still move focus. The current value still submits with a form.
 
 <ComponentExample
   name="radio/read-only"
@@ -123,7 +123,7 @@ Set `readOnly` on the group to keep the value fixed while letting users focus an
 
 ### Form
 
-Set `name` to submit the selected value. `required` blocks submission until there is a choice. A form reset returns to `defaultValue`.
+Set `name` to submit the selected value. `required` blocks submission until there is a choice. A form reset returns to `default-value`.
 
 The demo keeps the group outside its form and connects them with the form's `id` through the group's `form` prop.
 

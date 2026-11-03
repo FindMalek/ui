@@ -135,7 +135,7 @@ to keep the current value.
 
 ### Large Step
 
-Arrow keys move one step. Page Up, Page Down and Shift with an arrow key move by `largeStep`, which is ten steps unless you set it. Home and End go to the bounds.
+Arrow keys move one step. Page Up, Page Down and Shift with an arrow key move by `large-step`, which is ten steps unless you set it. Home and End go to the bounds.
 
 <ComponentExample
   name="slider/large-step"
@@ -144,7 +144,7 @@ Arrow keys move one step. Page Up, Page Down and Shift with an arrow key move by
 
 ### Distance Between Thumbs
 
-Set `minStepsBetweenThumbs` to keep neighbouring thumbs that many steps apart. A thumb stops at its neighbour, and Home and End move it only as far as its neighbour allows.
+Set `min-steps-between-thumbs` to keep neighbouring thumbs that many steps apart. A thumb stops at its neighbour, and Home and End move it only as far as its neighbour allows.
 
 <ComponentExample
   name="slider/min-steps"
@@ -199,7 +199,7 @@ A hidden input beside the slider is what the form sees. It takes the slider's `n
 so `FormData`, `form.reset()`, a disabled `<fieldset>` and the browser's restore all work.
 
 - **Submit:** a single thumb submits its number under `name`, like `40`. A range submits `"start/end"`, like `200/800`. Without a name, it submits nothing.
-- **Reset:** a form reset returns it to `defaultValue`, with the `reset` reason.
+- **Reset:** a form reset returns it to `default-value`, with the `reset` reason.
 - **Join a form from elsewhere:** set `form` to the id of a form.
 
 <ComponentExample

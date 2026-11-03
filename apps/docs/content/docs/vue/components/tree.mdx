@@ -117,7 +117,7 @@ Set `selection-mode="none"` for a navigation tree, then render labels as links. 
 
 ### Loading Children
 
-Mark an item as a `branch` before its children exist. `loadChildren` runs the first time that branch expands while empty. Load and render its children, then let the promise resolve; the tree expands the branch once they are ready.
+Mark an item as a `branch` before its children exist. `load-children` runs the first time that branch expands while empty. Load and render its children, then let the promise resolve; the tree expands the branch once they are ready.
 
 Use the supplied `signal` to cancel a request. Trying to expand the branch again while it loads aborts it. A rejection sets `data-failed`, and the next attempt retries. `announcement` lets you customize loading and failure messages.
 
@@ -209,7 +209,7 @@ Selection, expanded branches, and checkboxes are independent:
 | `expanded` | An array of branch values.                     | `@expanded-change`  |
 | `checked`  | An array shaped by the check strategy.         | `@checked-change`   |
 
-Supply a value and its change callback to control it, or use `defaultValue`, `defaultExpanded`, and `defaultChecked` for starting state. Call `details.cancel()` in a change callback to reject a change. [State and Events](../state-and-events) covers the shared binding pattern.
+Supply a value and its change callback to control it, or use `default-value`, `default-expanded`, and `default-checked` for starting state. Call `details.cancel()` in a change callback to reject a change. [State and Events](../state-and-events) covers the shared binding pattern.
 
 ### Reveal an Item
 

@@ -71,7 +71,7 @@ Set `dir="rtl"` on the page or any element around the group. The first panel is 
 
 ### Collapsible
 
-`collapsible` lets a panel collapse below its `minSize` to `collapsedSize`, 0 by default: by dragging past the midpoint to its collapsed size, with Enter or a double-click on its handle, or through the controller. Dragging back past the same point opens it at its minimum, and Enter restores the size it had. A collapsed panel gets `data-collapsed`, and at size 0 its content leaves the tab order and the accessibility tree.
+`collapsible` lets a panel collapse below its `min-size` to `collapsed-size`, 0 by default: by dragging past the midpoint to its collapsed size, with Enter or a double-click on its handle, or through the controller. Dragging back past the same point opens it at its minimum, and Enter restores the size it had. A collapsed panel gets `data-collapsed`, and at size 0 its content leaves the tab order and the accessibility tree.
 
 <ComponentExample
   name="resizable/collapsible"
@@ -89,7 +89,7 @@ Sizes are percentages as numbers, or strings with `%`, `px` or `rem`. Pixel and 
 
 ### Default Layout
 
-`defaultLayout` sets every panel's size at once, in order. Panels without `defaultSize` share what's left evenly otherwise.
+`default-layout` sets every panel's size at once, in order. Panels without `default-size` share what's left evenly otherwise.
 
 <ComponentExample
   name="resizable/default-layout"
@@ -124,7 +124,7 @@ In Vue, listen to `@layout-commit`.
 
 ### Persistence
 
-`autoSaveId` saves the layout in `localStorage` when an interaction completes and restores it when the group attaches in the browser. Server markup starts with the default sizes. Each set of panels keeps its own layout, so a panel that comes and goes gets its sizes back. Give panels an `id` so the saved layout survives changes elsewhere on the page.
+`auto-save-id` saves the layout in `localStorage` when an interaction completes and restores it when the group attaches in the browser. Server markup starts with the default sizes. Each set of panels keeps its own layout, so a panel that comes and goes gets its sizes back. Give panels an `id` so the saved layout survives changes elsewhere on the page.
 
 <ComponentExample
   name="resizable/persistence"
@@ -133,7 +133,7 @@ In Vue, listen to `@layout-commit`.
 
 ### Storage
 
-`storage` takes anything with `getItem` and `setItem`. A server can't read `localStorage`, so it renders each panel's `defaultSize` and the saved layout arrives when the page hydrates. To render the saved layout on the first paint, keep it in a cookie, named by `resizableStorageKey(autoSaveId)`, and pass the sizes back as each panel's `defaultSize`. This example keeps the layout for the tab's session instead:
+`storage` takes anything with `getItem` and `setItem`. A server can't read `localStorage`, so it renders each panel's `default-size` and the saved layout arrives when the page hydrates. To render the saved layout on the first paint, keep it in a cookie, named by `resizableStorageKey(autoSaveId)`, and pass the sizes back as each panel's `default-size`. This example keeps the layout for the tab's session instead:
 
 <ComponentExample
   name="resizable/storage"
@@ -151,7 +151,7 @@ A controller, from `createResizableController()`, collapses, expands and resizes
 
 ### Keyboard
 
-Focus a handle and press the arrow keys along the group's axis to move it by `step`, 1% by default, or with Shift by `largeStep`, 10%. Home and End move it as far as the panels allow, and Enter collapses or restores the panel beside it. A panel at its minimum passes the rest of a move on to the next one.
+Focus a handle and press the arrow keys along the group's axis to move it by `step`, 1% by default, or with Shift by `large-step`, 10%. Home and End move it as far as the panels allow, and Enter collapses or restores the panel beside it. A panel at its minimum passes the rest of a move on to the next one.
 
 <ComponentExample
   name="resizable/keyboard"

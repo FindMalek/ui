@@ -97,7 +97,7 @@ Pressing the trigger closes the tooltip, so it doesn't cover what the press chan
 
 ### Delay and Grouping
 
-`delay` is how long the pointer rests on the trigger before the tooltip opens, 600 milliseconds by default. `closeDelay` is how long it stays once the pointer leaves the trigger and the tooltip, 0 by default. Keyboard focus opens it at once.
+`delay` is how long the pointer rests on the trigger before the tooltip opens, 600 milliseconds by default. `close-delay` is how long it stays once the pointer leaves the trigger and the tooltip, 0 by default. Keyboard focus opens it at once.
 
 Tooltips group without a provider. Once one is open, or was a moment ago, hovering the next opens it at once, and only one is open at a time, so moving along a toolbar reads like one tooltip that follows the pointer. A tooltip that opened at once gets `data-instant`, so it can skip its animation with `data-instant:transition-none`.
 
@@ -128,7 +128,7 @@ Start and end follow the text direction.
 
 ### Offsets
 
-`sideOffset` is the gap to the trigger, 4 pixels by default. `alignOffset` shifts along it, `align` lines it up with the start, center or end of the trigger, and `collisionPadding` is the space kept from the edges of the window.
+`side-offset` is the gap to the trigger, 4 pixels by default. `align-offset` shifts along it, `align` lines it up with the start, center or end of the trigger, and `collision-padding` is the space kept from the edges of the window.
 
 <ComponentExample
   name="tooltip/offsets"
@@ -137,7 +137,7 @@ Start and end follow the text direction.
 
 ### Arrow
 
-The arrow follows the side the tooltip actually lands on, including after it flips away from an edge, and gets the same `data-side`. It points at the middle of the trigger, even after the tooltip shifts, and keeps `arrowPadding` away from the corners. Check "Keep open" and change the side to watch it move.
+The arrow follows the side the tooltip actually lands on, including after it flips away from an edge, and gets the same `data-side`. It points at the middle of the trigger, even after the tooltip shifts, and keeps `arrow-padding` away from the corners. Check "Keep open" and change the side to watch it move.
 
 <ComponentExample
   name="tooltip/arrow"

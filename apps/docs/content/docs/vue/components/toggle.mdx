@@ -79,7 +79,7 @@ Create a controller with `createToggleController` from `@ui-sdk/vue/toggle` and 
 
 ### Focusable When Disabled
 
-Set `focusableWhenDisabled` to keep a disabled toggle focusable. It uses `aria-disabled` and still ignores presses. Give it an `aria-describedby` message when you can explain why it is unavailable.
+Set `focusable-when-disabled` to keep a disabled toggle focusable. It uses `aria-disabled` and still ignores presses. Give it an `aria-describedby` message when you can explain why it is unavailable.
 
 <ComponentExample
   name="toggle/focusable-when-disabled"
@@ -104,7 +104,7 @@ Put toggles in `ToggleGroup` to share a value and arrow-key navigation. Give the
 </ToggleGroup>
 ```
 
-The group owns which toggles are pressed, so a toggle's own `pressed` and `defaultPressed` do not apply inside it. The group has the `group` role and its toggles remain buttons with `aria-pressed`.
+The group owns which toggles are pressed, so a toggle's own `pressed` and `default-pressed` do not apply inside it. The group has the `group` role and its toggles remain buttons with `aria-pressed`.
 
 ### Vertical
 

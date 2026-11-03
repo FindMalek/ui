@@ -97,7 +97,7 @@ Radio items choose one value in their group and stay open by default. Use `v-mod
 
 <span id="avatar" />
 
-A radio group can also switch accounts. These items set `closeOnSelect` so choosing an account finishes the task. The trigger’s accessible name stays Account while its initials reflect the current account.
+A radio group can also switch accounts. These items set `close-on-select` so choosing an account finishes the task. The trigger’s accessible name stays Account while its initials reflect the current account.
 
 <ComponentExample
   name="menu/avatar"
@@ -142,7 +142,7 @@ Set `disabled` to leave that area’s native browser menu available. Context tri
 
 ### Offsets and Collision Padding
 
-`sideOffset` sets the gap, `alignOffset` shifts along the anchor, and `collisionPadding` leaves room around the viewport. This font picker also uses `--anchor-width` to match its trigger and `--available-height` to scroll a long list.
+`side-offset` sets the gap, `align-offset` shifts along the anchor, and `collision-padding` leaves room around the viewport. This font picker also uses `--anchor-width` to match its trigger and `--available-height` to scroll a long list.
 
 <ComponentExample
   name="menu/offsets"
@@ -187,7 +187,7 @@ Disabled items remain focusable so people can discover them, but cannot run or o
 
 ### Keeping the Menu Open
 
-Plain items close when selected; checkbox and radio items stay open. `closeOnSelect` changes either default. A selection handler can also prevent the default event to keep it open for one action.
+Plain items close when selected; checkbox and radio items stay open. `close-on-select` changes either default. A selection handler can also prevent the default event to keep it open for one action.
 
 <ComponentExample
   name="menu/close-on-select"

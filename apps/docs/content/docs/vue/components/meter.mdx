@@ -67,7 +67,7 @@ Set `dir="rtl"` on the surrounding content to fill the track from the right.
 
 ### Value Label
 
-Use `getValueLabel` when a screen reader needs more context than the visible number. It receives the value and details containing `formatted`, `percent`, `min`, and `max`.
+Use `get-value-label` when a screen reader needs more context than the visible number. It receives the value and details containing `formatted`, `percent`, `min`, and `max`.
 
 <ComponentExample
   name="meter/value-label"
@@ -116,6 +116,6 @@ What render functions, state-based class names and slots receive. Every part get
 
 ## Accessibility
 
-Name the component with `MeterLabel` or `aria-label`. It exposes the range and formatted value through the `meter` role. Use `getValueLabel` when that value needs more explanation.
+Name the component with `MeterLabel` or `aria-label`. It exposes the range and formatted value through the `meter` role. Use `get-value-label` when that value needs more explanation.
 
 <SpecList spec="meter" />

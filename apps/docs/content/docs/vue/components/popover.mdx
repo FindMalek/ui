@@ -74,7 +74,7 @@ Set `dismissible` to false while there is unsaved work. Deliberate dismissal att
 
 `side` chooses an edge; `align` chooses where along it to line up. Start and end follow text direction. The popover flips or shifts when the requested position does not fit.
 
-`sideOffset` is the gap from the anchor, `alignOffset` shifts along its edge, and `collisionPadding` keeps space around the viewport boundary. The [popup guide](../popups) covers the shared positioning options.
+`side-offset` is the gap from the anchor, `align-offset` shifts along its edge, and `collision-padding` keeps space around the viewport boundary. The [popup guide](../popups) covers the shared positioning options.
 
 <ComponentExample
   name="popover/placement"
@@ -83,7 +83,7 @@ Set `dismissible` to false while there is unsaved work. Deliberate dismissal att
 
 ### Arrow
 
-The arrow follows the side the popover actually uses, including after a flip. `arrowPadding` keeps it away from corners; `data-arrow-clamped` tells you when it cannot point exactly at the anchor’s center. This example cancels dismissal when you press its placement controls, so the open arrow can move.
+The arrow follows the side the popover actually uses, including after a flip. `arrow-padding` keeps it away from corners; `data-arrow-clamped` tells you when it cannot point exactly at the anchor’s center. This example cancels dismissal when you press its placement controls, so the open arrow can move.
 
 <ComponentExample
   name="popover/arrow"
@@ -121,7 +121,7 @@ Use `initial-focus` to choose the first focused element, or `"none"` to leave fo
 
 ### Open on Hover
 
-`openOnHover` adds pointer opening while keeping click, keyboard, and touch activation. `delay` and `closeDelay` control the pause before opening and closing. You can cross the gap into the content and interact with it.
+`open-on-hover` adds pointer opening while keeping click, keyboard, and touch activation. `delay` and `close-delay` control the pause before opening and closing. You can cross the gap into the content and interact with it.
 
 <ComponentExample
   name="popover/hover"
