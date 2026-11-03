@@ -94,6 +94,8 @@ const components: Record<string, Component> = {
       "MenuItemIconState",
     ],
     allowed: {
+      // Every positioned content takes it. Popover, Hover Card and Tooltip examples show it with their arrows.
+      arrowPadding: "MenuContentProps",
       // A menu that starts open would cover the docs page as it loads. The
       // Controlled section describes it instead.
       defaultOpen: "MenuOptions",
@@ -174,7 +176,7 @@ const components: Record<string, Component> = {
       "NavigationMenuContentProps",
       "NavigationMenuLinkProps",
       "NavigationMenuViewportProps",
-      "NavigationMenuRootState",
+      "NavigationMenuState",
       "NavigationMenuListState",
       "NavigationMenuItemState",
       "NavigationMenuTriggerState",
@@ -186,6 +188,8 @@ const components: Record<string, Component> = {
       "NavigationMenuLinkIconState",
     ],
     allowed: {
+      // Every positioned content takes it. Popover, Hover Card and Tooltip examples show it with their arrows.
+      arrowPadding: "NavigationMenuContentProps",
       // A panel open as the page loads would cover the docs page. The
       // Controlled section describes it instead.
       defaultValue: "NavigationMenuOptions",
@@ -289,6 +293,8 @@ const components: Record<string, Component> = {
       "SelectItemIconState",
     ],
     allowed: {
+      // Every positioned content takes it. Popover, Hover Card and Tooltip examples show it with their arrows.
+      arrowPadding: "SelectContentProps",
       // A select that starts open would cover the docs page as it loads.
       defaultOpen: "SelectOptions",
       // The dismissal policy every popup shares. Popover's draft example shows it.
@@ -332,11 +338,15 @@ const components: Record<string, Component> = {
       "ComboboxItemIconState",
     ],
     allowed: {
+      // Every positioned content takes it. Popover, Hover Card and Tooltip examples show it with their arrows.
+      arrowPadding: "ComboboxContentProps",
       // A combobox that starts open would cover the docs page as it loads.
       defaultOpen: "ComboboxOptions",
       // The dismissal policy every popup shares. Popover's draft example shows it.
       dismissible: "ComboboxOptions",
       onDismissAttempt: "ComboboxOptions",
+      // Only changes the words of the polite pending announcement. Button's pending examples show it.
+      pendingAnnouncement: "ComboboxOptions",
     },
   },
   command: {
@@ -348,7 +358,7 @@ const components: Record<string, Component> = {
       "CommandPageProps",
       "CommandShortcutProps",
       "CommandDataItem",
-      "CommandRootState",
+      "CommandState",
       "CommandInputState",
       "CommandListState",
       "CommandItemState",
@@ -382,6 +392,8 @@ const components: Record<string, Component> = {
       "AutocompleteItemIconState",
     ],
     allowed: {
+      // Every positioned content takes it. Popover, Hover Card and Tooltip examples show it with their arrows.
+      arrowPadding: "AutocompleteContentProps",
       // Suggestions that start open would cover the docs page as it loads.
       defaultOpen: "AutocompleteOptions",
       // The dismissal policy every popup shares. Popover's draft example shows it.
@@ -409,9 +421,13 @@ const components: Record<string, Component> = {
       "TriggerMenuItemIconState",
     ],
     allowed: {
+      // Every positioned content takes it. Popover, Hover Card and Tooltip examples show it with their arrows.
+      arrowPadding: "TriggerMenuContentProps",
       // The dismissal policy every popup shares. Popover's draft example shows it.
       dismissible: "TriggerMenuOptions",
       onDismissAttempt: "TriggerMenuOptions",
+      // Only changes the words of the polite pending announcement. Button's pending examples show it.
+      pendingAnnouncement: "TriggerMenuOptions",
     },
   },
   "token-input": {
@@ -436,7 +452,7 @@ const components: Record<string, Component> = {
       "TabsOptions",
       "TabsTabProps",
       "TabsPanelProps",
-      "TabsRootState",
+      "TabsState",
       "TabsListState",
       "TabsTabState",
       "TabsPanelState",
@@ -454,7 +470,7 @@ const components: Record<string, Component> = {
       "AccordionHeaderProps",
       "AccordionTriggerProps",
       "AccordionPanelProps",
-      "AccordionRootState",
+      "AccordionState",
       "AccordionItemState",
       "AccordionHeaderState",
       "AccordionTriggerState",
@@ -468,7 +484,7 @@ const components: Record<string, Component> = {
       "CollapsibleOptions",
       "CollapsibleTriggerProps",
       "CollapsiblePanelProps",
-      "CollapsibleRootState",
+      "CollapsibleState",
       "CollapsibleTriggerState",
       "CollapsiblePanelState",
     ],
@@ -510,7 +526,7 @@ const components: Record<string, Component> = {
       "ToolbarButtonProps",
       "ToolbarInputProps",
       "ToolbarGroupProps",
-      "ToolbarRootState",
+      "ToolbarState",
       "ToolbarButtonState",
       "ToolbarLinkState",
       "ToolbarInputState",
@@ -531,7 +547,7 @@ const components: Record<string, Component> = {
       "TreeGroupProps",
       "TreeItemData",
       "TreeRow",
-      "TreeRootState",
+      "TreeState",
       "TreeItemState",
       "TreeGroupState",
     ],
@@ -540,6 +556,8 @@ const components: Record<string, Component> = {
       debug: "TreeOptions",
       // The tree reads a row's parent from `items`. It's there for a renderer's own use, like indent guides.
       parent: "TreeRow",
+      // Only changes the words of the polite pending announcement. Button's pending examples show it.
+      pendingAnnouncement: "TreeOptions",
     },
   },
   menubar: {
@@ -577,6 +595,11 @@ const components: Record<string, Component> = {
     source: "slider/slider.ts",
     examples: "slider",
     types: ["SliderOptions", "SliderThumbProps", "SliderState", "SliderThumbState", "SliderValueState"],
+    allowed: {
+      // Like a read-only or required Number Input, which its form example shows.
+      readOnly: "SliderOptions",
+      required: "SliderOptions",
+    },
   },
   resizable: {
     source: "resizable/resizable.ts",
@@ -643,7 +666,7 @@ const components: Record<string, Component> = {
       "ListboxOptions",
       "ListboxItemProps",
       "ListboxItemIndicatorProps",
-      "ListboxRootState",
+      "ListboxState",
       "ListboxItemState",
       "ListboxItemIndicatorState",
     ],
@@ -689,6 +712,8 @@ const components: Record<string, Component> = {
       "DatePickerClearState",
     ],
     allowed: {
+      // Every positioned content takes it. Popover, Hover Card and Tooltip examples show it with their arrows.
+      arrowPadding: "DatePickerContentProps",
       // Logs every change to the console, which no example should do.
       debug: "DatePickerOptions",
     },

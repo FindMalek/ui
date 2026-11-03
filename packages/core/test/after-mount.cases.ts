@@ -86,6 +86,7 @@ const placed = {
   "content.sideOffset": [0, 8],
   "content.alignOffset": [0, 4],
   "content.collisionPadding": [0, 8],
+  "content.arrowPadding": [0, 8],
 }
 const popupSkips = {
   presentation: "Decided each time it opens, so an open one keeps how it presents.",
@@ -121,7 +122,7 @@ const listSkips = {
   "item.index": "The renderer's count of where the item is.",
   "item-text.write": "Set once by the web components adapter.",
   "empty.stash": "Set once by the web components adapter.",
-  "value.moreLabel": "A function, called for the text it shows.",
+  "value.getMoreLabel": "A function, called for the text it shows.",
   "value-input.value": "Set by the form input, never by people.",
 }
 // What every calendar takes.
@@ -408,7 +409,7 @@ const cases: Case[] = [
       maxLength: [4, 6],
       pattern: ["digits", "alphanumeric"],
       inputMode: ["numeric", "text"],
-      textAlign: ["left", "center"],
+      textAlign: ["start", "center"],
       autoComplete: ["one-time-code", "off"],
       name: ["code", "pin"],
       form: ["one", "two"],
@@ -522,7 +523,8 @@ const cases: Case[] = [
     // Counts of the times items came and went.
     history: ["stop", "version", "siblings"],
     values: {
-      selectionMode: ["single", "multiple"],
+      pendingAnnouncement: ["Loading", "Saving"],
+      mode: ["single", "multiple"],
       value: ["docs", "index"],
       expanded: [[], ["src"]],
       expandOnPress: [false, true],
@@ -619,7 +621,6 @@ const cases: Case[] = [
       delay: [0, 300],
       closeDelay: [0, 300],
       dismissible: [true, false],
-      "content.arrowPadding": [0, 8],
     },
     skip: popupSkips,
   },
@@ -630,7 +631,7 @@ const cases: Case[] = [
     history: ["titled"],
     markup: `<div><trigger href="/ada">Ada</trigger><content><arrow></arrow>Ada Lovelace</content></div>`,
     parts: { content: { "": {} } },
-    values: { ...popups, ...placed, delay: [0, 300], closeDelay: [0, 300], "content.arrowPadding": [0, 8] },
+    values: { ...popups, ...placed, delay: [0, 300], closeDelay: [0, 300] },
     skip: popupSkips,
   },
   {
@@ -649,7 +650,6 @@ const cases: Case[] = [
       closeOnPress: [true, false],
       type: ["label", "description"],
       shortcut: ["mod+s", "mod+shift+s"],
-      "content.arrowPadding": [0, 8],
     },
     skip: {
       ...popupSkips,
@@ -672,9 +672,10 @@ const cases: Case[] = [
     parts: { trigger: { "": {} }, content: { "": {} }, item: { cut: {} } },
     history: ["stop", "titled"],
     values: {
+      pendingAnnouncement: ["Loading", "Saving"],
       ...popups,
       ...placed,
-      shortcuts: [true, false],
+      itemShortcuts: [true, false],
       delay: [0, 300],
       dismissible: [true, false],
       "item.value": ["cut", "trim"],
@@ -719,7 +720,7 @@ const cases: Case[] = [
       placeholder: ["Pick one", "Choose"],
       autoComplete: ["off", "country"],
       "value.placeholder": ["Pick one", "Choose"],
-      "value.max": [1, 2],
+      "value.maxLabels": [1, 2],
       "value.text": [false, true],
       "content.alignItemWithTrigger": [true, false],
       ...placed,
@@ -752,6 +753,7 @@ const cases: Case[] = [
     </root>`,
     parts: { content: { "": {} }, item: { Banana: {} }, "item-text": { "": {} }, clear: { "": {} } },
     values: {
+      pendingAnnouncement: ["Loading", "Saving"],
       ...lists,
       open: [true, false],
       value: ["Apple", "Banana"],
@@ -804,6 +806,7 @@ const cases: Case[] = [
     </root>`,
     parts: { item: { open: {} }, "item-text": { "": {} } },
     values: {
+      pendingAnnouncement: ["Loading", "Saving"],
       ...lists,
       value: ["new", "open"],
       pages: [[], ["settings"]],
@@ -833,7 +836,7 @@ const cases: Case[] = [
       closeDelay: [0, 300],
       openOnHover: [true, false],
       closeOnSelect: [true, false],
-      "link.active": [false, true],
+      "link.current": [false, true],
       "link.closeOnSelect": [true, false],
       ...placed,
     },
@@ -947,7 +950,7 @@ const cases: Case[] = [
     },
     skip: {
       codec: "Reads and writes the text, which the codec tests cover.",
-      describeToken: "A function, called for each token's name.",
+      getTokenDescription: "A function, called for each token's name.",
       history: "Read when an edit is undone.",
     },
   },
@@ -958,7 +961,7 @@ const cases: Case[] = [
     values: {
       side: ["bottom", "top"],
       align: ["end", "start"],
-      max: [3, 5],
+      maxVisible: [3, 5],
       expanded: [false, true],
       shortcut: ["F6", "alt+t"],
       pendingAnnouncement: ["Loading", "Saving"],
