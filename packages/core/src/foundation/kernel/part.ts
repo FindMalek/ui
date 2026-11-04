@@ -2,10 +2,10 @@
 // makes parts (`instance.part(slot, props)`), and these read, subscribe and
 // bind them. They're free functions, so each adapter bundles only the ones it
 // calls.
-import { dev, warn } from "#dev"
+import { checkFocus, checkRole, dev, warn } from "#dev"
 import { enforceHidden } from "../platform/style"
 import { isComposing, on } from "./events"
-import type { AnySlot, Attrs, EventMap, Part } from "./primitive-types"
+import type { AnySlot, Attrs, EventMap, Part, RoleFields } from "./primitive-types"
 import { eachMoved } from "./selects"
 import { renders, sameValue, subscribeSkipping, touch, type Listener } from "./store"
 
@@ -124,11 +124,19 @@ function sweep(owner: PartOwner) {
  * @stable
  */
 function attrs(part: Part, props = part.props, state = part.store.get()) {
+  const definition = definitionOf(part) as AnySlot & RoleFields<any, any, any>
+  const context = view(part, props)
+  const own = definition.attrs?.(state, context)
+  const declared = definition.role
+  const role = typeof declared === "function" ? declared(state, context) : declared
+  if (dev && declared !== undefined)
+    checkRole(definition, part.slot, own, role, { component: ownerOf(part).label, id: part.id })
   return aliased(
     part as PartRecord,
     {
       "data-slot": `${ownerOf(part).name}-${part.slot}`,
-      ...definitionOf(part).attrs?.(state, view(part, props)),
+      ...own,
+      ...(declared === undefined ? undefined : { role }),
     } as Attrs,
   )
 }
@@ -334,7 +342,13 @@ function bind(part: Part, el: HTMLElement, host: Host = { by: "core" }) {
     parts.delete(mapKey)
     parts.set(mapKey, kept)
   }
-  if (dev) checkShared(part, part.el, el)
+  if (dev) {
+    checkShared(part, part.el, el)
+    checkFocus((definitionOf(part) as RoleFields<any, any, any>).focus, part.slot, el, {
+      component: ownerOf(part).label,
+      id: part.id,
+    })
+  }
   const binding = {}
   part.el = el
   kept.binding = binding

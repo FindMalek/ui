@@ -78,12 +78,21 @@ function isStop(state: ListboxStore, key: string, props: ItemProps, api: Listbox
 const listboxSlots = (slot: SlotFactory<ListboxStore, ListboxApi>) => ({
   // The listbox itself. It takes focus only to hand it to the option that holds the tab stop.
   root: slot<{}, ListboxState>({
+    role: "listbox",
+    keys: (state) => [
+      ...(state.orientation === "horizontal" ? ["ArrowLeft", "ArrowRight"] : ["ArrowUp", "ArrowDown"]),
+      "Home",
+      "End",
+      "Enter",
+      " ",
+      "typeahead",
+      ...(state.multiple ? ["mod+a"] : []),
+    ],
     state: (state, { api }) => rootState(state, api),
     attrs: (state, { id }) => {
       const disabled = isDisabled(state)
       return {
         id: `${id}-listbox`,
-        role: "listbox",
         // Never a tab stop of its own, even disabled, when browsers make scrolling containers one.
         tabindex: "-1",
         "aria-multiselectable": state.multiple ? "true" : undefined,
@@ -121,6 +130,8 @@ const listboxSlots = (slot: SlotFactory<ListboxStore, ListboxApi>) => ({
   }),
 
   item: slot<ItemProps, ListboxItemState>({
+    role: "option",
+    focus: "roving",
     props: {
       value: "key",
       label: "string",
@@ -136,7 +147,6 @@ const listboxSlots = (slot: SlotFactory<ListboxStore, ListboxApi>) => ({
       const { selected, disabled } = itemState(state, key, props, api)
       return {
         id: `${id}-option-${idPart(key)}`,
-        role: "option",
         tabindex: isDisabled(state) ? undefined : isStop(state, key, props, api) ? "0" : "-1",
         "aria-selected": String(selected),
         "aria-disabled": disabled ? "true" : undefined,
@@ -166,16 +176,18 @@ const listboxSlots = (slot: SlotFactory<ListboxStore, ListboxApi>) => ({
 
   // A group of items, named by its label. Nothing filters a listbox, so it never hides.
   group: slot({
+    role: "group",
     // Its id is made for it, and names the group its items and label are in.
     props: { id: "id" },
-    attrs: (state, { id, key }) => ({ role: "group", "aria-labelledby": groupLabelledBy(state, id, key) }),
+    attrs: (state, { id, key }) => ({ "aria-labelledby": groupLabelledBy(state, id, key) }),
   }),
 
   "group-label": slot(groupLabelPart<ListboxStore, ListboxApi>()),
 
   // A listbox may only hold options and groups, so separators are hidden from assistive technology.
   separator: slot({
-    attrs: () => ({ role: "none", "aria-hidden": "true" }),
+    role: "none",
+    attrs: () => ({ "aria-hidden": "true" }),
   }),
 
   "form-input": slot(hiddenInputPart<ListboxStore, ListboxApi>("form-input")),

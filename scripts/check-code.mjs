@@ -15,6 +15,9 @@
 // - drag-session: no `bindDrag(` in packages/*/src outside the files in
 //   `dragSessionAllowlist`. A component drags through `createDragSession`,
 //   which takes one press at a time and ends a drag cut short as canceled.
+// - slot-roles: no `role:` in a slot's `attrs` in packages/core/src outside the
+//   files in `slotRolesAllowlist`. A slot declares its role, `role: "option"`,
+//   so its types and development builds check what the role needs.
 // - import-layers: core's folders import downward only. `foundation/kernel`
 //   imports nothing else in core. `foundation/platform` imports only the
 //   kernel. A job folder (`focus`, `lists`, `popups` and the rest) imports the
@@ -100,6 +103,45 @@ const dragSessionAllowlist = {
     "One press can drag two handles where they meet, one along each axis.",
 }
 
+// Files whose slots still write their role in `attrs`, until each moves to `role` on the slot.
+const slotRolesAllowlist = {
+  "packages/core/src/components/accordion/accordion.ts": "Not moved yet.",
+  "packages/core/src/components/calendar/calendar-api.ts": "Not moved yet.",
+  "packages/core/src/components/carousel/carousel.ts": "Not moved yet.",
+  "packages/core/src/components/checkbox/checkbox-group.ts": "Not moved yet.",
+  "packages/core/src/components/combobox/combobox-parts.ts": "Not moved yet.",
+  "packages/core/src/components/command/command-parts.ts": "Not moved yet.",
+  "packages/core/src/components/date-picker/date-picker-parts.ts": "Not moved yet.",
+  "packages/core/src/components/dialog/dialog-parts.ts": "Not moved yet.",
+  "packages/core/src/components/drawer/drawer.ts": "Not moved yet.",
+  "packages/core/src/components/file-input/file-input.ts": "Not moved yet.",
+  "packages/core/src/components/menu/menu-parts.ts": "Not moved yet.",
+  "packages/core/src/components/menubar/menubar.ts": "Not moved yet.",
+  "packages/core/src/components/meter/meter.ts": "Not moved yet.",
+  "packages/core/src/components/number-input/number-input.ts": "Not moved yet.",
+  "packages/core/src/components/pagination/pagination.ts": "Not moved yet.",
+  "packages/core/src/components/progress/progress.ts": "Not moved yet.",
+  "packages/core/src/components/radio/radio.ts": "Not moved yet.",
+  "packages/core/src/components/resizable/resizable.ts": "Not moved yet.",
+  "packages/core/src/components/select/select-parts.ts": "Not moved yet.",
+  "packages/core/src/components/separator/separator.ts": "Not moved yet.",
+  "packages/core/src/components/slider/slider.ts": "Not moved yet.",
+  "packages/core/src/components/tabs/tabs.ts": "Not moved yet.",
+  "packages/core/src/components/toast/toast-parts.ts": "Not moved yet.",
+  "packages/core/src/components/toggle/toggle-group.ts": "Not moved yet.",
+  "packages/core/src/components/token-input/token-input-parts.ts": "Not moved yet.",
+  "packages/core/src/components/toolbar/toolbar.ts": "Not moved yet.",
+  "packages/core/src/components/tree/tree.ts": "Not moved yet.",
+  "packages/core/src/components/trigger-menu/trigger-menu-parts.ts": "Not moved yet.",
+  "packages/core/src/foundation/focus/grid-focus.ts": "Not moved yet.",
+  "packages/core/src/foundation/lists/autocomplete-core.ts": "Not moved yet.",
+  "packages/core/src/foundation/lists/listbox-parts.ts": "Not moved yet.",
+  "packages/core/src/foundation/lists/listbox-popup.ts": "Not moved yet.",
+  "packages/core/src/foundation/lists/listbox-select-all.ts": "Not moved yet.",
+  "packages/core/src/foundation/popups/popup-slots.ts": "Not moved yet.",
+  "packages/core/src/foundation/selection/cell-range.ts": "Not moved yet.",
+}
+
 // Imports across core's layers that import-layers lets through, by folder, each with why.
 const importLayersAllowlist = {
   "foundation/kernel -> foundation/platform":
@@ -153,6 +195,7 @@ const allowances = []
 checkReturnTypes()
 checkPopupSteps()
 checkDragSession()
+checkSlotRoles()
 checkImportLayers()
 const surface = publicExports(root)
 checkPublicDocs()
@@ -323,6 +366,44 @@ function checkDragSession() {
           message: "drag through `createDragSession` instead of calling `bindDrag` yourself.",
         })
       })
+  }
+}
+
+// A helper passed as `attrs: fn` has no body here; development builds check what it returns.
+function* attrsBodies(text) {
+  for (const match of text.matchAll(/\battrs\s*:/g)) {
+    const arrow = text.indexOf("=>", match.index)
+    if (
+      arrow < 0 ||
+      !/^\s*(?:\w+|\((?:[^()]|\([^()]*\))*\))\s*$/.test(text.slice(match.index + match[0].length, arrow))
+    )
+      continue
+    const open = text.indexOf("{", arrow)
+    if (open < 0) continue
+    let depth = 0
+    let end = open
+    for (; end < text.length; end++) {
+      if (text[end] === "{") depth++
+      else if (text[end] === "}" && --depth === 0) break
+    }
+    yield { start: open, body: text.slice(open, end) }
+  }
+}
+
+function checkSlotRoles() {
+  for (const file of packageSources()) {
+    const relative = path.relative(root, file)
+    if (!relative.startsWith("packages/core/src/") || relative in slotRolesAllowlist) continue
+    const text = readFileSync(file, "utf8")
+    for (const { start, body } of attrsBodies(text))
+      for (const role of body.matchAll(/\brole:\s/g))
+        violations.push({
+          file: relative,
+          line: text.slice(0, start + role.index).split("\n").length,
+          rule: "slot-roles",
+          message:
+            'declare the role on the slot, `role: "…"`, instead of in `attrs`, so core checks what it needs.',
+        })
   }
 }
 

@@ -3,6 +3,7 @@
 // production build resolves `dev-stub.ts` instead and ships none of this.
 import type { ChangeReason } from "./details"
 import { callbackName, defaultName } from "./option-names"
+import { knownRoles, unmetNeeds } from "./roles"
 
 /**
  * What core reports to a devtools hook in development. Internal until the devtools ship.
@@ -101,15 +102,112 @@ function emit(event: DevEvent) {
 /**
  * Prints a development warning and reports it to the inspector. Names the
  * component and instance when it knows them, like `Popover#p3`. Set
- * `globalThis.__UI_SDK_DEV__ = false` to silence warnings.
+ * `globalThis.__UI_SDK_DEV__ = false` to silence warnings, or
+ * `globalThis.__UI_SDK_STRICT__ = true`, as tests do, to throw them instead.
  */
 function warn(message: string, from?: { component: string; id?: string }, detail?: unknown) {
-  if ((globalThis as { __UI_SDK_DEV__?: boolean }).__UI_SDK_DEV__ === false) return
+  const flags = globalThis as { __UI_SDK_DEV__?: boolean; __UI_SDK_STRICT__?: boolean }
+  if (flags.__UI_SDK_DEV__ === false) return
   const name = from ? `${from.component}${from.id ? `#${from.id}` : ""}: ` : ""
+  emit({ type: "warn", message, component: from?.component, id: from?.id })
+  if (flags.__UI_SDK_STRICT__) throw new Error(`[ui-sdk] ${name}${message}`, { cause: detail })
   // A detail like an error is logged as itself, so the console shows its stack.
   if (detail === undefined) console.warn(`[ui-sdk] ${name}${message}`)
   else console.warn(`[ui-sdk] ${name}${message}`, detail)
-  emit({ type: "warn", message, component: from?.component, id: from?.id })
+}
+
+const needMessages = {
+  focus:
+    'takes focus, so its slot needs `focus`: "roving", "tab-stop", "active-descendant" or "native", or `{ none: "why" }` when another element takes it',
+  press: "activates, so its slot needs `press`",
+  keys: 'moves with keys, so its slot needs `keys`, the keys its `on.keydown` handles, or `{ none: "why" }` when another element handles them',
+  keydown: "lists `keys`, so its slot needs an `on.keydown` that handles them",
+}
+
+/** Checks each slot's declared role, and that the slot meets what the role needs. */
+function checkRoles(slots: Record<string, object>, from: { component: string }) {
+  for (const [slot, definition] of Object.entries(slots)) {
+    const { role, roles } = definition as { role?: unknown; roles?: readonly string[] }
+    if (role === undefined) continue
+    if (typeof role === "function" && !roles?.length)
+      warn(
+        `the "${slot}" part picks its role from state, so its slot lists every role it can pick in \`roles\`.`,
+        from,
+      )
+    for (const each of typeof role === "string" ? [role] : (roles ?? [])) {
+      if (!knownRoles.has(each)) warn(`the "${slot}" part's role "${each}" isn't a WAI-ARIA role.`, from)
+      for (const need of unmetNeeds(each, definition))
+        warn(
+          `the "${slot}" part is ${/^[aeiou]/.test(each) ? "an" : "a"} ${each}, which ${needMessages[need]}.`,
+          from,
+        )
+    }
+  }
+}
+
+const warnedRole = new WeakSet<object>()
+
+/** Checks the role a part renders with against its slot's declaration. */
+function checkRole(
+  definition: { role?: unknown; roles?: readonly string[] },
+  slot: string,
+  own: Record<string, unknown> | undefined,
+  role: unknown,
+  from: { component: string; id?: string },
+) {
+  if (warnedRole.has(definition)) return
+  if (own && "role" in own) {
+    warnedRole.add(definition)
+    warn(
+      `the "${slot}" part declares its role, and its \`attrs\` writes one too. Leave \`role\` out of \`attrs\`.`,
+      from,
+    )
+  } else if (
+    typeof definition.role === "function" &&
+    role !== undefined &&
+    !definition.roles?.includes(role as string)
+  ) {
+    warnedRole.add(definition)
+    warn(
+      `the "${slot}" part picked the role "${String(role)}", which its slot's \`roles\` doesn't list.`,
+      from,
+    )
+  }
+}
+
+const focusesOnItsOwn =
+  'button, input, select, textarea, a[href], summary, iframe, [contenteditable]:not([contenteditable="false"])'
+
+/**
+ * Checks a bound element can take focus the way its slot says, a microtask
+ * later, once a framework has written its attributes.
+ */
+function checkFocus(focus: unknown, slot: string, el: HTMLElement, from: { component: string; id?: string }) {
+  if (typeof focus !== "string") return
+  queueMicrotask(() => {
+    // A part that isn't meant to take focus now, like an option of a disabled list, has no tabindex on purpose.
+    if (!el.isConnected || el.closest('[aria-disabled="true"], [disabled], [inert], [hidden]')) return
+    const tag = `<${el.localName}>`
+    if (focus === "native" && !el.matches(focusesOnItsOwn))
+      warn(
+        `the "${slot}" part's focus is "native", but a ${tag} doesn't take focus on its own. Render a native control, or use "roving" or "tab-stop" with a tabindex.`,
+        from,
+      )
+    else if (
+      (focus === "roving" || focus === "tab-stop") &&
+      !el.hasAttribute("tabindex") &&
+      !el.matches(focusesOnItsOwn)
+    )
+      warn(
+        `the "${slot}" part's focus is "${focus}", but its ${tag} has no tabindex, so it can't take focus.`,
+        from,
+      )
+    else if (focus === "active-descendant" && !el.id)
+      warn(
+        `the "${slot}" part's focus is "active-descendant", but it has no id for \`aria-activedescendant\` to point at.`,
+        from,
+      )
+  })
 }
 
 // The slots each primitive warned are missing, by its slots, so a part read
@@ -424,6 +522,9 @@ const isMeasuring = () => measuring > 0
 
 export {
   checkControlled,
+  checkFocus,
+  checkRole,
+  checkRoles,
   checkEvent,
   checkMarks,
   checkPrevented,

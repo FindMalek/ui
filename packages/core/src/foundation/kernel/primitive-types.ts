@@ -2,6 +2,7 @@
 // and parts, the context its api gets, and what adapters derive from it.
 import type { ChangeSource } from "./details"
 import type { Direct, Live } from "./live"
+import type { Focus, FocusableRole, HandledKey, KeyedRole, PressableRole, Role, Unneeded } from "./roles"
 import type { Selects } from "./selects"
 import type { Store } from "./store"
 
@@ -157,6 +158,63 @@ type SlotDefinition<State extends object, Api, Props, Public = {}> = {
   connect?: (el: HTMLElement) => () => void
 } & SlotSchema<Props>
 
+type Demanding = FocusableRole | PressableRole | KeyedRole
+
+type Keys<State> = readonly HandledKey[] | ((state: State) => readonly HandledKey[])
+
+// What a role asks of its slot. Each is one required field, so a missing one
+// is named in the error, and opting out takes a reason: `{ none: "why" }`.
+type Needs<R, State extends object, Api, Props> = (R extends FocusableRole
+  ? { focus: Focus | Unneeded }
+  : unknown) &
+  (R extends PressableRole
+    ? { press: (context: SlotContext<State, Api, Props>, event?: Event) => void }
+    : unknown) &
+  (R extends KeyedRole ? { keys: Keys<State> | Unneeded } : unknown)
+
+/**
+ * A slot's role and what the role asks of it. Core reads these from the
+ * definition `slot` gets, and checks them in development builds.
+ */
+type RoleFields<State extends object, Api, Props> = {
+  /**
+   * The part's WAI-ARIA role, which core writes. A role that takes focus,
+   * activates or moves with keys makes the slot say how, with `focus`,
+   * `press` and `keys`. A function picks the role
+   * from state, with every role it can pick in `roles`. Never put `role` in `attrs`.
+   */
+  role?:
+    Role | ((state: State, context: { id: string; key: string; props: Props; api: Api }) => Role | undefined)
+  /** Every role a `role` function can pick. Development builds check what each one needs. */
+  roles?: readonly Role[]
+  /**
+   * How the part gets focus, for a role that takes it, like an option or a
+   * tab. `{ none: "why" }` when another element takes it instead.
+   */
+  focus?: Focus | Unneeded
+  /**
+   * The keys the part's `on.keydown` handles, for a role whose pattern moves
+   * with keys, or a function of state when they depend on it, like the arrows
+   * of an orientation. `{ none: "why" }` when another element handles them,
+   * like a combobox's input for its listbox.
+   */
+  keys?: Keys<State> | Unneeded
+}
+
+// The role's literal picks the member, so TypeScript asks for exactly what that role needs.
+type RoleDeclaration<State extends object, Api, Props> = Omit<
+  RoleFields<State, Api, Props>,
+  "role" | "roles"
+> &
+  (
+    | { role?: Exclude<Role, Demanding> }
+    | {
+        role: (state: State, context: { id: string; key: string; props: Props; api: Api }) => Role | undefined
+        roles: readonly Role[]
+      }
+    | { [R in Demanding]: { role: R } & Needs<R, State, Api, Props> }[Demanding]
+  )
+
 /**
  * Each prop the slot takes, with its kind, for renderers to read. TypeScript
  * checks it names them all, and requires it when the slot takes any. A slot
@@ -183,7 +241,8 @@ type AnySlot = SlotDefinition<any, any, any, any>
  * @stable
  */
 type SlotFactory<State extends object, Api> = <Props extends object = {}, Public extends object = {}>(
-  definition: SlotDefinition<State, Api, Props & BaseSlotProps, Public>,
+  definition: SlotDefinition<State, Api, Props & BaseSlotProps, Public> &
+    RoleDeclaration<State, Api, Props & BaseSlotProps>,
 ) => SlotDefinition<State, Api, NoInfer<Props> & BaseSlotProps, NoInfer<Public>>
 
 // Exported because emitted declarations name it in every instance's `part`
@@ -429,6 +488,7 @@ export {
   type PropSpec,
   type PropsOf,
   type ReasonFor,
+  type RoleFields,
   type SlotDefinition,
   type SlotFactory,
   type SlotName,
