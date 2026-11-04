@@ -2,7 +2,19 @@
 // and parts, the context its api gets, and what adapters derive from it.
 import type { ChangeSource } from "./details"
 import type { Direct, Live } from "./live"
-import type { Focus, FocusableRole, HandledKey, KeyedRole, PressableRole, Role, Unneeded } from "./roles"
+import type {
+  AriaOf,
+  Focus,
+  FocusableRole,
+  HandledKey,
+  KeyedRole,
+  NamelessRole,
+  PressableRole,
+  RequiredAria,
+  Role,
+  RoleAria,
+  Unneeded,
+} from "./roles"
 import type { Selects } from "./selects"
 import type { Store } from "./store"
 
@@ -107,13 +119,7 @@ type Part<State extends object = any, Api = any, Props = any> = {
   el: HTMLElement | undefined
 }
 
-/**
- * One part of a primitive, like a trigger or an item: how its element
- * renders, reacts and binds. Build slots with the `slot` helper `slots`
- * receives. Every field is optional.
- * @stable
- */
-type SlotDefinition<State extends object, Api, Props, Public = {}> = {
+type SlotFields<State extends object, Api, Props, Public> = {
   /**
    * Whether the slot's element should exist. Adapters that cannot unmount
    * markup, like custom elements, bind and unbind on it. Defaults to always.
@@ -159,41 +165,43 @@ type SlotDefinition<State extends object, Api, Props, Public = {}> = {
    * popup's content registers here, so shortcuts inside a closed one don't run.
    */
   connect?: (el: HTMLElement) => () => void
-} & SlotSchema<Props>
+}
 
-type Demanding = FocusableRole | PressableRole | KeyedRole
+/**
+ * One part of a primitive, like a trigger or an item: how its element
+ * renders, reacts and binds. Build slots with the `slot` helper `slots`
+ * receives. Every field is optional.
+ * @stable
+ */
+type SlotDefinition<State extends object, Api, Props, Public = {}> = SlotFields<State, Api, Props, Public> &
+  SlotSchema<Props>
 
 type Keys<State> = readonly HandledKey[] | ((state: State) => readonly HandledKey[])
 
-// What a role asks of its slot. Each is one required field, so a missing one
-// is named in the error, and opting out takes a reason: `{ none: "why" }`.
-type Needs<R, State extends object, Api, Props> = (R extends FocusableRole
-  ? {
-      focus:
-        | Focus
-        | Unneeded
-        | ((state: State, context: { id: string; key: string; props: Props; api: Api }) => Focus | Unneeded)
-    }
-  : unknown) &
-  (R extends PressableRole
-    ? { press: ((context: SlotContext<State, Api, Props>, event?: Event) => void) | Unneeded }
-    : unknown) &
-  (R extends KeyedRole ? { keys: Keys<State> | Unneeded } : unknown)
+// What a role asks of its slot and which ARIA it takes: whether it takes
+// focus, activates, moves with keys or can't be named, its role-specific
+// attributes and its required states. Roles alike share one member.
+type ProfileOf<R> = [
+  R extends FocusableRole ? 1 : 0,
+  R extends PressableRole ? 1 : 0,
+  R extends KeyedRole ? 1 : 0,
+  R extends NamelessRole ? 1 : 0,
+  AriaOf<R>,
+  RequiredAria<R>,
+]
 
-// Keys a slot lists are handled by its own `on.keydown`, so listing them asks for one.
-type KeysDeclaration<State extends object, Api, Props> =
-  | {
-      keys: Keys<State>
-      on: { keydown: (event: KeyboardEvent, context: SlotContext<State, Api, Props>) => void }
-    }
-  | { keys: Unneeded }
-  // Only `undefined`, which makes `keys` pick the member a slot is checked
-  // against. Generic, so it's created last: errors report a slot without
-  // keys against it, and name what's missing, like `focus`, not keys.
-  | {
-      keys?: undefined
-      on?: { keydown?: (event: KeyboardEvent, context: SlotContext<State, Api, Props>) => void }
-    }
+type Profile = [0 | 1, 0 | 1, 0 | 1, 0 | 1, RoleAria, RoleAria]
+
+type Same<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false
+
+type RolesLike<P extends Profile> = { [R in Role]: Same<ProfileOf<R>, P> extends true ? R : never }[Role]
+
+// One required field per need, so the error names a missing one. Presence
+// only: the definition types each field, so one is built per profile. Listed
+// keys ask for an `on.keydown`, last so a list without one is told so.
+type Needs<P extends Profile> = (P[0] extends 1 ? { focus: {} } : unknown) &
+  (P[1] extends 1 ? { press: {} } : unknown) &
+  (P[2] extends 1 ? { keys: Unneeded } | { keys: {}; on: { keydown: {} } } : unknown)
 
 /**
  * A slot's role and what the role asks of it. Core reads these from the
@@ -227,19 +235,62 @@ type RoleFields<State extends object, Api, Props> = {
   keys?: Keys<State> | Unneeded
 }
 
+// An attribute the role doesn't take, typed as the sentence that says so, so
+// the error names it: "aria-orientation isn't allowed on a group". Roles that
+// share a member are "this role"; the error shows which one.
+type NotAllowed<K extends string, P extends Profile> = `${K} isn't allowed on ${Label<RolesLike<P>>}`
+
+type Label<R extends string> = [R] extends [UnionToIntersection<R>]
+  ? `${R extends `${"a" | "e" | "i" | "o" | "u"}${string}` ? "an" : "a"} ${R}`
+  : "this role"
+
+type UnionToIntersection<U> = (U extends unknown ? (union: U) => void : never) extends (
+  union: infer I,
+) => void
+  ? I
+  : never
+
+type RoleAttrs<P extends Profile> = Attrs & {
+  [K in Exclude<RoleAria, P[4]> | (P[3] extends 1 ? "aria-label" | "aria-labelledby" : never)]?: NotAllowed<
+    K,
+    P
+  >
+}
+
+// A role's required states are keys its `attrs` always returns, so leaving
+// one out is a build error. One that `live` keeps current is `undefined` here.
+// One field, not a union, so the error names the missing state.
+type AttrsFor<P extends Profile, State extends object, Api, Props> = [P[5]] extends [never]
+  ? { attrs?: (state: State, context: { id: string; key: string; props: Props; api: Api }) => RoleAttrs<P> }
+  : {
+      attrs: (
+        state: State,
+        context: { id: string; key: string; props: Props; api: Api },
+      ) => RoleAttrs<P> & { [K in P[5]]: string | undefined }
+    }
+
+// One member per profile: TypeScript reuses an alias's instantiation for the
+// same arguments, so roles alike collapse into one, which keeps checking cheap.
+type RoleMember<P extends Profile, State extends object, Api, Props> = { role: RolesLike<P> } & Needs<P> &
+  AttrsFor<P, State, Api, Props>
+
+// Without a literal role, the role's attributes aren't known here, so development builds check them.
+type UnroledAttrs<State extends object, Api, Props> = {
+  attrs?: (state: State, context: { id: string; key: string; props: Props; api: Api }) => Attrs
+}
+
 // The role's literal picks the member, so TypeScript asks for exactly what that role needs.
 type RoleDeclaration<State extends object, Api, Props> = Omit<
   RoleFields<State, Api, Props>,
-  "role" | "roles" | "keys"
+  "role" | "roles"
 > &
-  KeysDeclaration<State, Api, Props> &
   (
-    | { role?: Exclude<Role, Demanding> }
-    | {
+    | ({ role?: undefined } & UnroledAttrs<State, Api, Props>)
+    | ({
         role: (state: State, context: { id: string; key: string; props: Props; api: Api }) => Role | undefined
         roles: readonly Role[]
-      }
-    | { [R in Demanding]: { role: R } & Needs<R, State, Api, Props> }[Demanding]
+      } & UnroledAttrs<State, Api, Props>)
+    | { [R in Role]: RoleMember<ProfileOf<R>, State, Api, Props> }[Role]
   )
 
 /**
@@ -268,7 +319,10 @@ type AnySlot = SlotDefinition<any, any, any, any>
  * @stable
  */
 type SlotFactory<State extends object, Api> = <Props extends object = {}, Public extends object = {}>(
-  definition: SlotDefinition<State, Api, Props & BaseSlotProps, Public> &
+  // `attrs` comes from the role's member alone, typed for that role: one
+  // signature, so its parameters keep their types.
+  definition: Omit<SlotFields<State, Api, Props & BaseSlotProps, Public>, "attrs"> &
+    SlotSchema<Props & BaseSlotProps> &
     RoleDeclaration<State, Api, Props & BaseSlotProps>,
 ) => SlotDefinition<State, Api, NoInfer<Props> & BaseSlotProps, NoInfer<Public>>
 
