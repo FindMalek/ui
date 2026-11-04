@@ -31,10 +31,7 @@ type TriggerProps = Omit<DialogTriggerProps, "controller">
 type ContentProps = DialogContentProps
 type CloseProps = DialogCloseProps
 
-function dialogSlots(
-  slot: SlotFactory<DialogState, DialogApi>,
-  { name, role }: { name: string; role: string },
-) {
+function dialogSlots(slot: SlotFactory<DialogState, DialogApi>, { name }: { name: string }) {
   const trigger = popupTrigger(slot)
   return {
     // A popup trigger whose `shortcut` presses it. A modal dialog's trigger
@@ -75,8 +72,8 @@ function dialogSlots(
       state: (state) => ({ open: state.open, nested: state.nested, nestedOpen: state.stack > 0 }),
       // Kept mounted with the content, so both show together.
       present: (state, { api }) => state.mounted || !!api.internal.contentProps().keepMounted,
+      role: "presentation",
       attrs: (state) => ({
-        role: "presentation",
         hidden: state.mounted ? undefined : "",
         ...openAttrs(state.open),
         "data-nested": state.nested ? "" : undefined,
@@ -91,6 +88,8 @@ function dialogSlots(
     content: slot<ContentProps, DialogContentState>({
       props: { container: "value", initialFocus: "string", finalFocus: "string", keepMounted: "boolean" },
       connect: registerPopupElement,
+      role: (state, { api }) => api.internal.role,
+      roles: ["dialog", "alertdialog"],
       state: (state) => ({
         open: state.open,
         modal: state.modal,
@@ -104,7 +103,6 @@ function dialogSlots(
       present: (state, { props }) => state.mounted || !!props.keepMounted,
       attrs: (state, { id, api }) => ({
         ...popupContentAttrs(state, id),
-        role,
         ...api.internal.triggerName?.contentAttrs(state, id),
         "aria-describedby": state.described ? `${id}-description` : undefined,
         "data-nested": state.nested ? "" : undefined,

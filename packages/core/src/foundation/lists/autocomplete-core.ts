@@ -11,10 +11,10 @@ import { fuzzyFilter } from "../text/fuzzy"
 import { createListbox, type ListData, type ListFilter, type Listbox } from "./listbox"
 import { listStep } from "./listbox-keyboard"
 import { keepListing, type Listing } from "./listbox-listing"
-import { positionAttrs, registerItem } from "./listbox-parts"
+import { listStepKeys, positionAttrs, registerItem } from "./listbox-parts"
 import { announceResults, createLoadMore, matchMode, type ListAnnouncement } from "./listbox-search"
 import { idPart } from "../kernel/attrs"
-import type { BaseSlotProps, PrimitiveContext, SlotDefinition } from "../kernel/primitive-types"
+import type { BaseSlotProps, PrimitiveContext, RoleFields, SlotDefinition } from "../kernel/primitive-types"
 import { direct, live } from "../kernel/live"
 import { elements } from "../kernel/elements"
 
@@ -280,13 +280,16 @@ type CoreApi = {
 }
 
 // The text field: a combobox whose focus stays put while aria-activedescendant
-// points at the highlighted option. Components add their own attributes.
+// points at the highlighted option. Components add their own attributes, and
+// to `keys` the ones their `onInputKeyDown` takes past the core's steps.
 function fieldPart<State extends AutocompleteCoreState, Api extends CoreApi>() {
   const text = (api: Api, state: State) => (api.internal.text as (state: State) => string)(state)
   return {
+    role: "combobox",
+    focus: "native",
+    keys: listStepKeys,
     attrs: (state, { id, api }) => ({
       id: `${id}-input`,
-      role: "combobox",
       value: text(api, state),
       autocomplete: "off",
       autocapitalize: "none",
@@ -315,7 +318,7 @@ function fieldPart<State extends AutocompleteCoreState, Api extends CoreApi>() {
       write()
       return store.subscribe(write)
     },
-  } satisfies SlotDefinition<State, Api, BaseSlotProps, {}>
+  } satisfies SlotDefinition<State, Api, BaseSlotProps, {}> & RoleFields<State, Api, BaseSlotProps>
 }
 
 // An option. Nothing is selected in these lists: the highlighted option is
@@ -331,9 +334,10 @@ function optionPart<State extends AutocompleteCoreState, Api extends CoreApi>() 
       index: "number",
       group: { kind: "string", from: "group.id" },
     },
+    role: "option",
+    focus: "active-descendant",
     attrs: (state, { id, key, props, api }) => ({
       id: `${id}-option-${idPart(key)}`,
-      role: "option",
       // Real focus reaches options only after a screen reader's tap moved it into the list.
       tabindex: state.focusInList ? "-1" : undefined,
       "aria-disabled": props.disabled ? "true" : undefined,
@@ -361,7 +365,8 @@ function optionPart<State extends AutocompleteCoreState, Api extends CoreApi>() 
         el.setAttribute("aria-selected", "false")
       }
     },
-  } satisfies SlotDefinition<State, Api, AutocompleteCoreItem & BaseSlotProps, {}>
+  } satisfies SlotDefinition<State, Api, AutocompleteCoreItem & BaseSlotProps, {}> &
+    RoleFields<State, Api, AutocompleteCoreItem & BaseSlotProps>
 }
 
 export {

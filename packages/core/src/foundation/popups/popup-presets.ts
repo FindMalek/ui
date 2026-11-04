@@ -44,7 +44,7 @@ type PopupPreset = {
   /** How Tab, Escape, outside presses and the window losing focus behave, by the pattern it follows. */
   behavior: PopupBehaviorName
   /** The content's role. None for content that isn't a widget of its own, like a hover card. */
-  role?: string
+  role?: "dialog" | "alertdialog" | "menu" | "tooltip"
   /** The `modal` it has when the primitive's option doesn't say. Without one, the primitive keeps `modal` in its state itself, or it's never modal. */
   modal?: Modal
   /** The side it opens on when its content doesn't say. */

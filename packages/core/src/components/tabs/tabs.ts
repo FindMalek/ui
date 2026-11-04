@@ -477,9 +477,16 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     list: slot<{}, TabsListState>({
+      role: "tablist",
+      keys: (state) => [
+        ...(state.orientation === "vertical" ? ["ArrowUp", "ArrowDown"] : ["ArrowLeft", "ArrowRight"]),
+        "Home",
+        "End",
+        "Enter",
+        " ",
+      ],
       state: (state, { api }) => ({ orientation: api.internal.orientation() }),
       attrs: (state, { api }) => ({
-        role: "tablist",
         "aria-orientation": api.internal.orientation() === "vertical" ? "vertical" : undefined,
         "data-orientation": api.internal.orientation(),
         "data-activation-direction": state.direction,
@@ -490,6 +497,8 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     tab: slot<TabProps, TabsTabState>({
+      role: "tab",
+      focus: "roving",
       props: { value: "string", disabled: "boolean" },
       // Until there's a stop, the selected tab holds it, or with nothing
       // selected, the first enabled one claims it: those hear a change to null.
@@ -510,7 +519,6 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
         const selected = api.internal.shows(state, key)
         return {
           id: `${id}-tab-${idPart(key)}`,
-          role: "tab",
           // On a link, `type` names the linked file's kind, so only a button gets one.
           type: (state.elements[key] ?? "button") === "button" ? "button" : undefined,
           tabindex: api.internal.roving.tabIndex(state, { key, props }),
@@ -548,9 +556,9 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
     ),
 
     indicator: slot<{}, TabsIndicatorState>({
+      role: "presentation",
       state: (state, { api }) => ({ orientation: api.internal.orientation(), direction: state.direction }),
       attrs: (state, { api }) => ({
-        role: "presentation",
         "data-orientation": api.internal.orientation(),
         "data-activation-direction": state.direction,
       }),
@@ -602,6 +610,7 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     panel: slot<PanelProps, TabsPanelState>({
+      role: "tabpanel",
       props: { value: "string", keepMounted: "boolean", hiddenUntilFound: "boolean" },
       // Panels never read the tab stop, which moves with every arrow key, or
       // which panels are in the page, and only ask whether they're exiting.
@@ -621,7 +630,6 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
       state: (state, { key, api }) => ({ selected: api.internal.shows(state, key) }),
       attrs: (state, { id, key, props, api }) => ({
         id: `${id}-panel-${idPart(key)}`,
-        role: "tabpanel",
         "aria-labelledby": `${id}-tab-${idPart(key)}`,
         ...hiddenAttrs(api.internal.shows(state, key) || state.exiting.includes(key), findable(state, props)),
         "data-selected": api.internal.shows(state, key) ? "" : undefined,

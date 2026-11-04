@@ -100,6 +100,14 @@ const autocompleteSlots = (slot: SlotFactory<AutocompleteState, AutocompleteApi>
   // The text field. It's the form control, so the text submits under its `name`.
   input: slot<{}, AutocompleteInputState>({
     ...field,
+    // ArrowRight and End accept an inline completion.
+    keys: (state) => [
+      ...field.keys,
+      "Enter",
+      "Escape",
+      "Tab",
+      ...(state.inline ? ["ArrowRight", "End"] : []),
+    ],
     state: inputState,
     attrs: (state, context) => ({
       ...field.attrs(state, context),

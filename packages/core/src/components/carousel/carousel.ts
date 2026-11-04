@@ -402,6 +402,7 @@ const carouselPrimitive = /* @__PURE__ */ definePrimitive({
   api: carouselApi,
   slots: (slot) => ({
     root: slot<{}, CarouselState>({
+      role: "region",
       state: (state) => ({
         page: state.page,
         pageCount: state.pageCount,
@@ -409,7 +410,6 @@ const carouselPrimitive = /* @__PURE__ */ definePrimitive({
         orientation: state.orientation,
       }),
       attrs: (state) => ({
-        role: "region",
         "aria-roledescription": "carousel",
         "data-orientation": state.orientation,
         "data-playing": state.playing ? "" : undefined,
@@ -439,6 +439,7 @@ const carouselPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     item: slot<{}, CarouselItemState>({
+      role: "group",
       props: { id: "id" },
       state: (state, { key }) => ({
         index: state.order.indexOf(key),
@@ -447,7 +448,6 @@ const carouselPrimitive = /* @__PURE__ */ definePrimitive({
       }),
       attrs: (state, { id, key }) => ({
         id: slideId(id, key),
-        role: "group",
         "aria-roledescription": "slide",
         "data-orientation": state.orientation,
         style: itemStyle(state),
@@ -485,12 +485,15 @@ const carouselPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     "indicator-group": slot<{}, CarouselIndicatorGroupState>({
+      role: "tablist",
+      keys: ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End"],
       state: (state) => ({ page: state.page, pageCount: state.pageCount }),
-      attrs: () => ({ role: "tablist" }),
       on: { keydown: (event, { api }) => api.internal.onIndicatorKeyDown(event) },
     }),
 
     indicator: slot<CarouselIndicatorProps, CarouselIndicatorState>({
+      role: "tab",
+      focus: "roving",
       props: { page: "number", id: "id" },
       state: (state, { key, props, api }) => {
         const page = api.internal.indicatorPage(state, key, props)
@@ -501,7 +504,6 @@ const carouselPrimitive = /* @__PURE__ */ definePrimitive({
         const selected = page > 0 && page === state.page
         return {
           id: `${id}-indicator-${idPart(key)}`,
-          role: "tab",
           type: "button",
           tabindex: api.internal.roving.tabIndex(state, { key, props }),
           "aria-selected": String(selected),

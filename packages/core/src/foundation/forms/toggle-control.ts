@@ -237,9 +237,11 @@ function toggleSlots<State extends ToggleState, Api extends ToggleApi, Public ex
   return {
     // The control itself: a button in React and Vue, the custom element on the web.
     root: slot<{}, Public>({
+      // One literal at a time, since TypeScript can't check what a union of roles needs.
+      ...(role === "checkbox" ? { role: "checkbox" as const } : { role: "switch" as const }),
+      focus: "tab-stop",
       state: publicState,
       attrs: (state) => ({
-        role,
         type: "button",
         "aria-checked": state.checked === "indeterminate" ? "mixed" : String(state.checked),
         "aria-readonly": state.readOnly ? "true" : undefined,

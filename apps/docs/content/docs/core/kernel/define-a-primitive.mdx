@@ -145,6 +145,43 @@ Each handler receives the event and the part's context: `el`, `id`, `key`, `prop
 
 <ComponentExample name="core/search-field" />
 
+## Roles, Focus and Keys
+
+Declare each part's role on its slot, not in `attrs`. Core writes it, and a role that takes focus, activates or moves with keys makes the slot say how. Here's an option:
+
+```ts
+item: slot({
+  role: "option",
+  focus: "roving",
+  press: ({ api, key }) => api.choose(key),
+}),
+```
+
+Leave one out and TypeScript names it: an option without `focus` fails with "Property 'focus' is missing". The role decides what's required:
+
+- **`focus`** for roles that take focus, like `option`, `tab` or `menuitem`: `"roving"`, `"tab-stop"`, `"active-descendant"` or `"native"`. Development builds check the bound element can take focus that way, like a `"native"` part that renders a `<div>`.
+- **`press`** for roles that activate, like `button`, `option` or `tab`.
+- **`keys`** for roles whose pattern moves with keys, like `listbox`, `menu` or `slider`: the keys its `on.keydown` handles, or a function of state when they depend on it.
+
+```ts
+list: slot({
+  role: "listbox",
+  keys: (state) => [...(state.orientation === "horizontal" ? ["ArrowLeft", "ArrowRight"] : ["ArrowUp", "ArrowDown"]), "Home", "End", "typeahead"],
+  on: { keydown: (event, { api }) => api.navigate(event) },
+}),
+```
+
+Listing keys without an `on.keydown` to handle them fails to compile too, on any slot. When another element meets a need, say which with `{ none: "why" }`, like `keys: { none: "The combobox's input handles them." }`. A role that changes with state is a function, with every role it can pick in `roles`:
+
+```ts
+root: slot({
+  role: (state) => (state.decorative ? "none" : "separator"),
+  roles: ["none", "separator"],
+}),
+```
+
+Development builds warn about anything the types can't see, like a spread slot or JavaScript. Set `globalThis.__UI_SDK_STRICT__ = true` in your test setup to turn every warning into an error.
+
 ## Working with the Element
 
 Use `bind` for work that needs an element, such as measuring it or attaching an observer. It runs in the browser once the part is bound. Return a cleanup function:
@@ -281,5 +318,24 @@ For state attributes, `openAttrs(open)` returns `data-open` or `data-closed`. `c
     bind: "Working with the Element",
     connect: "Working with the Element",
     props: "../compose-behaviors#Add a Star",
+  }}
+/>
+
+### Roles
+
+<TypeTable
+  path="../../packages/core/src/foundation/kernel/primitive-types.ts"
+  name="RoleFields"
+  events={false}
+  types={{
+    role: "Role | ((state, context) => Role | undefined)",
+    keys: "HandledKey[] | ((state) => HandledKey[]) | { none: string }",
+    focus: '"roving" | "tab-stop" | "active-descendant" | "native" | { none: string }',
+  }}
+  examples={{
+    role: "Roles, Focus and Keys",
+    roles: "Roles, Focus and Keys",
+    focus: "Roles, Focus and Keys",
+    keys: "Roles, Focus and Keys",
   }}
 />

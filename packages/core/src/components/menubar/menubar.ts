@@ -330,6 +330,8 @@ const menubarPrimitive = /* @__PURE__ */ definePrimitive({
   api: menubarApi,
   slots: (slot) => ({
     root: slot<{}, MenubarState>({
+      role: "menubar",
+      keys: { none: "Each menu's trigger, an item of the menubar, handles them." },
       state: (state) => ({
         orientation: state.orientation,
         disabled: state.disabled,
@@ -337,7 +339,6 @@ const menubarPrimitive = /* @__PURE__ */ definePrimitive({
         modal: state.modal,
       }),
       attrs: (state) => ({
-        role: "menubar",
         "aria-orientation": state.orientation,
         "data-orientation": state.orientation,
         "data-disabled": state.disabled ? "" : undefined,

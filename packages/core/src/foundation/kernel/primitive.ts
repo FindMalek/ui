@@ -1,6 +1,6 @@
 // `definePrimitive`: a component's behavior without its markup, and the
 // instances adapters make of it. Its types are in `primitive-types.ts`.
-import { checkControlled, dev, emit, isMeasuring, warn, warnMissing } from "#dev"
+import { checkControlled, checkRoles, dev, emit, isMeasuring, warn, warnMissing } from "#dev"
 import { connectController } from "./controller"
 import { withDerived } from "./derive"
 import { withSource, type ChangeSource } from "./details"
@@ -114,6 +114,7 @@ function definePrimitive<
   const slots = definition.slots((slot) => slot)
   const name = definition.name
   const label = definition.label ?? name
+  if (dev) checkRoles(slots as Record<string, object>, { component: label })
   type Slot = keyof Slots & string
 
   const make = (initialOptions: Options & { id: string }) => {

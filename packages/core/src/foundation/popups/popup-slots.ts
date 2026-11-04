@@ -228,6 +228,10 @@ function popupContent<State extends PopupState, Api extends PopupApi>(slot: Slot
       keepMounted: "boolean",
     },
     connect: registerPopupElement,
+    role: (state, { api }) => api.internal.role,
+    roles: ["dialog", "alertdialog", "menu", "tooltip"],
+    // Only Tab: a menu built on these parts brings its own arrow keys.
+    keys: ["Tab"],
     state: (state) => ({
       open: state.open,
       modal: state.modal,
@@ -242,7 +246,6 @@ function popupContent<State extends PopupState, Api extends PopupApi>(slot: Slot
         ...popupContentAttrs(state, id),
         // A tooltip never takes focus, so it needs no tabindex.
         tabindex: role === "tooltip" ? undefined : "-1",
-        role,
         ...press?.contentAttrs(state, id, role),
         ...triggerName?.contentAttrs(state, id),
       }
@@ -326,8 +329,8 @@ function popupBackdrop<State extends PopupState, Api extends PopupApi>(slot: Slo
   return slot<{}, PopupPartState>({
     state: (state) => ({ open: state.open }),
     present: (state, { api }) => state.mounted || !!api.internal.contentProps().keepMounted,
+    role: "presentation",
     attrs: (state) => ({
-      role: "presentation",
       hidden: state.mounted ? undefined : "",
       ...openAttrs(state.open),
     }),

@@ -649,12 +649,13 @@ function calendarSlots<S extends State, A extends Pick<CalendarApi, "internal">>
     "year-select": selectSlot(slot, "year"),
 
     grid: slot<CalendarGridProps, CalendarGridState>({
+      role: "grid",
+      keys: { none: "Focus stays on a day, whose keydown handles them." },
       props: { offset: "number" },
       state: (state, { props }) => gridState(state, props.offset ?? 0),
       attrs: (state, { props }) => {
         const month = gridMonth(state, props.offset)
         return {
-          role: "grid",
           "aria-label": formatDate(`${month}-01`, localeOf(state), { month: "long", year: "numeric" }),
           "aria-multiselectable": state.mode === "single" ? undefined : "true",
           "aria-readonly": state.readOnly ? "true" : undefined,
@@ -664,9 +665,10 @@ function calendarSlots<S extends State, A extends Pick<CalendarApi, "internal">>
       },
     }),
 
-    weekdays: slot({ attrs: () => ({ role: "row" }) }),
+    weekdays: slot({ role: "row" }),
 
     weekday: slot<CalendarWeekdayProps, CalendarWeekdayState>({
+      role: "columnheader",
       props: { index: "number" },
       state: (state, { props }) => {
         const weekStartsOn = weekStartOf(state)
@@ -678,14 +680,18 @@ function calendarSlots<S extends State, A extends Pick<CalendarApi, "internal">>
         }
       },
       attrs: (state, { props }) => ({
-        role: "columnheader",
         "aria-label": weekdayNames(localeOf(state), "long", weekStartOf(state))[props.index],
       }),
     }),
 
-    week: slot({ attrs: () => ({ role: "row" }) }),
+    week: slot({ role: "row" }),
 
     day: slot<CalendarDayProps, CalendarDayState>({
+      role: "gridcell",
+      focus: (state, { props }) =>
+        dayState(state, props).outside
+          ? { none: "Days of the months around show here, but focus moves through each grid's own." }
+          : "roving",
       props: { value: "string", offset: { kind: "number", from: "grid" } },
       // A key press moves the stop between two days; only they render again.
       selects: selects<State, A, CalendarDayProps>({ focused: ({ key }) => [key, null] }),
@@ -695,7 +701,6 @@ function calendarSlots<S extends State, A extends Pick<CalendarApi, "internal">>
         const day = dayState(state, props)
         const range = shownRange(state)
         return {
-          role: "gridcell",
           tabindex: isDisabled(state) || day.outside ? undefined : api.internal.roving.tabIndex(state, part),
           "aria-label": formatDate(props.value, localeOf(state)),
           "aria-selected": day.outside ? undefined : String(day.selected),

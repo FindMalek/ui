@@ -80,6 +80,7 @@ const commandSlots = (slot: SlotFactory<CommandStore, CommandApi>) => ({
   // The search field. It keeps focus while arrow keys move the highlight.
   input: slot<{}, CommandInputState>({
     ...field,
+    keys: [...field.keys, "Enter", "Escape", "Backspace"],
     state: (state) => ({ page: currentPage(state) }),
     attrs: (state, context) => ({
       ...field.attrs(state, context),
@@ -98,13 +99,14 @@ const commandSlots = (slot: SlotFactory<CommandStore, CommandApi>) => ({
   }),
 
   list: slot<{}, CommandListState>({
+    role: "listbox",
+    keys: { none: "The search field handles them, and keeps focus while they move the highlight." },
     state: (state, { api }) => ({
       status: state.status,
       items: (api.internal.listbox.visibleData()?.list as CommandData | undefined) ?? noCommands,
     }),
     attrs: (state, { id }) => ({
       id: `${id}-list`,
-      role: "listbox",
       "aria-labelledby": `${id}-input`,
       "aria-busy": state.status === "loading" ? "true" : undefined,
     }),
@@ -191,7 +193,7 @@ const commandSlots = (slot: SlotFactory<CommandStore, CommandApi>) => ({
   page: slot<CommandPageProps>({
     props: { value: "string" },
     present: (state, { props }) => (props.value ?? null) === currentPage(state),
-    attrs: () => ({ role: "none" }),
+    role: "none",
   }),
 
   // The keys of a command's shortcut, for people to see. Screen readers hear aria-keyshortcuts instead.

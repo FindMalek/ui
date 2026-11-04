@@ -3,11 +3,12 @@
 // don't pay for it.
 export { announce, prepareAnnouncements, setAnnouncer } from "./announce"
 export {
-  buttonAttrs,
   buttonElement,
+  buttonElementAttrs,
   type ButtonElement,
   buttonKeydown,
   buttonKeyup,
+  buttonRole,
   opensElsewhere,
 } from "./button"
 export { isBrowser, isIOS, isRTL } from "./env"

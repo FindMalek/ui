@@ -15,6 +15,9 @@
 // - drag-session: no `bindDrag(` in packages/*/src outside the files in
 //   `dragSessionAllowlist`. A component drags through `createDragSession`,
 //   which takes one press at a time and ends a drag cut short as canceled.
+// - slot-roles: no `role:` in a slot's `attrs` in packages/core/src. A slot
+//   declares its role, `role: "option"`, so its types and development builds
+//   check what the role needs.
 // - import-layers: core's folders import downward only. `foundation/kernel`
 //   imports nothing else in core. `foundation/platform` imports only the
 //   kernel. A job folder (`focus`, `lists`, `popups` and the rest) imports the
@@ -153,6 +156,7 @@ const allowances = []
 checkReturnTypes()
 checkPopupSteps()
 checkDragSession()
+checkSlotRoles()
 checkImportLayers()
 const surface = publicExports(root)
 checkPublicDocs()
@@ -323,6 +327,44 @@ function checkDragSession() {
           message: "drag through `createDragSession` instead of calling `bindDrag` yourself.",
         })
       })
+  }
+}
+
+// A helper passed as `attrs: fn` has no body here; development builds check what it returns.
+function* attrsBodies(text) {
+  for (const match of text.matchAll(/\battrs\s*:/g)) {
+    const arrow = text.indexOf("=>", match.index)
+    if (
+      arrow < 0 ||
+      !/^\s*(?:\w+|\((?:[^()]|\([^()]*\))*\))\s*$/.test(text.slice(match.index + match[0].length, arrow))
+    )
+      continue
+    const open = text.indexOf("{", arrow)
+    if (open < 0) continue
+    let depth = 0
+    let end = open
+    for (; end < text.length; end++) {
+      if (text[end] === "{") depth++
+      else if (text[end] === "}" && --depth === 0) break
+    }
+    yield { start: open, body: text.slice(open, end) }
+  }
+}
+
+function checkSlotRoles() {
+  for (const file of packageSources()) {
+    const relative = path.relative(root, file)
+    if (!relative.startsWith("packages/core/src/")) continue
+    const text = readFileSync(file, "utf8")
+    for (const { start, body } of attrsBodies(text))
+      for (const role of body.matchAll(/\brole:\s/g))
+        violations.push({
+          file: relative,
+          line: text.slice(0, start + role.index).split("\n").length,
+          rule: "slot-roles",
+          message:
+            'declare the role on the slot, `role: "…"`, instead of in `attrs`, so core checks what it needs.',
+        })
   }
 }
 

@@ -17,6 +17,7 @@ import {
   noItems,
   optionGroupPart,
   optionSeparatorPart,
+  listStepKeys,
   positionAttrs,
   rootPart,
   statusPart,
@@ -151,6 +152,9 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
   }),
 
   trigger: slot<TriggerProps, SelectTriggerState>({
+    role: "combobox",
+    focus: "native",
+    keys: ["ArrowDown", "ArrowUp", "Home", "End", "Enter", " ", "typeahead"],
     props: {
       disabled: "boolean",
       // Internal: passed by renderers. Select has no `field` slot, so no element attribute either.
@@ -162,7 +166,6 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
       return {
         id: `${id}-trigger`,
         type: "button",
-        role: "combobox",
         "aria-haspopup": "listbox",
         "aria-expanded": String(state.open),
         "aria-controls": state.mounted ? `${id}-${state.listed ? "list" : "content"}` : undefined,
@@ -261,9 +264,15 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
     connect: registerPopupElement,
     state: contentState,
     present: (state, { props }) => state.mounted || !!props.keepMounted || state.prepared,
+    role: (state) => (state.listed ? undefined : "listbox"),
+    roles: ["listbox"],
+    // The search field keeps Home, End, Space and typed text for its own editing.
+    keys: (state) =>
+      searching(state)
+        ? [...listStepKeys, "Enter", "Tab"]
+        : [...listStepKeys, "Home", "End", "Enter", " ", "Tab", "typeahead"],
     attrs: (state, { id }) => ({
       ...popupContentAttrs(state, id),
-      role: state.listed ? undefined : "listbox",
       "aria-multiselectable": !state.listed && state.multiple ? "true" : undefined,
       "aria-labelledby": state.listed ? undefined : state.labeled ? `${id}-label` : `${id}-trigger`,
       "aria-busy": !state.listed && state.status === "loading" ? "true" : undefined,
@@ -291,10 +300,11 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
   viewport: slot({ present: (state) => state.presentation === "sheet" }),
 
   list: slot<{}, SelectContentState>({
+    role: "listbox",
+    keys: { none: "The content around it handles them." },
     state: contentState,
     attrs: (state, { id }) => ({
       id: `${id}-list`,
-      role: "listbox",
       "aria-multiselectable": state.multiple ? "true" : undefined,
       "aria-labelledby": state.labeled ? `${id}-label` : `${id}-trigger`,
       "aria-busy": state.status === "loading" ? "true" : undefined,
@@ -306,11 +316,13 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
   // stays in it, as the APG's select-only combobox with a search box asks. The
   // trigger stays the select's button, holding one value.
   input: slot<{}, SelectInputState>({
+    role: "combobox",
+    focus: "native",
+    keys: { none: "The content around it handles them as they bubble from the field." },
     state: (state) => ({ open: state.open, disabled: isDisabled(state) }),
     attrs: (state, { id }) => ({
       id: `${id}-input`,
       type: "text",
-      role: "combobox",
       value: state.query,
       autocomplete: "off",
       autocapitalize: "none",
@@ -345,6 +357,8 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
   }),
 
   item: slot<ItemProps, SelectItemState>({
+    role: "option",
+    focus: (state) => (searching(state) ? "active-descendant" : "roving"),
     props: {
       label: "string",
       disabled: "boolean",
@@ -359,7 +373,6 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
       const { selected, disabled } = itemState(state, key, props, api)
       return {
         id: `${id}-option-${idPart(key)}`,
-        role: "option",
         tabindex: "-1",
         "aria-selected": String(selected),
         "aria-disabled": disabled ? "true" : undefined,
@@ -427,9 +440,7 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
 // feature with `use` before it reads a slot.
 
 /** An option that selects every item that matches, in its group or in the whole list, with `multiple`. */
-const selectSelectAll = /* @__PURE__ */ selectAllFeature<SelectState, SelectApi>({
-  focusable: (state) => !searching(state),
-})
+const selectSelectAll = /* @__PURE__ */ selectAllFeature<SelectState, SelectApi>({ focus: "roving" })
 
 /**
  * An icon inside an item, and the selected item's icon for the trigger. In a

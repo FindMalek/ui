@@ -38,6 +38,7 @@ import {
   noItems,
   optionGroupPart,
   optionSeparatorPart,
+  listStepKeys,
   positionAttrs,
   rootPart,
   statusPart,
@@ -173,11 +174,19 @@ const comboboxSlots = (slot: SlotFactory<ComboboxState, ComboboxApi>) => ({
   }),
 
   input: slot<{}, ComboboxInputState>({
+    role: "combobox",
+    focus: "native",
+    // Escape closes the list through its layer, not here.
+    keys: (state) => [
+      ...listStepKeys,
+      "Enter",
+      "Tab",
+      ...(state.multiple ? ["Backspace", "ArrowLeft", "ArrowRight"] : []),
+    ],
     state: inputState,
     attrs: (state, { id }) => ({
       id: `${id}-input`,
       type: "text",
-      role: "combobox",
       value: state.query,
       autocomplete: "off",
       autocapitalize: "none",
@@ -292,6 +301,8 @@ const comboboxSlots = (slot: SlotFactory<ComboboxState, ComboboxApi>) => ({
   }),
 
   item: slot<ItemProps, ComboboxItemState>({
+    role: "option",
+    focus: "active-descendant",
     props: {
       label: "string",
       keywords: "list",
@@ -308,7 +319,6 @@ const comboboxSlots = (slot: SlotFactory<ComboboxState, ComboboxApi>) => ({
       const shown = api.internal.listbox.matches(key, props)
       return {
         id: `${id}-option-${idPart(key)}`,
-        role: "option",
         // Real focus reaches items only after a screen reader's tap moved it into the list.
         tabindex: state.focusInList ? "-1" : undefined,
         "aria-selected": String(selected),
@@ -386,7 +396,7 @@ const comboboxSlot: SlotFactory<ComboboxState, ComboboxApi> = (definition) => de
 
 /** An option that selects every item that matches, in its group or in the whole list, with `multiple`. */
 const comboboxSelectAll = /* @__PURE__ */ selectAllFeature<ComboboxState, ComboboxApi>({
-  focusable: (state) => state.focusInList,
+  focus: "active-descendant",
 })
 
 /** An icon inside an item, and the selected item's icon next to the input. */
@@ -408,6 +418,8 @@ const comboboxCreate = /* @__PURE__ */ (() => ({
       // `onCreate`'s Promise makes the option pending. `text` is internal: passed by renderers.
       props: { onCreate: "action", minLength: "number", text: "boolean" },
       present: (state, { api }) => api.internal.createShown(state),
+      role: "option",
+      focus: "active-descendant",
       state: (state) => ({
         query: state.query.trim(),
         highlighted: state.highlighted === CREATE,
@@ -416,7 +428,6 @@ const comboboxCreate = /* @__PURE__ */ (() => ({
       }),
       attrs: (state, { id }) => ({
         id: `${id}-create`,
-        role: "option",
         "aria-selected": "false",
         "aria-busy": state.pending ? "true" : undefined,
         "data-pending": state.pending ? "" : undefined,
@@ -461,9 +472,10 @@ const comboboxChips = /* @__PURE__ */ (() => ({
   slots: {
     // The selected values as chips, around the input. Pressing the empty space focuses the input.
     chips: comboboxSlot({
+      role: "toolbar",
+      keys: { none: "Each chip handles the arrows that move between chips." },
       // Named by the combobox's label, like the input the chips sit around.
       attrs: (state, { id }) => ({
-        role: "toolbar",
         "aria-orientation": "horizontal",
         "aria-labelledby": state.labeled ? `${id}-label` : undefined,
         ...formAttrs(state),
@@ -478,6 +490,9 @@ const comboboxChips = /* @__PURE__ */ (() => ({
     }),
 
     chip: comboboxSlot<ChipProps, ComboboxChipState>({
+      // A group named by its value's label alone, around its remove button.
+      // Delete or Backspace removes it.
+      role: "group",
       props: { value: "string" },
       state: (state, { props, api }) => ({
         value: props.value,
@@ -487,9 +502,6 @@ const comboboxChips = /* @__PURE__ */ (() => ({
       attrs: (state, { props, api }) => ({
         // Collapsed into the overflow part, past the chips that fit.
         hidden: collapsed(state, api, props.value) ? "" : undefined,
-        // A group named by its value's label alone, around its remove button.
-        // Delete or Backspace removes it.
-        role: "group",
         "aria-label": api.internal.selection.labelOf(props.value) || undefined,
         tabindex: "-1",
         "aria-disabled": isDisabled(state) ? "true" : undefined,

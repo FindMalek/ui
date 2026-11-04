@@ -340,16 +340,16 @@ const toggleGroupPrimitive = /* @__PURE__ */ definePrimitive({
   api: toggleGroupApi,
   slots: (slot) => ({
     group: slot<{}, ToggleGroupState>({
+      // A group, not a toolbar: a toolbar may hold one, and `aria-orientation`
+      // isn't allowed on a group.
+      role: "group",
       state: (state) => ({
         value: state.value,
         multiple: state.multiple,
         disabled: isGroupDisabled(state),
         orientation: state.orientation,
       }),
-      // A group, not a toolbar: a toolbar may hold one, and `aria-orientation`
-      // isn't allowed on a group.
       attrs: (state) => ({
-        role: "group",
         "data-orientation": state.orientation,
         "data-disabled": isGroupDisabled(state) ? "" : undefined,
       }),

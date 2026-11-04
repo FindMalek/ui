@@ -18,7 +18,7 @@ import {
 } from "../forms/form"
 import { type ListData, type ListEmptyState, type ListStatusState, type Listbox } from "./listbox"
 import { idPart, openAttrs } from "../kernel/attrs"
-import type { BaseSlotProps, SlotDefinition } from "../kernel/primitive-types"
+import type { BaseSlotProps, RoleFields, SlotDefinition } from "../kernel/primitive-types"
 import type { Store } from "../kernel/store"
 import { type ValueSelection } from "./listbox-value"
 
@@ -70,6 +70,9 @@ type IndicatorProps = { item?: string; keepMounted?: boolean }
 
 // The data list a part shows while there are no items, one array so its identity never changes.
 const noItems: ListData<unknown> = []
+
+// The keys `listStep` moves by. Control+N and Control+P step only on Apple platforms.
+const listStepKeys = ["ArrowDown", "ArrowUp", "PageDown", "PageUp", "ctrl+n", "ctrl+p"] as const
 
 // Disabled or read-only: nothing can be cleared or removed.
 const isLocked = (state: { disabled: boolean; formDisabled: boolean; readOnly: boolean }) =>
@@ -188,12 +191,12 @@ function optionGroupPart<State extends GroupLabelsState, Api extends { internal:
   return {
     // Its id is made for it, and names the group its items and label are in.
     props: { id: "id" },
+    role: "group",
     attrs: (state, { id, key, api }) => ({
-      role: "group",
       "aria-labelledby": groupLabelledBy(state, id, key),
       hidden: api.internal.listbox.groupMatches(key) ? undefined : "",
     }),
-  } satisfies SlotDefinition<State, Api, BaseSlotProps, {}>
+  } satisfies SlotDefinition<State, Api, BaseSlotProps, {}> & RoleFields<State, Api, BaseSlotProps>
 }
 
 // A group is named by its label only while one is in the page, so an
@@ -207,12 +210,12 @@ type GroupLabelsState = { groupLabels: readonly string[] }
 // assistive technology. Composed separators hide while the list is filtered.
 function optionSeparatorPart<State extends OptionListState, Api extends OptionListApi>() {
   return {
+    role: "none",
     attrs: (state, { api }) => ({
-      role: "none",
       "aria-hidden": "true",
       hidden: api.internal.filterQuery() && !state.items ? "" : undefined,
     }),
-  } satisfies SlotDefinition<State, Api, BaseSlotProps, {}>
+  } satisfies SlotDefinition<State, Api, BaseSlotProps, {}> & RoleFields<State, Api, BaseSlotProps>
 }
 
 type EmptyProps = {
@@ -231,8 +234,8 @@ function emptyPart<State extends OptionListState, Api extends OptionListApi>() {
       empty: isEmpty(state, api),
       query: state.query,
     }),
+    role: "status",
     attrs: (state, { api }) => ({
-      role: "status",
       "aria-live": "polite",
       "aria-atomic": "true",
       "data-empty": isEmpty(state, api) ? "" : undefined,
@@ -241,7 +244,8 @@ function emptyPart<State extends OptionListState, Api extends OptionListApi>() {
     bind(el, { api, store, props }) {
       if (props.stash) return stashContent(el, () => isEmpty(store.get(), api), store.subscribe)
     },
-  } satisfies SlotDefinition<State, Api, EmptyProps & BaseSlotProps, ListEmptyState>
+  } satisfies SlotDefinition<State, Api, EmptyProps & BaseSlotProps, ListEmptyState> &
+    RoleFields<State, Api, EmptyProps & BaseSlotProps>
 }
 
 // A polite live region for loading and result counts. Its content is yours.
@@ -252,13 +256,14 @@ function statusPart<State extends OptionListState, Api extends OptionListApi>() 
       loading: state.status === "loading",
       count: api.internal.itemCount(),
     }),
+    role: "status",
     attrs: (state) => ({
-      role: "status",
       "aria-live": "polite",
       "aria-atomic": "true",
       "data-loading": state.status === "loading" ? "" : undefined,
     }),
-  } satisfies SlotDefinition<State, Api, BaseSlotProps, ListStatusState>
+  } satisfies SlotDefinition<State, Api, BaseSlotProps, ListStatusState> &
+    RoleFields<State, Api, BaseSlotProps>
 }
 
 // Web components only: the control's own element, which takes part in forms.
@@ -422,6 +427,7 @@ export {
   isDisabled,
   isLocked,
   itemIndicatorPart,
+  listStepKeys,
   noItems,
   optionGroupPart,
   optionSeparatorPart,

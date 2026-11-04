@@ -77,13 +77,14 @@ const tokenInputSlots = (slot: SlotFactory<TokenInputState, TokenInputApi>) => (
 
   // The editable text. The core owns what's inside it.
   editor: slot<TokenInputEditorProps, TokenInputEditorState>({
+    role: "textbox",
+    focus: "native",
     props: { placeholder: "string" },
     state: editorState,
     attrs: (state, { id, props }) => {
       const { empty, disabled, readOnly } = editorState(state)
       return {
         id: `${id}-editor`,
-        role: "textbox",
         "aria-multiline": "true",
         contenteditable: disabled ? "false" : "true",
         "aria-placeholder": props.placeholder,

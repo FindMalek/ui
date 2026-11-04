@@ -363,6 +363,8 @@ const radioGroupPrimitive = /* @__PURE__ */ definePrimitive({
   api: radioGroupApi,
   slots: (slot) => ({
     group: slot<{}, RadioGroupState>({
+      role: "radiogroup",
+      keys: { none: "Focus stays on a radio, whose keydown handles them." },
       state: (state) => ({
         value: state.value,
         disabled: isDisabled(state),
@@ -370,7 +372,6 @@ const radioGroupPrimitive = /* @__PURE__ */ definePrimitive({
         required: state.required,
       }),
       attrs: (state) => ({
-        role: "radiogroup",
         "aria-required": state.required ? "true" : undefined,
         "aria-readonly": state.readOnly ? "true" : undefined,
         "aria-disabled": isDisabled(state) ? "true" : undefined,
@@ -426,6 +427,9 @@ const radioGroupPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     root: slot<ItemProps, RadioState>({
+      role: "radio",
+      focus: "roving",
+      keys: ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Enter", " "],
       props: { value: "string", disabled: "boolean" },
       // Until there's a stop, the checked item holds it, or with nothing
       // checked, the first enabled one claims it: those hear a change to null.
@@ -435,7 +439,6 @@ const radioGroupPrimitive = /* @__PURE__ */ definePrimitive({
       attrs: (state, { key, props, api }) => {
         const { checked, disabled } = itemState(state, key, props)
         return {
-          role: "radio",
           type: "button",
           "aria-checked": String(checked),
           // Disabled items are skipped, like native radios.

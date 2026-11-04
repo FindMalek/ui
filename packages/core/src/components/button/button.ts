@@ -1,10 +1,11 @@
 import { isDisabled, watchFormDisabled } from "../../foundation/forms/form"
 import { announcePending, runAction, type ActionDetails } from "../../foundation/kernel/action"
 import {
-  buttonAttrs,
   buttonElement,
+  buttonElementAttrs,
   buttonKeydown,
   buttonKeyup,
+  buttonRole,
   type ButtonElement,
 } from "../../foundation/platform/button"
 import { definePrimitive } from "../../foundation/kernel/primitive"
@@ -154,9 +155,11 @@ const buttonPrimitive = /* @__PURE__ */ definePrimitive({
   api: (context) => buttonApi(context),
   slots: (slot) => ({
     root: slot<{}, ButtonState>({
+      ...buttonRole((state: State) => state.element),
+      focus: "tab-stop",
       state: (state) => ({ disabled: isDisabled(state), pending: state.pending, error: state.error }),
       attrs: (state) => ({
-        ...buttonAttrs(state.element, {
+        ...buttonElementAttrs(state.element, {
           type: state.type,
           disabled: isDisabled(state),
           focusable: state.focusableWhenDisabled,

@@ -54,8 +54,15 @@ const sameCell = (a: GridCell | null | undefined, b: GridCell | null | undefined
  * `api`, keep it on the api, and wire the cell slot:
  *
  * ```ts
+ * grid: slot({ role: "grid", keys: { none: "Focus stays on a cell, whose keydown handles them." } }),
  * cell: slot<{ row: number; col: number }>({
- *   attrs: (state, { props, api }) => ({ role: "gridcell", tabindex: api.grid.tabIndex(state, props) }),
+ *   role: "gridcell",
+ *   focus: "roving",
+ *   keys: [
+ *     "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight",
+ *     "Home", "End", "ctrl+Home", "ctrl+End", "PageUp", "PageDown",
+ *   ],
+ *   attrs: (state, { props, api }) => ({ tabindex: api.grid.tabIndex(state, props) }),
  *   on: {
  *     keydown: (event, { api }) => api.grid.keydown(event),
  *     pointerdown: (event, { api, props }) => api.grid.focus(props, { reason: "item-press", event }),

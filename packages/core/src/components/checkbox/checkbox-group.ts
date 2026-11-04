@@ -318,6 +318,7 @@ const checkboxGroupPrimitive = /* @__PURE__ */ definePrimitive({
   api: checkboxGroupApi,
   slots: (slot) => ({
     group: slot<{}, CheckboxGroupState>({
+      role: "group",
       state: (state) => ({
         value: state.value,
         disabled: isDisabled(state),
@@ -325,7 +326,6 @@ const checkboxGroupPrimitive = /* @__PURE__ */ definePrimitive({
         required: state.required,
       }),
       attrs: (state) => ({
-        role: "group",
         "aria-disabled": isDisabled(state) ? "true" : undefined,
         "data-disabled": isDisabled(state) ? "" : undefined,
         "data-readonly": state.readOnly ? "" : undefined,

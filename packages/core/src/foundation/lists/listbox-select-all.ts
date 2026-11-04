@@ -7,7 +7,7 @@ import { textOf } from "../text/typeahead"
 import { type Listbox } from "./listbox"
 import { optionId, SELECT_ALL } from "./listbox-keys"
 import { checkedAttrs } from "../kernel/attrs"
-import type { BaseSlotProps, SlotDefinition } from "../kernel/primitive-types"
+import type { BaseSlotProps, RoleFields, SlotDefinition } from "../kernel/primitive-types"
 import { type ValueSelection } from "./listbox-value"
 import { live } from "../kernel/live"
 
@@ -80,6 +80,10 @@ function toggledAll(api: SelectAllApi, key: string) {
   return [...selection.values(), ...added.map((item) => listbox.valueOf(item))]
 }
 
+type SelectAllOwnerState = { multiple: boolean; highlighted: string | null; focusInList: boolean }
+
+type OptionFocus = "roving" | "active-descendant"
+
 // What the select-all feature needs from a component, beyond its parts.
 type SelectAllFeatureApi = SelectAllApi & {
   internal: {
@@ -93,12 +97,13 @@ type SelectAllFeatureApi = SelectAllApi & {
  * component calls the `choose` hook for a select-all key once it has checked
  * the value can change.
  */
-function selectAllFeature<
-  State extends { multiple: boolean; highlighted: string | null },
-  Api extends SelectAllFeatureApi,
->({ focusable }: { focusable: (state: State) => boolean }) {
+function selectAllFeature<State extends SelectAllOwnerState, Api extends SelectAllFeatureApi>({
+  focus,
+}: {
+  focus: OptionFocus
+}) {
   return {
-    slots: { "select-all": selectAllPart<State, Api>({ focusable }) },
+    slots: { "select-all": selectAllPart<State, Api>({ focus }) },
     extend(api: Api) {
       api.internal.hooks.choose = (key, event) => {
         const value = toggledAll(api, key)
@@ -108,22 +113,24 @@ function selectAllFeature<
   }
 }
 
-// The option itself: an option that's checked, unchecked or mixed, never
-// filtered and never counted as a result. `focusable` says whether it takes
-// real focus, like a select's items.
-function selectAllPart<
-  State extends { multiple: boolean; highlighted: string | null },
-  Api extends SelectAllApi,
->({ focusable }: { focusable: (state: State) => boolean }) {
+// The option itself: checked, unchecked or mixed, never filtered and never
+// counted as a result. It takes focus as the component's items do: real focus,
+// or aria-activedescendant until a screen reader moves focus into the list.
+function selectAllPart<State extends SelectAllOwnerState, Api extends SelectAllApi>({
+  focus,
+}: {
+  focus: OptionFocus
+}) {
   return {
     present: (state) => state.multiple,
     state: (state, { api, key }) => selectAllState(api, key, state.highlighted),
+    role: "option",
+    focus,
     attrs: (state, { id, api, key }) => {
       const { checked, indeterminate, disabled } = selectAllState(api, key, state.highlighted)
       return {
         id: optionId(id, key),
-        role: "option",
-        tabindex: focusable(state) ? "-1" : undefined,
+        tabindex: focus === "roving" || state.focusInList ? "-1" : undefined,
         "aria-selected": String(checked),
         "aria-checked": checked ? "true" : indeterminate ? "mixed" : "false",
         "aria-disabled": disabled ? "true" : undefined,
@@ -139,7 +146,8 @@ function selectAllPart<
     press: ({ api, key }, event) => api.internal.choose(key, event),
     bind: (el, { api, key }) =>
       api.internal.listbox.register(key, el, () => ({ value: key, label: textOf(el), pinned: true })),
-  } satisfies SlotDefinition<State, Api, BaseSlotProps, ListSelectAllState>
+  } satisfies SlotDefinition<State, Api, BaseSlotProps, ListSelectAllState> &
+    RoleFields<State, Api, BaseSlotProps>
 }
 
 export { type ListSelectAllState, selectAllFeature }

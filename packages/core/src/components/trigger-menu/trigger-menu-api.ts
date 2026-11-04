@@ -475,7 +475,6 @@ function triggerMenuApi(context: PrimitiveContext<TriggerMenuOptions<any>, Trigg
   // stays a textbox, which ARIA forbids `aria-expanded` on.
   function fieldAttrs(state: TriggerMenuState, field: "input" | "multiline") {
     return {
-      role: field === "input" ? "combobox" : undefined,
       "aria-expanded": field === "input" ? String(state.open) : undefined,
       "aria-autocomplete": "list",
       "aria-haspopup": "listbox",

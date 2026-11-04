@@ -63,6 +63,10 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
   trigger: slot<TriggerProps, MenuTriggerState>({
     props: { id: "id", disabled: "boolean", payload: "value", shortcut: "string" },
     selects: selects({ values: [] }),
+    // A submenu's trigger is an item of its parent menu, and a menubar's an item of the menubar.
+    role: (state, { api }) => (api.root() !== api || api.menubar() ? "menuitem" : undefined),
+    roles: ["menuitem"],
+    focus: "roving",
     state: (state, { api, key, props }) => ({
       open: state.open && (api.root() !== api || state.trigger === null || state.trigger === key),
       disabled: triggerDisabled(state, props),
@@ -71,7 +75,6 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
       if (api.root() !== api)
         return {
           ...popupTriggerAttrs({ ...state, trigger: null }, id, "menu"),
-          role: "menuitem",
           tabindex: "-1",
           "aria-disabled": props.disabled ? "true" : undefined,
           "data-disabled": props.disabled ? "" : undefined,
@@ -83,7 +86,6 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
         const stop = state.barStop ?? api.menubar()!.internal.isStop(id, !disabled)
         return {
           ...popupTriggerAttrs(state, id, "menu", key),
-          role: "menuitem",
           type: "button",
           tabindex: stop ? "0" : "-1",
           "aria-disabled": disabled ? "true" : undefined,
@@ -267,6 +269,22 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
     },
     selects: selects({ values: [] }),
     connect: registerPopupElement,
+    role: "menu",
+    keys: [
+      "ArrowDown",
+      "ArrowUp",
+      "ArrowRight",
+      "ArrowLeft",
+      "Home",
+      "End",
+      "PageUp",
+      "PageDown",
+      "Enter",
+      " ",
+      "Escape",
+      "Tab",
+      "typeahead",
+    ],
     state: (state, { api }) => ({
       open: state.open,
       nested: api.root() !== api,
@@ -277,7 +295,6 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
     present: (state, { props }) => state.mounted || !!props.keepMounted,
     attrs: (state, { id, api }) => ({
       ...popupContentAttrs(state, id),
-      role: "menu",
       "aria-labelledby": namedByTrigger(state, api.root() !== api) ? `${id}-trigger` : undefined,
       "data-presentation": state.presentation,
       "data-nested": api.root() === api ? undefined : "",
@@ -356,6 +373,8 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
       onSelect: "action",
     },
     selects: selects({ highlighted: ({ key }) => [key], pending: ({ key }) => [key], values: [] }),
+    role: "menuitem",
+    focus: "roving",
     state: (state, { key, props }) => ({
       highlighted: state.highlighted === key,
       disabled: !!props.disabled,
@@ -364,7 +383,6 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
     }),
     attrs: (state, { id, key, props }) => ({
       id: `${id}-item-${key}`,
-      role: "menuitem",
       tabindex: "-1",
       "aria-disabled": props.disabled ? "true" : undefined,
       "aria-busy": state.pending.includes(key) ? "true" : undefined,
@@ -398,10 +416,8 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
   group: slot({
     props: { id: "id" },
     selects: selects({ values: [] }),
-    attrs: (state, { id, key }) => ({
-      role: "group",
-      "aria-labelledby": menuGroupLabelledBy(state, id, key),
-    }),
+    role: "group",
+    attrs: (state, { id, key }) => ({ "aria-labelledby": menuGroupLabelledBy(state, id, key) }),
   }),
 
   // `group` is the id of the group or the name of the radio group it labels.
@@ -415,7 +431,8 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
 
   separator: slot({
     selects: selects({ values: [] }),
-    attrs: () => ({ role: "separator", "aria-orientation": "horizontal" }),
+    role: "separator",
+    attrs: () => ({ "aria-orientation": "horizontal" }),
   }),
 
   shortcut: slot({
@@ -509,6 +526,8 @@ const menuCheckable = /* @__PURE__ */ (() => ({
         closeOnSelect: "boolean",
       },
       selects: selects({ highlighted: ({ key }) => [key], values: ({ props }) => [props.value] }),
+      role: "menuitemcheckbox",
+      focus: "roving",
       state: (state, { key, props, api }) => ({
         highlighted: state.highlighted === key,
         disabled: !!props.disabled,
@@ -518,7 +537,6 @@ const menuCheckable = /* @__PURE__ */ (() => ({
         const checked = api.checkboxValue(props)
         return {
           id: `${id}-item-${key}`,
-          role: "menuitemcheckbox",
           tabindex: "-1",
           "aria-checked": String(checked),
           "aria-disabled": props.disabled ? "true" : undefined,
@@ -545,11 +563,9 @@ const menuCheckable = /* @__PURE__ */ (() => ({
     "radio-group": menuSlot<RadioGroupProps, MenuRadioGroupState>({
       props: { name: "id", value: "string", defaultValue: "string", onValueChange: "callback" },
       selects: selects({ values: ({ props }) => [`radio:${props.name}`] }),
+      role: "group",
       state: (state, { props, api }) => ({ value: api.radioValue(props.name) }),
-      attrs: (state, { id, props }) => ({
-        role: "group",
-        "aria-labelledby": menuGroupLabelledBy(state, id, props.name),
-      }),
+      attrs: (state, { id, props }) => ({ "aria-labelledby": menuGroupLabelledBy(state, id, props.name) }),
     }),
 
     "radio-item": menuSlot<RadioProps, MenuRadioItemState>({
@@ -566,6 +582,8 @@ const menuCheckable = /* @__PURE__ */ (() => ({
         highlighted: ({ key, props }) => [`${props.group}:${key}`],
         values: ({ props }) => [`radio:${props.group}`],
       }),
+      role: "menuitemradio",
+      focus: "roving",
       state: (state, { key, props, api }) => ({
         highlighted: state.highlighted === `${props.group}:${key}`,
         disabled: !!props.disabled,
@@ -575,7 +593,6 @@ const menuCheckable = /* @__PURE__ */ (() => ({
         const checked = api.radioValue(props.group!) === props.value
         return {
           id: `${id}-item-${props.group}-${key}`,
-          role: "menuitemradio",
           tabindex: "-1",
           "aria-checked": String(checked),
           "aria-disabled": props.disabled ? "true" : undefined,

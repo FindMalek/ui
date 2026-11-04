@@ -566,6 +566,7 @@ const accordionPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     panel: slot<PanelProps, AccordionPanelState>({
+      role: "region",
       props: { value: { kind: "string", from: "item" }, keepMounted: "boolean", hiddenUntilFound: "boolean" },
       selects: selects({ value: ({ key }) => [key], exiting: ({ key }) => [key], panels: [] }),
       present: (state, { key, props }) =>
@@ -578,7 +579,6 @@ const accordionPrimitive = /* @__PURE__ */ definePrimitive({
         const open = state.value.includes(key)
         return {
           id: `${id}-panel-${idPart(key)}`,
-          role: "region",
           "aria-labelledby": `${id}-trigger-${idPart(key)}`,
           ...hiddenAttrs(open || state.exiting.includes(key), findable(state, props)),
           ...openAttrs(open),
