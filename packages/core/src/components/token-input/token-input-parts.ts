@@ -56,13 +56,16 @@ function editorStyles(doc: Document) {
 
 const tokenInputSlots = (slot: SlotFactory<TokenInputState, TokenInputApi>) => ({
   // Web components only: the element takes part in forms with the codec text.
+  // A field can disable it without the `disabled` attribute the browser leaves
+  // a control out of the form by, so disabled it submits and validates nothing.
   root: slot({
     bind: (el, { api, store }) =>
       bindInternals(el, {
-        value: () => (store.get().name ? api.internal.text() : null),
+        value: () => (store.get().name && !isDisabled(store.get()) ? api.internal.text() : null),
         state: api.internal.text,
         restore: api.internal.restore,
-        valueMissing: () => store.get().required && valueLength(store.get().value) === 0,
+        valueMissing: () =>
+          store.get().required && !isDisabled(store.get()) && valueLength(store.get().value) === 0,
         message: () => valueMissingMessage("text"),
         anchor: () => api.editor.element,
         focus: () => api.focus(),
@@ -111,7 +114,17 @@ const tokenInputSlots = (slot: SlotFactory<TokenInputState, TokenInputApi>) => (
         for (const token of tokensOf(state.value))
           view.hostElement(token.id!)?.toggleAttribute("data-selected", isSelected(state, token.id!))
       }
-      const unsubscribe = store.subscribe(writeSelected)
+      // A framework can turn custom content on after the hosts exist, or off.
+      let custom = store.get().custom
+      const writeLabels = () => {
+        if (store.get().custom === custom) return
+        custom = store.get().custom
+        view.showLabels()
+      }
+      const unsubscribe = store.subscribe(() => {
+        writeSelected()
+        writeLabels()
+      })
       return () => {
         unsubscribe()
         unbind()

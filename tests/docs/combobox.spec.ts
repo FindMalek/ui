@@ -4,81 +4,74 @@ import path from "node:path"
 
 const frameworks = ["react", "vue", "svelte", "web-components", "solid"]
 // Every framework folder must have the same examples.
-const root = path.join(import.meta.dirname, "../../examples/combobox")
+const root = path.join(import.meta.dirname, "../../examples/components/combobox")
 const folders = ["react", "vue", "svelte", "web", "solid"]
 const examplesIn = (folder: string) =>
   readdirSync(path.join(root, folder), { withFileTypes: true })
     .filter((file) => file.isFile())
     .map((file) => file.name.replace(/\.\w+$/, ""))
 
-// The examples in the order they appear on the Combobox page.
+// Every example on disk: the page's, plus rtl.
 const fixtureNames = [
   "demo",
-  "multiple",
+  "disabled",
+  "clear",
+  "auto-highlight",
   "highlight",
+  "filter",
+  "groups",
+  "icons",
+  "custom-items",
   "recent",
+  "multiple",
   "select-all",
   "chips-overflow",
-  "infinite",
-  "clear",
-  "groups",
-  "custom-items",
-  "icons",
-  "invalid",
-  "disabled",
-  "auto-highlight",
-  "popup",
-  "rtl",
-  "async",
-  "create",
-  "keywords",
-  "filter",
   "max-selected",
-  "keep-query",
+  "create",
   "custom-value",
-  "data",
-  "object-values",
-  "custom-rendering",
+  "popup",
+  "async",
+  "infinite",
   "virtualized",
-  "form",
   "controlled",
   "controller",
   "positioning",
-  "modal",
-  "loop",
-  "container",
-  "presentation",
   "animation",
+  "presentation",
+  "form",
+  "custom-rendering",
+  "rtl",
 ]
 
+// The examples in the order they appear on the Combobox page.
 const order = [
   "demo",
-  "clear",
   "disabled",
+  "clear",
   "auto-highlight",
   "highlight",
-  "keywords",
   "filter",
   "groups",
-  "recent",
-  "data",
-  "custom-items",
   "icons",
-  "object-values",
+  "custom-items",
+  "recent",
   "multiple",
   "select-all",
   "chips-overflow",
   "max-selected",
-  "keep-query",
-  "async",
-  "infinite",
   "create",
   "custom-value",
   "popup",
+  "async",
+  "infinite",
   "virtualized",
-  "invalid",
-  "form",
+  "controlled",
+  "controller",
+  "positioning",
+  "animation",
   "presentation",
+  "form",
+  "custom-rendering",
 ]
 
 for (const framework of frameworks) {

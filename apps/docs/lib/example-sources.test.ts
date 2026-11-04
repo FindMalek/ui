@@ -16,7 +16,7 @@ vi.mock("./repo-root", async () => {
 const source = 'export const Example = () => <button className="rounded-lg">Save</button>'
 
 function writeFiles(files: Record<string, string>, framework = "react") {
-  const directory = path.join(repoRoot, "examples/button", framework)
+  const directory = path.join(repoRoot, "examples/components/button", framework)
   for (const [name, code] of Object.entries(files)) {
     const file = path.join(directory, name)
     mkdirSync(path.dirname(file), { recursive: true })
@@ -50,6 +50,7 @@ test("an example returns its named source", async () => {
   writeFiles({ "basic.tsx": `${source}\n` })
   expect(await readExampleSources("button/basic", "react")).toEqual({
     files: [{ name: "basic.tsx", lang: "tsx", code: source }],
+    log: false,
   })
 })
 
@@ -57,6 +58,7 @@ test("web components read TypeScript from the web example folder", async () => {
   writeFiles({ "basic.ts": 'import "@ui-sdk/web/button"' }, "web")
   expect(await readExampleSources("button/basic", "web-components")).toEqual({
     files: [{ name: "basic.ts", lang: "ts", code: 'import "@ui-sdk/web/button"' }],
+    log: false,
   })
 })
 

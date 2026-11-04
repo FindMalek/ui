@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test"
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs"
+import { existsSync, globSync, readdirSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 import ts from "typescript"
 
@@ -8,6 +8,10 @@ import ts from "typescript"
 // come from the core's exported types, so a new prop fails this test until an
 // example uses it.
 const repo = path.join(import.meta.dirname, "../..")
+const exampleFolder = (name: string) =>
+  [path.join(repo, "examples/components", name), path.join(repo, "examples", name)].find((dir) =>
+    existsSync(dir),
+  )!
 
 type Component = {
   // The core module, in packages/core/src/foundation or components.
@@ -428,6 +432,10 @@ const components: Record<string, Component> = {
       onDismissAttempt: "TriggerMenuOptions",
       // Only changes the words of the polite pending announcement. Button's pending examples show it.
       pendingAnnouncement: "TriggerMenuOptions",
+      // Loaders report their own status, as Loading Items shows; this is for items an app loads itself.
+      status: "TriggerMenuOptions",
+      // Logs every change to the console, which no example should do.
+      debug: "TriggerMenuOptions",
     },
   },
   "token-input": {
@@ -460,6 +468,10 @@ const components: Record<string, Component> = {
       "TabsTabIconProps",
       "TabsTabIconState",
     ],
+    allowed: {
+      // Shown as data-activation-direction, which the animation example's panels slide by.
+      direction: "TabsState",
+    },
   },
   accordion: {
     source: "accordion/accordion.ts",
@@ -596,6 +608,8 @@ const components: Record<string, Component> = {
     examples: "slider",
     types: ["SliderOptions", "SliderThumbProps", "SliderState", "SliderThumbState", "SliderValueState"],
     allowed: {
+      // The thumb sets it as `--slider-thumb-position`, which the render example's bubble reads.
+      percent: "SliderThumbState",
       // Like a read-only or required Number Input, which its form example shows.
       readOnly: "SliderOptions",
       required: "SliderOptions",
@@ -844,7 +858,8 @@ function publicNames(component: Component) {
   return names
 }
 
-// A framework's examples, and the local modules they import, without comments.
+// A framework's examples, the local modules they import and the code snippets on
+// its component pages, without comments.
 function exampleSource(folders: string | string[], framework: "react" | "solid") {
   const seen = new Set<string>()
   const read = (file: string) => {
@@ -859,13 +874,19 @@ function exampleSource(folders: string | string[], framework: "react" | "solid")
       if (resolved) read(resolved)
     }
   }
+  const snippets: string[] = []
   for (const folder of [folders].flat()) {
-    const examples = path.join(repo, "examples", folder, framework)
+    const examples = path.join(exampleFolder(folder), framework)
     for (const file of readdirSync(examples)) read(path.join(examples, file))
+    const page = path.join(repo, "apps/docs/content/docs", framework, "components", `${folder}.mdx`)
+    if (existsSync(page))
+      for (const [, block] of readFileSync(page, "utf8").matchAll(
+        /```(?:tsx|jsx|ts|js)\b[^\n]*\n([\s\S]*?)```/g,
+      ))
+        snippets.push(block)
   }
   return (
-    [...seen]
-      .map((file) => readFileSync(file, "utf8"))
+    [...[...seen].map((file) => readFileSync(file, "utf8")), ...snippets]
       .join("\n")
       // A block comment never follows a word character, unlike `"image/*"`.
       .replace(/(^|\W)\{?\/\*[\s\S]*?\*\/\}?/g, "$1")
@@ -881,10 +902,21 @@ function uses(code: string, name: string) {
   ).test(code)
 }
 
+// The examples show a part's state through its data attribute, which the docs
+// stylesheet selects, so a state field the stylesheet styles counts as shown.
+// A boolean's attribute drops its prefix: `isActive` is `data-active`.
+const stylesheet = globSync("examples/{styles,components/*}/*.css", { cwd: repo })
+  .map((file) => readFileSync(path.join(repo, file), "utf8"))
+  .join("\n")
+const styled = (name: string) =>
+  stylesheet.includes(
+    `[data-${name.replace(/^(is|has)(?=[A-Z])/, "").replace(/[A-Z]/g, (c, i) => `${i ? "-" : ""}${c.toLowerCase()}`)}`,
+  )
+
 // The Solid examples are ports of React's, so they show the same props. They're
 // checked once every folder a component counts has them.
 const hasSolidExamples = (component: Component) =>
-  [component.examples].flat().every((folder) => existsSync(path.join(repo, "examples", folder, "solid")))
+  [component.examples].flat().every((folder) => existsSync(path.join(exampleFolder(folder), "solid")))
 
 for (const [name, component] of Object.entries(components)) {
   const frameworks = hasSolidExamples(component) ? (["react", "solid"] as const) : (["react"] as const)
@@ -897,10 +929,12 @@ for (const [name, component] of Object.entries(components)) {
       // Types that resolve to nothing would pass everything. Separator has two names.
       expect(names.size).toBeGreaterThan(1)
       // Solid spells native attributes as HTML does: `readonly` for `readOnly`.
-      const used = (prop: string) =>
-        uses(code, prop) || (framework === "solid" && uses(code, prop.toLowerCase()))
+      const used = (prop: string, typeName: string) =>
+        uses(code, prop) ||
+        (framework === "solid" && uses(code, prop.toLowerCase())) ||
+        (typeName.endsWith("State") && styled(prop))
       const missing = [...names]
-        .filter(([prop]) => !allowed[prop] && !used(prop))
+        .filter(([prop, typeName]) => !allowed[prop] && !used(prop, typeName))
         .map(([prop, typeName]) => `${typeName}.${prop}`)
       expect(missing, "props with no example").toEqual([])
       // Keep the allow list honest: a name it lists must still exist.

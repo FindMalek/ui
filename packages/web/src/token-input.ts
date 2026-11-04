@@ -17,9 +17,6 @@ type TokenInputElement = HTMLElement & {
   renderToken?: (token: Token, host: HTMLElement) => void
 }
 
-// The token each host was last rendered with.
-const renderedHosts = new WeakMap<HTMLElement, Token>()
-
 // <ui-token-input> takes part in forms like a native control, submitting the
 // codec text under its `name`. Markup:
 //
@@ -49,6 +46,9 @@ function defineTokenInputElements() {
       // The submit shortcut submits the form the element is in, so a form's own
       // submit event hears it. A bubbling "submit" event would reach the form too.
       silent: ["onSubmit"],
+      // A disabled <ui-field> around it disables it, as a disabled Field does
+      // in the other frameworks.
+      options: (el) => ({ ...(el.closest("ui-field")?.hasAttribute("disabled") && { disabled: true }) }),
       display: "block",
       state: {
         value: {
@@ -78,7 +78,15 @@ function defineTokenInputElements() {
         // A trigger menu inside finds this editor, whichever upgraded first, and
         // a new one when the token input is put back on the page.
         reconfigureInside(el)
-        return subscribe(() => renderTokens(target, api))
+        // Kept per render, so a new renderToken renders every host again.
+        const rendered = new WeakMap<HTMLElement, Token>()
+        const showTokens = () => renderTokens(target, api, rendered)
+        showTokens()
+        const unsubscribe = subscribe(showTokens)
+        return () => {
+          unsubscribe()
+          for (const { host } of api.internal.hosts()) if (rendered.has(host)) host.replaceChildren()
+        }
       },
     },
     editor: { tag: "ui-token-input-editor", display: "block" },
@@ -88,11 +96,11 @@ function defineTokenInputElements() {
 }
 
 // Renders each token's content into its host, from `renderToken` or the template.
-function renderTokens(el: TokenInputElement, api: TokenInputApi) {
+function renderTokens(el: TokenInputElement, api: TokenInputApi, rendered: WeakMap<HTMLElement, Token>) {
   const template = el.querySelector<HTMLTemplateElement>(":scope > template")
   for (const { token, host } of api.internal.hosts()) {
-    if (renderedHosts.get(host) === token) continue
-    renderedHosts.set(host, token)
+    if (rendered.get(host) === token) continue
+    rendered.set(host, token)
     if (el.renderToken) {
       el.renderToken(token, host)
       continue

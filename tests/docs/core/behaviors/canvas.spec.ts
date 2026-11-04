@@ -3,7 +3,7 @@ import { openBehaviors } from "./helpers"
 
 test("every example renders without errors", async ({ page }) => {
   const { errors } = await openBehaviors(page, "canvas")
-  await expect(page.locator("[data-example]")).toHaveCount(5)
+  await expect(page.locator("[data-example]")).toHaveCount(6)
   expect(errors).toEqual([])
 })
 
@@ -22,7 +22,7 @@ test("viewport: a drag on the empty board pans, + zooms, and reset goes back", a
   await page.keyboard.press("0")
   await page.keyboard.press("+")
   await expect(world).toHaveAttribute("style", /scale\(1\.25\)/)
-  await page.getByRole("button", { name: "Reset view" }).click()
+  await board.getByRole("button", { name: "Reset view" }).click()
   await expect(world).toHaveAttribute("style", /translate\(0px, ?0px\) scale\(1\)/)
 })
 
@@ -108,7 +108,7 @@ test("viewport points: a double-click drops a dot under the pointer at any zoom,
   await frame.scrollIntoViewIfNeeded()
   const label = page.locator('[data-slot="dots-label"]')
   const box = (await frame.boundingBox())!
-  await page.mouse.dblclick(box.x + 40, box.y + 50)
+  await page.mouse.dblclick(Math.round(box.x) + 40, Math.round(box.y) + 50)
   await expect(label).toHaveAttribute("data-at", "40, 50")
   await frame.focus()
   await page.keyboard.press("+")

@@ -1,5 +1,6 @@
 import { cn } from "cn"
 import { getHighlighter } from "fumadocs-core/highlight"
+import { CheckIcon, XIcon } from "lucide-react"
 import type { ComponentProps } from "react"
 import type { BundledLanguage } from "shiki"
 import { CopyButton } from "./copy-button"
@@ -7,17 +8,32 @@ import { Frame } from "./frame"
 
 const themes = { light: "github-light-default", dark: "github-dark-default" } as const
 
-function Pre({ className, style, title, icon, ...props }: ComponentProps<"pre"> & { icon?: string }) {
+// Code blocks titled Do or Don't show a check or a cross instead of the language icon.
+const marks: Record<string, typeof CheckIcon> = { Do: CheckIcon, "Don't": XIcon }
+
+function Pre({
+  className,
+  style,
+  title,
+  icon,
+  copy = true,
+  ...props
+}: ComponentProps<"pre"> & { icon?: string; copy?: boolean }) {
   const prompt = "data-prompt" in props
+  const Mark = typeof title === "string" ? marks[title] : undefined
   return (
     <Frame data-code-frame="" className="relative my-5 overflow-hidden">
       {title && (
         <div className="flex items-center gap-2 border-b border-border/60 px-4 py-2.5 font-mono text-xs text-muted-foreground">
-          {icon && (
-            <span aria-hidden className="[&_svg]:size-3.5" dangerouslySetInnerHTML={{ __html: icon }} />
+          {Mark ? (
+            <Mark aria-hidden className="size-3.5" />
+          ) : (
+            icon && (
+              <span aria-hidden className="[&_svg]:size-3.5" dangerouslySetInnerHTML={{ __html: icon }} />
+            )
           )}
           {title}
-          <CopyButton className="-my-1.5 -me-2 ms-auto" />
+          <CopyButton className="-my-1.5 -me-2 ms-auto rounded-[8px]" />
         </div>
       )}
       {!title && prompt && (
@@ -34,10 +50,12 @@ function Pre({ className, style, title, icon, ...props }: ComponentProps<"pre"> 
         style={{ ...style, backgroundColor: undefined }}
         className={cn(
           className,
-          "max-h-[32rem] scrollbar-none overflow-auto overscroll-x-none py-3.5 font-mono text-[13px] leading-[1.7] outline-none focus-visible:ring-3 focus-visible:ring-ring/30 [&>code]:rounded-none [&>code]:bg-transparent [&>code]:text-[1em]",
+          "max-h-[calc(20lh+0.875rem)] scrollbar-none overflow-auto overscroll-x-none py-3.5 font-mono text-[13px] leading-[1.7] outline-none focus-visible:ring-3 focus-visible:ring-ring/30 [&>code]:rounded-none [&>code]:bg-transparent [&>code]:text-[1em]",
         )}
       />
-      {!title && !prompt && <CopyButton className="absolute top-2 end-2 bg-background" />}
+      {!title && !prompt && copy && (
+        <CopyButton className="absolute top-2 end-2 rounded-[8px] bg-background" />
+      )}
     </Frame>
   )
 }
@@ -77,11 +95,13 @@ async function CodeBlock({
   lang,
   title,
   className,
+  copy,
 }: {
   code: string
   lang: BundledLanguage
   title?: string
   className?: string
+  copy?: boolean
 }) {
   const key = `${lang}\n${code}`
   let result = highlighted.get(key)
@@ -95,6 +115,7 @@ async function CodeBlock({
   return (
     <Pre
       title={title}
+      copy={copy}
       className={cn(shiki, className)}
       style={style}
       tabIndex={0}

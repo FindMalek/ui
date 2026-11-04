@@ -32,25 +32,23 @@ function Example() {
     free.current = event.metaKey || event.ctrlKey
   }
   return (
-    <div className="flex w-80 flex-col gap-3 text-sm">
-      <div className="relative h-14 rounded-lg bg-muted">
+    <div data-slot="scrubber-root">
+      <div data-slot="scrubber-track">
         {sections.map((candidate) => (
           <div
             key={candidate.label}
+            data-slot="scrubber-section"
             data-active={candidate === section || undefined}
-            className="absolute inset-y-0 flex flex-col items-start border-l border-border pt-1 pl-1 text-[10px] text-muted-foreground data-active:border-foreground data-active:text-foreground"
             style={{ left: `${fractionOf(candidate.at, range) * 100}%` }}
           >
             {candidate.label}
           </div>
         ))}
         <div
+          data-slot="scrubber-playhead"
           data-playhead
-          className="absolute inset-y-0 w-0.5 -translate-x-1/2 bg-foreground"
           style={{ left: `${fractionOf(time, range) * 100}%` }}
-        >
-          <div className="absolute -top-1 left-1/2 size-2.5 -translate-x-1/2 rounded-full bg-foreground" />
-        </div>
+        />
       </div>
       <input
         type="range"
@@ -71,15 +69,12 @@ function Example() {
           event.preventDefault()
           setTime(stepBy(time, move, range, { snap: !(event.metaKey || event.ctrlKey) }))
         }}
-        className="w-full accent-foreground"
       />
-      <p className="m-0 flex justify-between font-mono text-xs">
+      <p data-slot="scrubber-readout">
         <span data-time>{clock(time)}</span>
-        <span data-section className="text-muted-foreground">
-          {section?.label ?? "Between sections"}
-        </span>
+        <span data-section>{section?.label ?? "Between sections"}</span>
       </p>
-      <p className="m-0 text-xs text-muted-foreground">Hold ⌘ or Ctrl to scrub freely.</p>
+      <p data-slot="hint">Hold ⌘ or Ctrl to scrub freely.</p>
     </div>
   )
 }

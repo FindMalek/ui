@@ -4,7 +4,7 @@ import path from "node:path"
 
 const frameworks = ["react", "vue", "svelte", "solid", "web-components"]
 // Every framework folder must have the same examples.
-const root = path.join(import.meta.dirname, "../../examples/accordion")
+const root = path.join(import.meta.dirname, "../../examples/components/accordion")
 const folders = ["react", "vue", "svelte", "solid", "web"]
 const examplesIn = (folder: string) =>
   readdirSync(path.join(root, folder), { withFileTypes: true })
@@ -16,35 +16,20 @@ const next: Record<string, RegExp> = {
   basic: /^What is your return policy\?/,
   multiple: /^Privacy and security/,
   disabled: /^How do I update my email address\?/,
-  borders: /^Is my data secure\?/,
-  card: /^How does billing work\?/,
-  rtl: /^ما هي سياسة الإرجاع؟/,
   collapsible: /^Timeline/,
-  "find-in-page": /^Is it organic\?/,
-  "keep-mounted": /^Formatting/,
-  animation: /^Where does the height come from\?/,
   controlled: /^Sessions/,
-  render: /^Import the parts/,
-  "expand-all": /^Week 3: Control flow/,
+  "keep-mounted": /^Formatting/,
+  "find-in-page": /^Is it organic\?/,
   "deep-link": /^Exchanges/,
+  animation: /^Where does the height come from\?/,
+  "expand-all": /^Week 3: Control flow/,
   nested: /^Billing/,
   search: /^Do you ship internationally\?/,
+  render: /^Import the parts/,
 }
-const fixtureNames = Object.keys(next)
-const order = [
-  "basic",
-  "multiple",
-  "disabled",
-  "collapsible",
-  "find-in-page",
-  "deep-link",
-  "keep-mounted",
-  "animation",
-  "controlled",
-  "expand-all",
-  "nested",
-  "search",
-]
+const order = Object.keys(next)
+// Right-to-left examples stay in the folders but are off the page for now.
+const fixtures = [...order, "rtl"]
 
 for (const framework of frameworks) {
   test(`every accordion example works in ${framework}`, async ({ page }) => {
@@ -54,7 +39,7 @@ for (const framework of frameworks) {
     await page.goto(`/docs/${framework}/components/accordion`)
     const previews = page.locator("[data-example]")
     await expect(previews).toHaveCount(order.length)
-    for (const folder of folders) expect(examplesIn(folder).sort(), folder).toEqual([...fixtureNames].sort())
+    for (const folder of folders) expect(examplesIn(folder).sort(), folder).toEqual([...fixtures].sort())
 
     for (const name of order) {
       const preview = page.locator(`[data-example="accordion/${name}"]`)
@@ -93,33 +78,32 @@ for (const framework of frameworks) {
       .evaluate((panel) => panel.dispatchEvent(new Event("beforematch", { bubbles: true })))
     await expect(fruit).toHaveAttribute("aria-expanded", "true")
 
-    // An item's completion callback reports after the panel finishes animating. Opening an item
-    // above closed another at the same time, so close and reopen it to see one report at a time.
+    // A closing panel animates out, then hides. Opening an item above closed another at the
+    // same time, so close and reopen it to see one change at a time.
     const height = preview("animation").getByRole("button", { name: next.animation })
+    const heightPanel = preview("animation").getByRole("region", { name: next.animation })
     await height.click()
-    await expect(
-      preview("animation").getByText("Finished closing “Where does the height come from?”"),
-    ).toBeVisible()
+    await expect(height).toHaveAttribute("aria-expanded", "false")
+    await expect(heightPanel).toBeHidden()
     await height.click()
-    await expect(
-      preview("animation").getByText("Finished opening “Where does the height come from?”"),
-    ).toBeVisible()
+    await expect(height).toHaveAttribute("aria-expanded", "true")
+    await expect(heightPanel).toBeVisible()
 
-    // Expand all and Collapse all go through the controller, so they report their reason and run
-    // every item's onOpenChange. Security asks before it closes, in every framework.
+    // Review security opens it through the controller. Security asks before it closes, in
+    // every framework.
     const settings = preview("controlled")
-    await settings.getByRole("button", { name: "Expand all" }).click()
-    await expect(
-      settings.getByText(/Open: account, security, sessions, last change: imperative/),
-    ).toBeVisible()
+    const security = settings.getByRole("button", { name: /^Security/ })
+    await expect(security).toHaveAttribute("aria-expanded", "false")
+    await settings.getByRole("button", { name: "Review security" }).click()
+    await expect(security).toHaveAttribute("aria-expanded", "true")
     const answers: string[] = []
     page.once("dialog", (dialog) => (answers.push(dialog.message()), dialog.dismiss()))
-    await settings.getByRole("button", { name: "Collapse all" }).click()
+    await security.click()
     await expect.poll(() => answers).toEqual(["Close the security settings?"])
-    await expect(settings.getByRole("button", { name: /^Security/ })).toHaveAttribute("aria-expanded", "true")
+    await expect(security).toHaveAttribute("aria-expanded", "true")
     page.once("dialog", (dialog) => dialog.accept())
-    await settings.getByRole("button", { name: "Collapse all" }).click()
-    await expect(settings.getByText(/Open: none, last change: imperative/)).toBeVisible()
+    await security.click()
+    await expect(security).toHaveAttribute("aria-expanded", "false")
 
     // A disabled item stays in the tab order.
     const access = preview("disabled").getByRole("button", { name: /^Can I access my account history/ })
@@ -139,11 +123,13 @@ for (const framework of frameworks) {
 
     // A kept-mounted panel keeps what was typed in it.
     const kept = preview("keep-mounted")
-    await kept.getByRole("button", { name: /^Reply/ }).click()
-    await kept.getByRole("textbox", { name: "Your reply" }).fill("Looks good")
-    await kept.getByRole("button", { name: /^Reply/ }).click()
-    await kept.getByRole("button", { name: /^Reply/ }).click()
-    await expect(kept.getByRole("textbox", { name: "Your reply" })).toHaveValue("Looks good")
+    const reply = kept.getByRole("button", { name: /^Reply to this thread/ })
+    await reply.click()
+    await kept.getByRole("textbox", { name: "Message" }).fill("Looks good")
+    await reply.click()
+    await expect(kept.getByRole("textbox", { name: "Message" })).toBeHidden()
+    await reply.click()
+    await expect(kept.getByRole("textbox", { name: "Message" })).toHaveValue("Looks good")
 
     // A controller opens and closes every item.
     const syllabus = preview("expand-all")

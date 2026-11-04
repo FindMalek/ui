@@ -92,7 +92,7 @@ function PageLink({ page, toc }: { page: PageTree.Item; toc?: TableOfContents })
         aria-current={active ? "page" : undefined}
         className={cn(
           "block rounded-md py-1 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/30",
-          active ? "text-foreground" : "text-subtle hover:text-foreground",
+          active ? "text-brand" : "text-subtle hover:text-foreground",
         )}
       >
         {page.name}
@@ -123,9 +123,7 @@ function Toc({ items }: { items: TableOfContents }) {
               aria-current={current ? "location" : undefined}
               className={cn(
                 "relative -ms-px block border-s py-[3px] ps-3 text-[13px] leading-5 outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/30",
-                current
-                  ? "border-foreground text-foreground"
-                  : "border-transparent text-subtle hover:text-foreground",
+                current ? "border-brand text-brand" : "border-transparent text-subtle hover:text-foreground",
               )}
             >
               {item.title}
