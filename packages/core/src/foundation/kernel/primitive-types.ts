@@ -182,10 +182,17 @@ type Needs<R, State extends object, Api, Props> = (R extends FocusableRole
 
 // Keys a slot lists are handled by its own `on.keydown`, so listing them asks for one.
 type KeysDeclaration<State extends object, Api, Props> =
-  | { keys?: Unneeded }
   | {
       keys: Keys<State>
       on: { keydown: (event: KeyboardEvent, context: SlotContext<State, Api, Props>) => void }
+    }
+  | { keys: Unneeded }
+  // Only `undefined`, which makes `keys` pick the member a slot is checked
+  // against. Generic, so it's created last: errors report a slot without
+  // keys against it, and name what's missing, like `focus`, not keys.
+  | {
+      keys?: undefined
+      on?: { keydown?: (event: KeyboardEvent, context: SlotContext<State, Api, Props>) => void }
     }
 
 /**
