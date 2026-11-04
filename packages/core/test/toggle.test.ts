@@ -2,7 +2,7 @@ import { describe, expect, test, vi } from "vitest"
 import { runAction } from "../src/foundation/kernel/action"
 import { button } from "../src/components/button/button"
 import { inOrder, rovingStop } from "../src/foundation/focus/collection"
-import { buttonAttrs } from "../src/foundation/platform/button"
+import { buttonElementAttrs, buttonRole } from "../src/foundation/platform/button"
 import { separator } from "../src/components/separator/separator"
 import { toggle, toggleGroup } from "../src/components/toggle/toggle"
 import { nextValue } from "../src/components/toggle/toggle-group"
@@ -10,17 +10,17 @@ import { attrs as partAttrs, partState } from "../src/foundation/kernel/part"
 
 describe("button attributes", () => {
   test("a native button keeps its type and is natively disabled", () => {
-    expect(buttonAttrs("button", { type: "submit", disabled: false, focusable: false })).toEqual({
+    expect(buttonElementAttrs("button", { type: "submit", disabled: false, focusable: false })).toEqual({
       type: "submit",
     })
-    expect(buttonAttrs("button", { type: "button", disabled: true, focusable: false })).toMatchObject({
+    expect(buttonElementAttrs("button", { type: "button", disabled: true, focusable: false })).toMatchObject({
       disabled: "",
       "aria-disabled": undefined,
     })
   })
 
   test("a focusable disabled button uses aria-disabled and stays in the tab order", () => {
-    expect(buttonAttrs("button", { type: "button", disabled: true, focusable: true })).toMatchObject({
+    expect(buttonElementAttrs("button", { type: "button", disabled: true, focusable: true })).toMatchObject({
       disabled: undefined,
       "aria-disabled": "true",
       tabindex: undefined,
@@ -28,9 +28,9 @@ describe("button attributes", () => {
   })
 
   test("a link stays a link, and leaves the tab order when disabled", () => {
-    expect(buttonAttrs("link", { type: "button", disabled: false, focusable: false })).toEqual({})
-    expect(buttonAttrs("link", { type: "button", disabled: true, focusable: false })).toMatchObject({
-      role: undefined,
+    expect(buttonElementAttrs("link", { type: "button", disabled: false, focusable: false })).toEqual({})
+    expect(buttonRole(() => "link").role({}, { key: "" })).toBeUndefined()
+    expect(buttonElementAttrs("link", { type: "button", disabled: true, focusable: false })).toMatchObject({
       type: undefined,
       "aria-disabled": "true",
       tabindex: "-1",
@@ -38,15 +38,15 @@ describe("button attributes", () => {
   })
 
   test("any other element becomes a focusable button", () => {
-    expect(buttonAttrs("other", { type: "button", disabled: false, focusable: false })).toMatchObject({
-      role: "button",
+    expect(buttonRole(() => "other").role({}, { key: "" })).toBe("button")
+    expect(buttonElementAttrs("other", { type: "button", disabled: false, focusable: false })).toMatchObject({
       tabindex: "0",
       type: undefined,
     })
   })
 
   test("a roving tab stop overrides the default", () => {
-    expect(buttonAttrs("button", { disabled: true, focusable: true, tabindex: "-1" })).toMatchObject({
+    expect(buttonElementAttrs("button", { disabled: true, focusable: true, tabindex: "-1" })).toMatchObject({
       tabindex: "-1",
       "aria-disabled": "true",
     })

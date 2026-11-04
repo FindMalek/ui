@@ -81,7 +81,7 @@ type PopupState = {
  */
 type PopupCore = {
   label: string
-  role: string | undefined
+  role: PopupPreset["role"]
   store: Store<PopupState>
   options: () => PopupOptions
   onOptions: (listener: () => void) => void
@@ -236,7 +236,7 @@ function createPopup<Options extends PopupOptions, State extends PopupState, Pre
      * The content's role, like `"alertdialog"`.
      * @defaultValue the preset's
      */
-    role?: string
+    role?: PopupPreset["role"]
     /**
      * What only this popup does, from its core, beside the preset's behavior.
      * @internal

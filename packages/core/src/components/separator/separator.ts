@@ -51,11 +51,12 @@ const separatorPrimitive = /* @__PURE__ */ definePrimitive({
   api: () => ({}),
   slots: (slot) => ({
     root: slot<{}, SeparatorState>({
-      state: (state) => ({ orientation: state.orientation }),
       // A separator is structure, so it's never focusable. One that resizes
       // panels is a splitter, which needs a value and is another part.
+      role: (state) => (state.decorative ? "none" : "separator"),
+      roles: ["none", "separator"],
+      state: (state) => ({ orientation: state.orientation }),
       attrs: (state) => ({
-        role: state.decorative ? "none" : "separator",
         "aria-orientation": state.decorative ? undefined : state.orientation,
         "data-orientation": state.orientation,
       }),

@@ -41,6 +41,7 @@ export {
 export { createOrder, documentOrder, inDocumentOrder, isAfter } from "./order"
 export { aliasReferences, attrs, bind, held, madeLabel, onProps, partState, present, subscribe } from "./part"
 export { definePrimitive, schemaOf } from "./primitive"
+export type { Focus, HandledKey, Role, Unneeded } from "./roles"
 export type {
   AgentSurface,
   BaseSlotProps,
@@ -55,6 +56,7 @@ export type {
   PropSchema,
   PropSpec,
   ReasonFor,
+  RoleFields,
   SlotDefinition,
   SlotFactory,
   SlotName,

@@ -16,11 +16,12 @@ type ToastPart = { toast?: string }
 
 const toastSlots = (slot: SlotFactory<ToastRegionStoreState, ToastRegionApi>) => ({
   region: slot<{}, ToastRegionState>({
+    // A landmark only while there's something in it.
+    role: (state) => (hasToasts(state.items) ? "region" : undefined),
+    roles: ["region"],
     attrs: (state) => {
       const open = hasToasts(state.items)
       return {
-        // A landmark only while there's something in it.
-        role: open ? "region" : undefined,
         "aria-label": open ? (state.label ?? "Notifications") : undefined,
         "aria-keyshortcuts": open && state.shortcut ? ariaKeyshortcuts(state.shortcut) : undefined,
         "data-side": state.side,

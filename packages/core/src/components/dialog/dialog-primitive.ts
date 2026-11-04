@@ -66,7 +66,7 @@ function defineDialog<
     api: (context) => dialogApi(context, alert, extension?.rules(context.store, context.options)),
     // Without an extension there are no extra parts, and spreading undefined adds none.
     slots: (slot) => ({
-      ...dialogSlots(slot, { name, role: alert ? "alertdialog" : "dialog" }),
+      ...dialogSlots(slot, { name }),
       ...(extension?.slots(slot) as Extra),
     }),
     agent: { actions: ["setOpen"] },

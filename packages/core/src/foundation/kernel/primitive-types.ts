@@ -135,8 +135,11 @@ type SlotDefinition<State extends object, Api, Props, Public = {}> = {
   direct?: Direct
   /** Narrows which changes reach the slot's parts, built by `selects()`. */
   selects?: Selects<State, Api, Props>
-  /** Activation: a click, which keys and screen readers send too. */
-  press?: (context: SlotContext<State, Api, Props>, event?: Event) => void
+  /**
+   * Activation: a click, which keys and screen readers send too. `{ none: "why" }`
+   * for a role that activates when another handler does it, like the author's own click.
+   */
+  press?: ((context: SlotContext<State, Api, Props>, event?: Event) => void) | Unneeded
   /**
    * DOM events. Adapters attach these so user handlers run first and can
    * call preventDefault() to skip them.
@@ -165,12 +168,25 @@ type Keys<State> = readonly HandledKey[] | ((state: State) => readonly HandledKe
 // What a role asks of its slot. Each is one required field, so a missing one
 // is named in the error, and opting out takes a reason: `{ none: "why" }`.
 type Needs<R, State extends object, Api, Props> = (R extends FocusableRole
-  ? { focus: Focus | Unneeded }
+  ? {
+      focus:
+        | Focus
+        | Unneeded
+        | ((state: State, context: { id: string; key: string; props: Props; api: Api }) => Focus | Unneeded)
+    }
   : unknown) &
   (R extends PressableRole
-    ? { press: (context: SlotContext<State, Api, Props>, event?: Event) => void }
+    ? { press: ((context: SlotContext<State, Api, Props>, event?: Event) => void) | Unneeded }
     : unknown) &
   (R extends KeyedRole ? { keys: Keys<State> | Unneeded } : unknown)
+
+// Keys a slot lists are handled by its own `on.keydown`, so listing them asks for one.
+type KeysDeclaration<State extends object, Api, Props> =
+  | { keys?: Unneeded }
+  | {
+      keys: Keys<State>
+      on: { keydown: (event: KeyboardEvent, context: SlotContext<State, Api, Props>) => void }
+    }
 
 /**
  * A slot's role and what the role asks of it. Core reads these from the
@@ -191,7 +207,10 @@ type RoleFields<State extends object, Api, Props> = {
    * How the part gets focus, for a role that takes it, like an option or a
    * tab. `{ none: "why" }` when another element takes it instead.
    */
-  focus?: Focus | Unneeded
+  focus?:
+    | Focus
+    | Unneeded
+    | ((state: State, context: { id: string; key: string; props: Props; api: Api }) => Focus | Unneeded)
   /**
    * The keys the part's `on.keydown` handles, for a role whose pattern moves
    * with keys, or a function of state when they depend on it, like the arrows
@@ -204,8 +223,9 @@ type RoleFields<State extends object, Api, Props> = {
 // The role's literal picks the member, so TypeScript asks for exactly what that role needs.
 type RoleDeclaration<State extends object, Api, Props> = Omit<
   RoleFields<State, Api, Props>,
-  "role" | "roles"
+  "role" | "roles" | "keys"
 > &
+  KeysDeclaration<State, Api, Props> &
   (
     | { role?: Exclude<Role, Demanding> }
     | {

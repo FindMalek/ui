@@ -354,8 +354,9 @@ const sliderPrimitive = /* @__PURE__ */ definePrimitive({
   api: sliderApi,
   slots: (slot) => ({
     root: slot<{}, SliderState>({
+      role: "group",
       state: sliderState,
-      attrs: (state) => ({ role: "group", ...dataAttrs(state) }),
+      attrs: (state) => dataAttrs(state),
       bind: (el, { api, store }) => {
         bindPageLocale(el, (pageLocale) => store.set({ pageLocale }))
         return bindInternals(el, {
@@ -418,6 +419,23 @@ const sliderPrimitive = /* @__PURE__ */ definePrimitive({
     // The native range input inside each thumb, which takes focus. Screen
     // readers on phones adjust it with their own gestures. It takes its thumb's index.
     "thumb-input": slot<SliderThumbProps>({
+      role: "slider",
+      focus: "native",
+      // Every arrow moves it whatever its orientation, as a native range's do.
+      keys: [
+        "ArrowUp",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowRight",
+        "shift+ArrowUp",
+        "shift+ArrowDown",
+        "shift+ArrowLeft",
+        "shift+ArrowRight",
+        "PageUp",
+        "PageDown",
+        "Home",
+        "End",
+      ],
       props: { index: { kind: "number", from: "thumb" } },
       // Its range ends at its neighbours, so it hears their moves and its own.
       selects: selects({
@@ -480,6 +498,8 @@ const sliderPrimitive = /* @__PURE__ */ definePrimitive({
     // The formatted value. An <output> tied to the thumbs, never announced on
     // its own, since each thumb already says its value.
     value: slot<{}, SliderValueState>({
+      // An <output> is a status already. Other elements, like a custom element, say so.
+      role: "status",
       state: (state) => ({
         ...sliderState(state),
         text: valuesOf(state.value)
@@ -490,8 +510,6 @@ const sliderPrimitive = /* @__PURE__ */ definePrimitive({
         for: valuesOf(state.value)
           .map((_, index) => thumbInputId(state, id, index))
           .join(" "),
-        // An <output> is a status already. Other elements, like a custom element, say so.
-        role: "status",
         "aria-live": "off",
         ...dataAttrs(state),
       }),

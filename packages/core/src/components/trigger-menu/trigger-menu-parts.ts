@@ -85,6 +85,23 @@ const unreadByItems = {
 const triggerMenuSlots = (slot: SlotFactory<TriggerMenuState, TriggerMenuApi>) => ({
   // A <textarea> by default, or an <input> through custom rendering.
   input: slot<{}, TriggerMenuInputState>({
+    role: (state) => (state.field === "input" ? "combobox" : undefined),
+    roles: ["combobox"],
+    focus: "native",
+    // Home and End move the caret, which ends the match.
+    keys: [
+      "ArrowDown",
+      "ArrowUp",
+      "PageDown",
+      "PageUp",
+      "ctrl+n",
+      "ctrl+p",
+      "Enter",
+      "Tab",
+      "Escape",
+      "Home",
+      "End",
+    ],
     state: (state) => ({ open: state.open, trigger: state.trigger }),
     attrs: (state) => ({
       "aria-autocomplete": "list",
@@ -92,15 +109,14 @@ const triggerMenuSlots = (slot: SlotFactory<TriggerMenuState, TriggerMenuApi>) =
       "data-trigger": state.trigger ?? undefined,
       ...openAttrs(state.open),
     }),
-    // The role, expansion and active option, which depend on the element and the arrow keys.
+    // The expansion and active option, which depend on the element and the arrow keys.
     live: live((state, { api }) => {
       const {
-        role,
         "aria-expanded": expanded,
         "aria-controls": controls,
         "aria-activedescendant": active,
       } = api.internal.fieldAttrs(state, state.field)
-      return { role, "aria-expanded": expanded, "aria-controls": controls, "aria-activedescendant": active }
+      return { "aria-expanded": expanded, "aria-controls": controls, "aria-activedescendant": active }
     }),
     on: {
       keydown: (event, { api }) => api.internal.onKeyDown(event),
@@ -125,11 +141,14 @@ const triggerMenuSlots = (slot: SlotFactory<TriggerMenuState, TriggerMenuApi>) =
       keepMounted: "boolean",
     },
     connect: registerPopupElement,
+    // A list inside it is the listbox instead.
+    role: (state) => (state.listed ? "presentation" : "listbox"),
+    roles: ["presentation", "listbox"],
+    keys: { none: "The editor handles them, and keeps focus while they move the highlight." },
     state: contentState,
     present: (state, { props }) => state.mounted || !!props.keepMounted,
     attrs: (state, { id, api }) => ({
       ...popupContentAttrs(state, id),
-      role: state.listed ? "presentation" : "listbox",
       ...(state.listed ? {} : api.internal.listLabel()),
       "aria-busy": !state.listed && state.loading === "loading" ? "true" : undefined,
       "data-trigger": state.trigger ?? undefined,
@@ -168,10 +187,11 @@ const triggerMenuSlots = (slot: SlotFactory<TriggerMenuState, TriggerMenuApi>) =
   }),
 
   list: slot<{}, TriggerMenuContentState>({
+    role: "listbox",
+    keys: { none: "The editor handles them, and keeps focus while they move the highlight." },
     state: contentState,
     attrs: (state, { id, api }) => ({
       id: `${id}-list`,
-      role: "listbox",
       ...api.internal.listLabel(),
       "aria-busy": state.loading === "loading" ? "true" : undefined,
     }),
@@ -190,13 +210,14 @@ const triggerMenuSlots = (slot: SlotFactory<TriggerMenuState, TriggerMenuApi>) =
       group: { kind: "string", from: "group.id" },
     },
     selects: selects({ highlighted: ({ key }) => [key], listing: ({ key }) => [key], ...unreadByItems }),
+    role: "option",
+    focus: "active-descendant",
     state: (state, { key, props }) => ({
       highlighted: state.highlighted === key,
       disabled: !!props.disabled,
     }),
     attrs: (state, { id, key, props, api }) => ({
       id: `${id}-option-${idPart(key)}`,
-      role: "option",
       "aria-disabled": props.disabled ? "true" : undefined,
       hidden: api.internal.listbox.matches(key, props) ? undefined : "",
       "data-disabled": props.disabled ? "" : undefined,
@@ -238,8 +259,8 @@ const triggerMenuSlots = (slot: SlotFactory<TriggerMenuState, TriggerMenuApi>) =
   group: slot({
     // Its id is made for it, and names the group its items and label are in.
     props: { id: "id" },
+    role: "group",
     attrs: (state, { id, key, api }) => ({
-      role: "group",
       "aria-labelledby": groupLabelledBy(state, id, key),
       hidden: api.internal.listbox.groupMatches(key) ? undefined : "",
     }),
@@ -249,8 +270,8 @@ const triggerMenuSlots = (slot: SlotFactory<TriggerMenuState, TriggerMenuApi>) =
 
   // A listbox may only hold options and groups, so separators are hidden from assistive technology.
   separator: slot({
+    role: "none",
     attrs: (state) => ({
-      role: "none",
       "aria-hidden": "true",
       hidden: state.query && !state.items ? "" : undefined,
     }),
@@ -260,13 +281,13 @@ const triggerMenuSlots = (slot: SlotFactory<TriggerMenuState, TriggerMenuApi>) =
   empty: slot<EmptyProps, TriggerMenuEmptyState>({
     // Internal: passed by renderers.
     props: { stash: "boolean" },
+    role: "status",
     state: (state, { api }) => ({
       loading: (api.internal.options().status ?? state.loading) === "loading",
       empty: api.internal.isEmpty(state),
       query: state.query,
     }),
     attrs: (state, { api }) => ({
-      role: "status",
       "aria-live": "polite",
       "aria-atomic": "true",
       "data-empty": api.internal.isEmpty(state) ? "" : undefined,
@@ -290,7 +311,8 @@ const triggerMenuSlots = (slot: SlotFactory<TriggerMenuState, TriggerMenuApi>) =
       count: api.internal.itemCount(),
       argument: state.argument,
     }),
-    attrs: () => ({ role: "status", "aria-live": "polite", "aria-atomic": "true" }),
+    role: "status",
+    attrs: () => ({ "aria-live": "polite", "aria-atomic": "true" }),
     bind: (_, { api }) => api.internal.announceState(),
   }),
 

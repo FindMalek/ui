@@ -1,9 +1,10 @@
 import { watchFormDisabled } from "../../foundation/forms/form"
 import {
-  buttonAttrs,
   buttonElement,
+  buttonElementAttrs,
   buttonKeydown,
   buttonKeyup,
+  buttonRole,
   type ButtonElement,
 } from "../../foundation/platform/button"
 import { stepFor } from "../../foundation/focus/collection"
@@ -354,9 +355,14 @@ const toolbarPrimitive = /* @__PURE__ */ definePrimitive({
   api: toolbarApi,
   slots: (slot) => ({
     root: slot<{}, ToolbarState>({
+      role: "toolbar",
+      keys: (state) => [
+        ...(state.orientation === "vertical" ? ["ArrowUp", "ArrowDown"] : ["ArrowLeft", "ArrowRight"]),
+        "Home",
+        "End",
+      ],
       state: (state) => ({ orientation: state.orientation, disabled: isToolbarDisabled(state) }),
       attrs: (state) => ({
-        role: "toolbar",
         "aria-orientation": state.orientation,
         "data-orientation": state.orientation,
         "data-disabled": isToolbarDisabled(state) ? "" : undefined,
@@ -368,6 +374,9 @@ const toolbarPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     button: slot<ItemProps, ToolbarButtonState>({
+      ...buttonRole<State>((state, { key }) => state.elements[key] ?? "button"),
+      focus: "roving",
+      press: { none: "The author's click does the work, and Enter and Space on other elements send one." },
       props: {
         id: "id",
         disabled: "boolean",
@@ -382,7 +391,7 @@ const toolbarPrimitive = /* @__PURE__ */ definePrimitive({
       attrs: (state, { key, props, api }) => {
         const item = itemAttrs(state, key, props, api)
         return {
-          ...buttonAttrs(state.elements[key] ?? "button", {
+          ...buttonElementAttrs(state.elements[key] ?? "button", {
             type: "button",
             disabled: item.disabled,
             focusable: item.focusable,
@@ -439,22 +448,22 @@ const toolbarPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     group: slot<GroupProps, ToolbarGroupState>({
+      role: "group",
       props: { id: "id", disabled: "boolean" },
       state: (state, { props }) => ({
         disabled: !!props.disabled || isToolbarDisabled(state),
         orientation: state.orientation,
       }),
       attrs: (state, { props }) => ({
-        role: "group",
         "data-disabled": props.disabled || isToolbarDisabled(state) ? "" : undefined,
         "data-orientation": state.orientation,
       }),
     }),
 
     separator: slot<{}, ToolbarSeparatorState>({
+      role: "separator",
       state: (state) => ({ orientation: across(state.orientation) }),
       attrs: (state) => ({
-        role: "separator",
         "aria-orientation": across(state.orientation),
         "data-orientation": across(state.orientation),
       }),

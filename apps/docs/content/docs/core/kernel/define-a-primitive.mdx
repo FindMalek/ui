@@ -171,7 +171,7 @@ list: slot({
 }),
 ```
 
-When another element meets a need, say which with `{ none: "why" }`, like `keys: { none: "The combobox's input handles them." }`. A role that changes with state is a function, with every role it can pick in `roles`:
+Listing keys without an `on.keydown` to handle them fails to compile too, on any slot. When another element meets a need, say which with `{ none: "why" }`, like `keys: { none: "The combobox's input handles them." }`. A role that changes with state is a function, with every role it can pick in `roles`:
 
 ```ts
 root: slot({

@@ -105,7 +105,7 @@ test("checks the element can take focus the way the slot says", async () => {
   mounts.push(
     mount(buttons, {}, '<native as="button">OK</native><native>Div</native><roving>A</roving><stop>B</stop>'),
   )
-  await Promise.resolve()
+  await new Promise((done) => setTimeout(done))
   expect(read()).toEqual([
     expect.stringContaining(
       'the "native" part\'s focus is "native", but a <div> doesn\'t take focus on its own',
@@ -131,7 +131,7 @@ test("doesn't ask a part that can't take focus now for a tabindex, like a disabl
   mounts.push(
     mount(listbox, { disabled: true }, '<root aria-label="Fruit"><item value="a">Apple</item></root>'),
   )
-  await Promise.resolve()
+  await new Promise((done) => setTimeout(done))
   expect(read()).toEqual([])
 })
 

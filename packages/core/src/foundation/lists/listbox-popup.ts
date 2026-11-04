@@ -2,7 +2,7 @@
 // content the list opens in, the list part inside it, and the state their
 // field and its buttons reflect.
 import { type AsyncOptionsStatus } from "./async-options"
-import { isDisabled } from "./listbox-parts"
+import { isDisabled, listStepKeys } from "./listbox-parts"
 import { flagWhileBound } from "../kernel/bound-keys"
 import { pressKeepsFocus } from "../focus/press-keeps-focus"
 import { type Anchor, type PortalProps, type PositionProps } from "../platform/position"
@@ -11,7 +11,7 @@ import { registerPopupElement } from "../popups/popup-elements"
 import { contentAnchor, placementOptions } from "../popups/popup-features"
 import { type SheetConfig, sheetSnapPoints } from "../popups/presentation"
 import { onProps } from "../kernel/part"
-import type { BaseSlotProps, Part, SlotDefinition } from "../kernel/primitive-types"
+import type { BaseSlotProps, Part, RoleFields, SlotDefinition } from "../kernel/primitive-types"
 import type { Store } from "../kernel/store"
 
 type ListPopupState = {
@@ -89,9 +89,12 @@ function listContentPart<State extends ListPopupState, Api extends ListPopupApi>
     },
     connect: registerPopupElement,
     present: (state, { props }) => state.mounted || !!props.keepMounted || !!state.prepared,
+    role: (state) => (state.listed ? "presentation" : "listbox"),
+    roles: ["presentation", "listbox"],
+    // Only while a screen reader moved real focus into the list. Otherwise the field's input takes them.
+    keys: [...listStepKeys, "Home", "End", "Enter", " ", "typeahead"],
     attrs: (state, { id }) => ({
       ...popupContentAttrs(state, id),
-      role: state.listed ? "presentation" : "listbox",
       "aria-multiselectable": !state.listed && state.multiple ? "true" : undefined,
       "aria-labelledby": state.listed ? undefined : listLabelledBy(state, id),
       "aria-busy": !state.listed && state.status === "loading" ? "true" : undefined,
@@ -108,7 +111,8 @@ function listContentPart<State extends ListPopupState, Api extends ListPopupApi>
         // A sheet opens at half the screen at most, and grows for the keyboard.
         snapPoints: sheetSnapPoints,
       }),
-  } satisfies SlotDefinition<State, Api, ListContentProps & BaseSlotProps, {}>
+  } satisfies SlotDefinition<State, Api, ListContentProps & BaseSlotProps, {}> &
+    RoleFields<State, Api, ListContentProps & BaseSlotProps>
 }
 
 // Shows a list's content below its anchor, settled once its items had the
@@ -159,15 +163,16 @@ function bindListContent(
 // The listbox inside the content, when the content holds more than the list.
 function listPart<State extends ListPopupState, Api>() {
   return {
+    role: "listbox",
+    keys: { none: "The field's input handles them, or the content around the list once focus is in it." },
     attrs: (state, { id }) => ({
       id: `${id}-list`,
-      role: "listbox",
       "aria-multiselectable": state.multiple ? "true" : undefined,
       "aria-labelledby": listLabelledBy(state, id),
       "aria-busy": state.status === "loading" ? "true" : undefined,
     }),
     bind: (el, { store }) => flagWhileBound(store, "listed"),
-  } satisfies SlotDefinition<State, Api, BaseSlotProps, {}>
+  } satisfies SlotDefinition<State, Api, BaseSlotProps, {}> & RoleFields<State, Api, BaseSlotProps>
 }
 
 export { bindListContent, inputState, listContentPart, listId, listPart }

@@ -375,13 +375,17 @@ const fileInputPrimitive = /* @__PURE__ */ definePrimitive({
 
     // The files, as a list. Adapters render its items, one per file.
     list: slot<{}, FileInputState>({
+      role: "list",
       state: rootState,
-      attrs: (state) => ({ role: "list", ...formAttrs(state) }),
+      attrs: formAttrs,
     }),
 
     // One file. It's focusable, with one tab stop for the list: arrow keys move
     // between items, and Backspace or Delete removes the focused one.
     item: slot<FileInputItemProps & { value: string }, FileInputItemState>({
+      role: "listitem",
+      focus: "roving",
+      keys: ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "Backspace", "Delete"],
       props: { file: "value", value: "string" },
       state: (state, { props }) => ({
         file: props.file,
@@ -389,7 +393,6 @@ const fileInputPrimitive = /* @__PURE__ */ definePrimitive({
         disabled: isDisabled(state),
       }),
       attrs: (state, { key }) => ({
-        role: "listitem",
         tabindex: isActiveItem(state, key) ? "0" : "-1",
         "data-disabled": isDisabled(state) ? "" : undefined,
       }),

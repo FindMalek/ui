@@ -121,8 +121,14 @@ function textToCells(text: string) {
  *
  * ```ts
  * cell: slot<{ row: number; col: number }>({
+ *   role: "gridcell",
+ *   focus: "roving",
+ *   keys: [
+ *     "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "ctrl+Home", "ctrl+End",
+ *     "PageUp", "PageDown", "shift+ArrowUp", "shift+ArrowDown", "shift+ArrowLeft", "shift+ArrowRight",
+ *     "shift+Home", "shift+End", "shift+ ", "mod+ ", "mod+a", "Escape",
+ *   ],
  *   attrs: (state, { props, api }) => ({
- *     role: "gridcell",
  *     tabindex: api.grid.tabIndex(state, props),
  *     ...api.range.cellAttrs(state, props),
  *   }),

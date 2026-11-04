@@ -165,14 +165,15 @@ function stepTarget(state: State, step: Step, holds = true) {
 }
 
 // A link with `getHref`, else a button. A link at an end has no `href`, so it
-// goes nowhere, and keeps focus with `tabindex="-1"` if it had it.
+// goes nowhere, keeps focus with `tabindex="-1"` if it had it, and its step
+// slot names it a link.
 function partAttrs(state: State, page: number, disabled: boolean) {
   const disabledAttrs = {
     "aria-disabled": disabled ? "true" : undefined,
     "data-disabled": disabled ? "" : undefined,
   }
   if (!state.getHref) return { type: "button", ...disabledAttrs }
-  if (disabled) return { role: "link", tabindex: "-1", ...disabledAttrs }
+  if (disabled) return { tabindex: "-1", ...disabledAttrs }
   return { href: state.getHref(page) }
 }
 
@@ -316,6 +317,9 @@ const paginationPrimitive = /* @__PURE__ */ definePrimitive({
     })
     const stepSlot = (kind: Step) =>
       slot<{}, PaginationStepState>({
+        role: (state) => (state.getHref && stepTarget(state, kind).disabled ? "link" : undefined),
+        roles: ["link"],
+        focus: "native",
         state: (state) => stepTarget(state, kind),
         attrs: (state) => {
           const target = stepTarget(state, kind)
@@ -326,16 +330,16 @@ const paginationPrimitive = /* @__PURE__ */ definePrimitive({
       })
     return {
       root: slot<{}, PaginationState>({
-        state: rangeState,
         // A <nav>, or a web component, which needs the role.
-        attrs: () => ({ role: "navigation" }),
+        role: "navigation",
+        state: rangeState,
       }),
       list: slot<{}, PaginationState>({
-        state: rangeState,
         // Safari drops list semantics from lists styled with `list-style: none`, like Tailwind's reset does.
-        attrs: () => ({ role: "list" }),
+        role: "list",
+        state: rangeState,
       }),
-      item: slot({ attrs: () => ({ role: "listitem" }) }),
+      item: slot({ role: "listitem" }),
       link: slot<PaginationLinkProps, PaginationLinkState>({
         props: { page: "number" },
         state: (state, { props }) => ({ page: props.page, current: props.page === currentPage(state) }),

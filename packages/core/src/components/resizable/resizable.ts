@@ -329,6 +329,16 @@ const resizablePrimitive = /* @__PURE__ */ definePrimitive({
     // the panel before it. It runs across the group, so a horizontal group's
     // separator is vertical.
     handle: slot<ResizableHandleProps, ResizableHandleState>({
+      role: "separator",
+      focus: "tab-stop",
+      keys: (state) => [
+        ...(state.orientation === "vertical"
+          ? ["ArrowUp", "ArrowDown", "shift+ArrowUp", "shift+ArrowDown"]
+          : ["ArrowLeft", "ArrowRight", "shift+ArrowLeft", "shift+ArrowRight"]),
+        "Home",
+        "End",
+        "Enter",
+      ],
       props: { disabled: "boolean", id: "id" },
       // A handle shows its own value, hover and drag, so a move reaches the
       // handles whose value it changes.
@@ -349,7 +359,6 @@ const resizablePrimitive = /* @__PURE__ */ definePrimitive({
       attrs: (state, { key, props }) => {
         const disabled = isDisabled(state) || !!props.disabled
         return {
-          role: "separator",
           tabindex: disabled ? undefined : "0",
           "aria-disabled": disabled ? "true" : undefined,
           "aria-orientation": state.orientation === "horizontal" ? "vertical" : "horizontal",

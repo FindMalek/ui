@@ -14,11 +14,20 @@ function buttonElement(el: HTMLElement) {
   return "other"
 }
 
+// The role a button-like part's slot declares: a native button or a link keeps its own.
+function buttonRole<State>(elementOf: (state: State, context: { key: string }) => ButtonElement) {
+  return {
+    role: (state: State, context: { key: string }) =>
+      elementOf(state, context) === "other" ? ("button" as const) : undefined,
+    roles: ["button"] as const,
+  }
+}
+
 // The attributes a button-like part needs for its element. A disabled part is
 // natively disabled, or keeps focus with aria-disabled when `focusable`. Links
 // and other elements have no native disabled, so they always use aria-disabled.
 // `tabindex` overrides the tab stop, for parts that rove inside a group.
-function buttonAttrs(
+function buttonElementAttrs(
   element: ButtonElement,
   options: { type?: string; disabled: boolean; focusable: boolean; tabindex?: string },
 ) {
@@ -27,7 +36,6 @@ function buttonAttrs(
   const defaultTabindex = unfocusable ? (native ? undefined : "-1") : element === "other" ? "0" : undefined
   return {
     type: native ? options.type : undefined,
-    role: element === "other" ? "button" : undefined,
     disabled: native && unfocusable ? "" : undefined,
     "aria-disabled": options.disabled && !(native && unfocusable) ? "true" : undefined,
     tabindex: options.tabindex ?? defaultTabindex,
@@ -72,4 +80,12 @@ function opensElsewhere(event: Event | undefined, el: HTMLElement | undefined) {
   )
 }
 
-export { buttonAttrs, buttonElement, type ButtonElement, buttonKeydown, buttonKeyup, opensElsewhere }
+export {
+  buttonElement,
+  buttonElementAttrs,
+  type ButtonElement,
+  buttonKeydown,
+  buttonKeyup,
+  buttonRole,
+  opensElsewhere,
+}

@@ -344,7 +344,7 @@ const drawerPrimitive = /* @__PURE__ */ definePrimitive({
   }),
   api: (context) => drawerApi(context),
   slots: (slot) => {
-    const shared = dialogSlots((definition) => definition, { name: "drawer", role: "dialog" })
+    const shared = dialogSlots((definition) => definition, { name: "drawer" })
     return {
       trigger: reuse(shared.trigger),
       title: reuse(shared.title),
@@ -360,8 +360,8 @@ const drawerPrimitive = /* @__PURE__ */ definePrimitive({
           interactive: state.interactive,
         }),
         present: (state, { api }) => state.mounted || !!api.internal.contentProps().keepMounted,
+        role: "presentation",
         attrs: (state) => ({
-          role: "presentation",
           hidden: state.mounted ? undefined : "",
           ...openAttrs(state.open),
           "data-nested": state.nested ? "" : undefined,
@@ -399,6 +399,7 @@ const drawerPrimitive = /* @__PURE__ */ definePrimitive({
       content: slot<DrawerContentProps, DrawerContentState>({
         props: { container: "value", initialFocus: "string", finalFocus: "string", keepMounted: "boolean" },
         connect: registerPopupElement,
+        role: "dialog",
         state: (state) => ({
           open: state.open,
           modal: state.modal,
@@ -416,7 +417,6 @@ const drawerPrimitive = /* @__PURE__ */ definePrimitive({
         present: (state, { props }) => state.mounted || !!props.keepMounted,
         attrs: (state, { id, api }) => ({
           ...popupContentAttrs(state, id),
-          role: "dialog",
           ...api.internal.triggerName?.contentAttrs(state, id),
           "aria-describedby": state.described ? `${id}-description` : undefined,
           "data-side": state.side,

@@ -156,7 +156,7 @@ function checkRole(
   from: { component: string; id?: string },
 ) {
   if (warnedRole.has(definition)) return
-  if (own && "role" in own) {
+  if (own?.role !== undefined && definition.role !== undefined) {
     warnedRole.add(definition)
     warn(
       `the "${slot}" part declares its role, and its \`attrs\` writes one too. Leave \`role\` out of \`attrs\`.`,
@@ -179,12 +179,13 @@ const focusesOnItsOwn =
   'button, input, select, textarea, a[href], summary, iframe, [contenteditable]:not([contenteditable="false"])'
 
 /**
- * Checks a bound element can take focus the way its slot says, a microtask
- * later, once a framework has written its attributes.
+ * Checks a bound element can take focus the way its slot says, a task later,
+ * once a framework or an element's own upgrade has written its attributes.
  */
 function checkFocus(focus: unknown, slot: string, el: HTMLElement, from: { component: string; id?: string }) {
-  if (typeof focus !== "string") return
-  queueMicrotask(() => {
+  // Unit tests bind stand-ins that aren't elements.
+  if (typeof focus !== "string" || typeof Element === "undefined" || !(el instanceof Element)) return
+  setTimeout(() => {
     // A part that isn't meant to take focus now, like an option of a disabled list, has no tabindex on purpose.
     if (!el.isConnected || el.closest('[aria-disabled="true"], [disabled], [inert], [hidden]')) return
     const tag = `<${el.localName}>`

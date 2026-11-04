@@ -483,13 +483,14 @@ const treePrimitive = /* @__PURE__ */ definePrimitive({
   api: treeApi,
   slots: (slot) => ({
     root: slot<{}, TreeState>({
+      role: "tree",
+      keys: { none: "Focus stays on an item, whose keydown handles them." },
       state: (state) => ({
         mode: state.mode,
         checkable: state.checkable,
         disabled: isDisabled(state),
       }),
       attrs: (state) => ({
-        role: "tree",
         "aria-multiselectable": state.mode === "multiple" ? "true" : undefined,
         "aria-disabled": isDisabled(state) ? "true" : undefined,
         "data-disabled": flag(isDisabled(state)),
@@ -501,6 +502,21 @@ const treePrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     item: slot<ItemProps, TreeItemState>({
+      role: "treeitem",
+      focus: "roving",
+      keys: (state) => [
+        "ArrowUp",
+        "ArrowDown",
+        "ArrowLeft",
+        "ArrowRight",
+        "Home",
+        "End",
+        "*",
+        "Enter",
+        ...(state.checkable || state.mode !== "none" ? [" "] : []),
+        "typeahead",
+        ...(state.mode === "multiple" ? ["mod+a"] : []),
+      ],
       // Its parent is the item it's inside.
       props: {
         value: "string",
@@ -521,7 +537,6 @@ const treePrimitive = /* @__PURE__ */ definePrimitive({
         const position = api.internal.dataPosition(key)
         return {
           id: `${id}-item-${idPart(key)}`,
-          role: "treeitem",
           tabindex: api.internal.tabIndex(state, part),
           "aria-labelledby": `${id}-label-${idPart(key)}`,
           "aria-level": String(item.level),
@@ -600,6 +615,7 @@ const treePrimitive = /* @__PURE__ */ definePrimitive({
 
     // A branch's children. A collapsed group stays in the page while it animates out.
     group: slot<GroupProps, TreeGroupState>({
+      role: "group",
       props: { value: { kind: "string", from: "item" }, keepMounted: "boolean", hiddenUntilFound: "boolean" },
       selects: selects({ ...partReads, exiting: byItem }),
       present: (state, { props }) =>
@@ -614,7 +630,6 @@ const treePrimitive = /* @__PURE__ */ definePrimitive({
       attrs: (state, { id, props }) => {
         const open = state.expanded.includes(itemOf(props))
         return {
-          role: "group",
           id: `${id}-group-${idPart(itemOf(props))}`,
           ...hiddenAttrs(open || state.exiting.includes(itemOf(props)), findable(state, props)),
           ...openAttrs(open),

@@ -1,8 +1,9 @@
 import {
-  buttonAttrs,
   buttonElement,
+  buttonElementAttrs,
   buttonKeydown,
   buttonKeyup,
+  buttonRole,
   type ButtonElement,
 } from "../../foundation/platform/button"
 import { watchFormDisabled } from "../../foundation/forms/form"
@@ -312,10 +313,12 @@ const togglePrimitive = /* @__PURE__ */ definePrimitive({
   api: toggleApi,
   slots: (slot) => ({
     root: slot<{}, ToggleState>({
+      ...buttonRole((state: State) => state.element),
+      focus: "tab-stop",
       state: (state) => ({ pressed: state.pressed, disabled: isDisabled(state) }),
       attrs: (state) => ({
         // Never "submit": a toggle changes state, it doesn't send a form.
-        ...buttonAttrs(state.element, {
+        ...buttonElementAttrs(state.element, {
           type: "button",
           disabled: isDisabled(state),
           focusable: state.focusableWhenDisabled,

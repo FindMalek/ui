@@ -129,16 +129,15 @@ function attrs(part: Part, props = part.props, state = part.store.get()) {
   const own = definition.attrs?.(state, context)
   const declared = definition.role
   const role = typeof declared === "function" ? declared(state, context) : declared
-  if (dev && declared !== undefined)
-    checkRole(definition, part.slot, own, role, { component: ownerOf(part).label, id: part.id })
-  return aliased(
-    part as PartRecord,
-    {
-      "data-slot": `${ownerOf(part).name}-${part.slot}`,
-      ...own,
-      ...(declared === undefined ? undefined : { role }),
-    } as Attrs,
-  )
+  if (dev) checkRole(definition, part.slot, own, role, { component: ownerOf(part).label, id: part.id })
+  const result: Attrs = {
+    "data-slot": `${ownerOf(part).name}-${part.slot}`,
+    ...(declared === undefined ? undefined : { role }),
+    ...own,
+  }
+  // The declared role wins over one in `attrs`, and keeps its place first.
+  if (declared !== undefined) result.role = role as Attrs[string]
+  return aliased(part as PartRecord, result)
 }
 
 // What names an element or hints how to type in it, which no behavior reads,
@@ -275,7 +274,7 @@ function handlers(part: Part) {
       handler(event, context(part))
     }
   }
-  if (activate && !result.click) {
+  if (typeof activate === "function" && !result.click) {
     result.click = (event) => {
       if (!event.defaultPrevented) activate(context(part), event)
     }
@@ -303,7 +302,7 @@ function propsRendered(part: PartRecord) {
 /** Activation without a DOM event, for headless tests and the docs' generated tables. */
 function press(part: Part, props = part.props) {
   const handler = definitionOf(part).press
-  return handler ? () => handler(context(part, props)) : undefined
+  return typeof handler === "function" ? () => handler(context(part, props)) : undefined
 }
 
 /**
@@ -344,10 +343,16 @@ function bind(part: Part, el: HTMLElement, host: Host = { by: "core" }) {
   }
   if (dev) {
     checkShared(part, part.el, el)
-    checkFocus((definitionOf(part) as RoleFields<any, any, any>).focus, part.slot, el, {
-      component: ownerOf(part).label,
-      id: part.id,
-    })
+    const { focus } = definitionOf(part) as RoleFields<any, any, any>
+    checkFocus(
+      typeof focus === "function" ? focus(part.store.get(), view(part, part.props)) : focus,
+      part.slot,
+      el,
+      {
+        component: ownerOf(part).label,
+        id: part.id,
+      },
+    )
   }
   const binding = {}
   part.el = el

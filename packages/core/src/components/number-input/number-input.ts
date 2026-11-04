@@ -327,8 +327,9 @@ const numberInputPrimitive = /* @__PURE__ */ definePrimitive({
 
     // Holds the input and its buttons.
     group: slot<{}, NumberInputState>({
+      role: "group",
       state: fieldState,
-      attrs: (state) => ({ role: "group", ...dataAttrs(state) }),
+      attrs: dataAttrs,
     }),
 
     control: slot<{}, NumberInputState>({

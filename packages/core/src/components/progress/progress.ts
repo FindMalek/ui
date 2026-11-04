@@ -111,11 +111,11 @@ const progressPrimitive = /* @__PURE__ */ definePrimitive({
   api: ({ store }) => gaugeApi(store),
   slots: (slot) => ({
     root: slot<{}, ProgressState>({
+      role: "progressbar",
       state: progressState,
       attrs: (state, { id }) => {
         const percent = percentOf(state)
         return {
-          role: "progressbar",
           ...gaugeAria(state.value, state),
           "aria-labelledby": state.labels ? labelId(id) : undefined,
           ...statusAttrs(state),

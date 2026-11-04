@@ -1,8 +1,9 @@
 import {
-  buttonAttrs,
   buttonElement,
+  buttonElementAttrs,
   buttonKeydown,
   buttonKeyup,
+  buttonRole,
   type ButtonElement,
 } from "../../foundation/platform/button"
 import { watchFieldsets } from "../../foundation/forms/form"
@@ -388,10 +389,12 @@ const passwordInputPrimitive = /* @__PURE__ */ definePrimitive({
       bind: (el, { api }) => api.internal.bindControl(el as HTMLInputElement),
     }),
     toggle: slot<{}, PasswordInputState>({
+      ...buttonRole((state: State) => state.toggleElement),
+      focus: "tab-stop",
       state: publicState,
       attrs: (state, { id }) => ({
         // Never "submit": Enter in the field submits the form, it doesn't press the toggle.
-        ...buttonAttrs(state.toggleElement, {
+        ...buttonElementAttrs(state.toggleElement, {
           type: "button",
           disabled: isDisabled(state),
           focusable: false,

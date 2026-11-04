@@ -94,9 +94,9 @@ const meterPrimitive = /* @__PURE__ */ definePrimitive({
   api: ({ store }) => gaugeApi(store),
   slots: (slot) => ({
     root: slot<{}, MeterState>({
+      role: "meter",
       state: meterState,
       attrs: (state, { id }) => ({
-        role: "meter",
         ...gaugeAria(state.value, state),
         "aria-labelledby": state.labels ? labelId(id) : undefined,
         // For anything else that should follow the value, like a ring's sweep.

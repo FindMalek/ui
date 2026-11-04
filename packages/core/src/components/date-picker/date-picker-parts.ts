@@ -202,6 +202,7 @@ const datePickerSlots = (slot: SlotFactory<State, DatePickerApi>) => ({
   }),
 
   content: slot<DatePickerContentProps, DatePickerContentState>({
+    role: "dialog",
     props: {
       side: "string",
       align: "string",
@@ -219,7 +220,6 @@ const datePickerSlots = (slot: SlotFactory<State, DatePickerApi>) => ({
     present: (state, { props }) => state.mounted || !!props.keepMounted,
     attrs: (state, { id }) => ({
       ...popupContentAttrs(state, id),
-      role: "dialog",
       // English by default. Pass `aria-label` in another language.
       "aria-label": state.mode === "range" ? "Choose dates" : "Choose date",
       "data-presentation": state.presentation,
