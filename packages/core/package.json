@@ -72,6 +72,7 @@
     "./date-input": "./src/components/date-input/date-input.ts",
     "./time-input": "./src/components/date-input/time-input.ts",
     "./color": "./src/foundation/color/color.ts",
+    "./image": "./src/foundation/image/image.ts",
     "./date-picker": "./src/components/date-picker/date-picker.ts",
     "./agent": "./src/page/agent/agent.ts",
     "./observe": "./src/page/observe/observe.ts",
@@ -340,6 +341,10 @@
       "./color": {
         "types": "./dist/foundation/color/color.d.ts",
         "default": "./dist/foundation/color/color.js"
+      },
+      "./image": {
+        "types": "./dist/foundation/image/image.d.ts",
+        "default": "./dist/foundation/image/image.js"
       },
       "./date-picker": {
         "types": "./dist/components/date-picker/date-picker.d.ts",
