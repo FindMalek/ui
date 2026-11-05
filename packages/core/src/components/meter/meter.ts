@@ -5,7 +5,6 @@ import {
   gaugeSettings,
   formatGaugeValue,
   indicatorStyle,
-  labelId,
   percentBetween,
   roundPercent,
   type GaugeLabelDetails,
@@ -95,10 +94,10 @@ const meterPrimitive = /* @__PURE__ */ definePrimitive({
   slots: (slot) => ({
     root: slot<{}, MeterState>({
       role: "meter",
+      refs: { labelledby: { slot: "label", when: (state) => state.labels > 0 } },
       state: meterState,
-      attrs: (state, { id }) => ({
+      attrs: (state) => ({
         ...gaugeAria(state.value, state),
-        "aria-labelledby": state.labels ? labelId(id) : undefined,
         // For anything else that should follow the value, like a ring's sweep.
         style: css({ "--meter-value": `${roundPercent(percentOf(state))}%` }),
       }),
@@ -116,7 +115,6 @@ const meterPrimitive = /* @__PURE__ */ definePrimitive({
     }),
     label: slot<{}, MeterState>({
       state: meterState,
-      attrs: (_, { id }) => ({ id: labelId(id) }),
       bind: (_, { api }) => api.internal.label(),
     }),
     // The formatted value. Its text isn't announced on its own: a meter's

@@ -10,7 +10,7 @@ import { onProps } from "../kernel/part"
 import type { Part, SlotFactory } from "../kernel/primitive-types"
 import type { Store } from "../kernel/store"
 import type { PortalProps, PositionProps } from "../platform/position"
-import { popupContentAttrs, type Modal, type PopupFocusTarget } from "./popup"
+import { controlsContent, popupContentAttrs, type Modal, type PopupFocusTarget } from "./popup"
 import { ownsEvent, registerPopupElement } from "./popup-elements"
 import type { createPopup, PopupState } from "./create-popup"
 
@@ -177,6 +177,18 @@ function bindTrigger<State extends PopupState>(store: Store<State>, key: string)
 function popupTrigger<State extends PopupState, Api extends PopupApi>(slot: SlotFactory<State, Api>) {
   return slot<PopupTriggerProps, PopupTriggerState>({
     props: { id: "id", disabled: "boolean", payload: "value" },
+    refs: {
+      controls: {
+        slot: "content",
+        key: "",
+        when: (state, { key, api }) => !!api.internal.press && controlsContent(state, key),
+      },
+      describedby: {
+        slot: "content",
+        key: "",
+        when: (state, { key, api }) => !api.internal.press && !!api.internal.focus?.describes(state, key),
+      },
+    },
     state: (state, { key, props }) => ({
       open: state.open && (state.trigger === null || state.trigger === key),
       disabled: !!props.disabled,
@@ -230,6 +242,13 @@ function popupContent<State extends PopupState, Api extends PopupApi>(slot: Slot
     connect: registerPopupElement,
     role: (state, { api }) => api.internal.role,
     roles: ["dialog", "alertdialog", "menu", "tooltip"],
+    refs: {
+      describedby: {
+        slot: "description",
+        key: "",
+        when: (state, { api }) => !!api.internal.press && state.described,
+      },
+    },
     // Only Tab: a menu built on these parts brings its own arrow keys.
     keys: ["Tab"],
     state: (state) => ({
@@ -247,7 +266,8 @@ function popupContent<State extends PopupState, Api extends PopupApi>(slot: Slot
         // A tooltip never takes focus, so it needs no tabindex.
         tabindex: role === "tooltip" ? undefined : "-1",
         ...press?.contentAttrs(state, id, role),
-        ...triggerName?.contentAttrs(state, id),
+        ...(triggerName && { "aria-labelledby": triggerName.titled(state) ? `${id}-title` : undefined }),
+        ...triggerName?.contentAttrs(state),
       }
     },
     on: {

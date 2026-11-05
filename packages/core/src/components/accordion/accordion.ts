@@ -11,7 +11,6 @@ import {
 } from "../../foundation/disclosure/disclosure"
 import { stateAndRenders } from "../../foundation/motion/panel"
 import type { AccordionGeneric } from "./accordion-generic"
-import { idPart } from "../../foundation/kernel/attrs"
 import { createController } from "../../foundation/kernel/controller"
 import { deriveFromOptions } from "../../foundation/kernel/derive"
 import { createDetails, type ChangeDetails, type ChangeOptions } from "../../foundation/kernel/details"
@@ -532,14 +531,15 @@ const accordionPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     trigger: slot<TriggerProps, AccordionTriggerState>({
+      // Only panels in the page can be pointed at.
+      refs: { controls: { slot: "panel", when: (state, { key }) => state.panels.includes(key), live: true } },
       props: { value: { kind: "string", from: "item" }, disabled: "boolean" },
       selects: selects({ value: ({ key }) => [key], exiting: [], panels: ({ key }) => [key] }),
       state: (state, { key, props, api }) => itemState(state, key, api, props.disabled),
-      attrs: (state, { id, key, props, api }) => {
+      attrs: (state, { key, props, api }) => {
         const open = state.value.includes(key)
         const disabled = disabledOf(state, key, api, props.disabled)
         return {
-          id: `${id}-trigger-${idPart(key)}`,
           type: "button",
           "aria-expanded": String(open),
           // Also when the open item can't close, as the APG asks.
@@ -548,10 +548,6 @@ const accordionPrimitive = /* @__PURE__ */ definePrimitive({
           "data-disabled": disabled ? "" : undefined,
         }
       },
-      // Only panels in the page can be pointed at.
-      live: live((state, { id, key }) => ({
-        "aria-controls": state.panels.includes(key) ? `${id}-panel-${idPart(key)}` : undefined,
-      })),
       press({ api, el, key, props, store }, event) {
         if (disabledOf(store.get(), key, api, props.disabled)) {
           // A disabled link must not navigate either.
@@ -567,6 +563,7 @@ const accordionPrimitive = /* @__PURE__ */ definePrimitive({
 
     panel: slot<PanelProps, AccordionPanelState>({
       role: "region",
+      refs: { labelledby: "trigger" },
       props: { value: { kind: "string", from: "item" }, keepMounted: "boolean", hiddenUntilFound: "boolean" },
       selects: selects({ value: ({ key }) => [key], exiting: ({ key }) => [key], panels: [] }),
       present: (state, { key, props }) =>
@@ -575,11 +572,9 @@ const accordionPrimitive = /* @__PURE__ */ definePrimitive({
         keepsMounted(state, props) ||
         findable(state, props),
       state: (state, { key, api }) => itemState(state, key, api),
-      attrs: (state, { id, key, props, api }) => {
+      attrs: (state, { key, props, api }) => {
         const open = state.value.includes(key)
         return {
-          id: `${id}-panel-${idPart(key)}`,
-          "aria-labelledby": `${id}-trigger-${idPart(key)}`,
           ...hiddenAttrs(open || state.exiting.includes(key), findable(state, props)),
           ...openAttrs(open),
           "data-disabled": disabledOf(state, key, api) ? "" : undefined,

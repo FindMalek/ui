@@ -131,9 +131,6 @@ function roundPercent(percent: number) {
   return Math.round(percent * 1e4) / 1e4
 }
 
-// The id a Label part takes, which the root's `aria-labelledby` points at.
-const labelId = (id: string) => `${id}-label`
-
 // What Progress and Meter set up: Label parts name the root while any is on the page.
 function gaugeApi(store: { get: () => { labels: number }; set: (patch: { labels: number }) => void }) {
   return {
@@ -161,7 +158,6 @@ export {
   type GaugeSettings,
   gaugeApi,
   indicatorStyle,
-  labelId,
   percentBetween,
   roundPercent,
 }

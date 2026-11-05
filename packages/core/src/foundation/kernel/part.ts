@@ -2,10 +2,11 @@
 // makes parts (`instance.part(slot, props)`), and these read, subscribe and
 // bind them. They're free functions, so each adapter bundles only the ones it
 // calls.
-import { checkFocus, checkRole, dev, warn } from "#dev"
+import { checkFocus, checkRefs, checkRole, dev, warn } from "#dev"
+import { idPart } from "./attrs"
 import { enforceHidden } from "../platform/style"
 import { isComposing, on } from "./events"
-import type { AnySlot, Attrs, EventMap, Part, RoleFields } from "./primitive-types"
+import type { AnySlot, Attrs, EventMap, Part, RoleFields, SlotRef } from "./primitive-types"
 import { eachMoved } from "./selects"
 import { renders, sameValue, subscribeSkipping, touch, type Listener } from "./store"
 
@@ -57,6 +58,8 @@ type PartOwner = {
   // Whether a render took an own id since parts last heard, which they hear
   // once the elements bind, so a part rendered before it points at it too.
   renamed?: boolean
+  // Slots another slot's `refs` points at, which core gives their made ids.
+  referenced?: Set<string>
 }
 
 // Every part an adapter holds came from `instance.part()`, which makes a record.
@@ -139,13 +142,22 @@ function attrs(part: Part, props = part.props, state = part.store.get()) {
       definition.live?.read(state, context),
     )
   }
+  const refs = definition.refs && refAttrs(definition.refs, state, { ...context, key: idKey(part) }, false)
+  if (dev && definition.refs)
+    checkRefs(definition, part.slot, own, ownerOf(part).slots, {
+      component: ownerOf(part).label,
+      id: part.id,
+    })
   const result: Attrs = {
     "data-slot": `${ownerOf(part).name}-${part.slot}`,
     ...(declared === undefined ? undefined : { role }),
     ...own,
+    ...refs,
   }
   // The declared role wins over one in `attrs`, and keeps its place first.
   if (declared !== undefined) result.role = role as Attrs[string]
+  if (result.id === undefined && referencedSlots(ownerOf(part)).has(part.slot))
+    result.id = slotId(part.id, part.slot, idKey(part))
   return aliased(part as PartRecord, result)
 }
 
@@ -204,7 +216,12 @@ const held = (part: Part) => (part as PartRecord).leases > 0
 
 /** Live attributes, which core writes to a bound element itself. */
 function liveAttrs(part: Part, props = part.props) {
-  return aliased(part as PartRecord, definitionOf(part).live?.read(part.store.get(), view(part, props)) ?? {})
+  const definition = definitionOf(part) as AnySlot & RoleFields<any, any, any>
+  const state = part.store.get()
+  const context = view(part, props)
+  const own = definition.live?.read(state, context) ?? {}
+  const refs = definition.refs && refAttrs(definition.refs, state, { ...context, key: idKey(part) }, true)
+  return aliased(part as PartRecord, refs ? { ...own, ...refs } : own)
 }
 
 /** The attributes core keeps current on an element a framework rendered. */
@@ -381,7 +398,8 @@ function bind(part: Part, el: HTMLElement, host: Host = { by: "core" }) {
   const cleanup = definition.bind?.(el, part)
   if (cleanup) cleanups.push(cleanup)
   // Stand-ins that unit tests bind in Node have no ids to follow.
-  if (definition.attrs && typeof MutationObserver !== "undefined") cleanups.push(followId(kept, el))
+  const makesId = definition.attrs || referencedSlots(kept.owner).has(kept.slot)
+  if (makesId && typeof MutationObserver !== "undefined") cleanups.push(followId(kept, el))
 
   return () => {
     cleanups.forEach((cleanup) => cleanup())
@@ -454,7 +472,69 @@ const references = [
 // The id the slot makes when the author gives none, which a slot that reads
 // `id`, like a field's label, renders in its place.
 const madeId = (part: Part) =>
-  definitionOf(part).attrs?.(part.store.get(), view(part, { ...part.props, id: undefined })).id
+  definitionOf(part).attrs?.(part.store.get(), view(part, { ...part.props, id: undefined })).id ??
+  (referencedSlots(ownerOf(part)).has(part.slot) ? slotId(part.id, part.slot, idKey(part)) : undefined)
+
+// The id core gives a part another slot's `refs` points at: the slot's name,
+// and its key when the slot has more than one part.
+const slotId = (id: string, slot: string, key: string) =>
+  key === "" ? `${id}-${slot}` : `${id}-${slot}-${idPart(key)}`
+
+// A part's key counts in its id only when its slot is keyed by its props, by
+// a `value` or an `id`. Adapters key other parts too, like web components'
+// generated keys, which would otherwise end up in every id.
+function idKey(part: Part) {
+  const props = (definitionOf(part) as { props?: Record<string, unknown> }).props
+  return props && ("value" in props || "id" in props) ? part.key : ""
+}
+
+type Ref = SlotRef<any, any, any> | readonly SlotRef<any, any, any>[]
+
+const targetsOf = (ref: Ref) =>
+  (Array.isArray(ref) ? ref : [ref as SlotRef<any, any, any>]).map((each) =>
+    typeof each === "string" ? { slot: each } : each,
+  )
+
+function referencedSlots(owner: PartOwner) {
+  if (owner.referenced) return owner.referenced
+  const referenced = new Set<string>()
+  for (const name in owner.slots) {
+    const refs = (owner.slots[name] as RoleFields<any, any, any>).refs
+    for (const ref of Object.values(refs ?? {}))
+      for (const target of targetsOf(ref as Ref)) referenced.add(target.slot)
+  }
+  return (owner.referenced = referenced)
+}
+
+// `aria-controls` and the rest from a slot's `refs`: the ids of the parts each
+// points at now, or none. Those marked `live` with the slot's `live`, the
+// rest with its `attrs`.
+function refAttrs(
+  refs: NonNullable<RoleFields<any, any, any>["refs"]>,
+  state: object,
+  context: ReturnType<typeof view>,
+  live: boolean,
+) {
+  let result: Attrs | undefined
+  for (const [name, ref] of Object.entries(refs)) {
+    const targets = targetsOf(ref as Ref)
+    if (!targets.some((target) => !!target.live === live)) continue
+    const ids: string[] = []
+    for (const target of targets) {
+      if (target.when && !target.when(state, context)) continue
+      const key = typeof target.key === "function" ? target.key(state, context) : (target.key ?? context.key)
+      ids.push(slotId(context.id, target.slot, key))
+    }
+    ;(result ??= {})[`aria-${name}`] = ids.length ? ids.join(" ") : undefined
+  }
+  return result
+}
+
+/** Whether a slot keeps a reference current with `live`, which then needs a `live` to write it. */
+const hasLiveRefs = (definition: object) =>
+  Object.values((definition as RoleFields<any, any, any>).refs ?? {}).some((ref) =>
+    targetsOf(ref as Ref).some((target) => target.live),
+  )
 
 // References to a made id point at the element's own id that replaced it, so
 // a label's `for`, the app's own `aria-describedby`, styles and tests that
@@ -575,6 +655,7 @@ function composing(event: Event) {
 
 export {
   aliasReferences,
+  hasLiveRefs,
   attrs,
   authorOwned,
   bind,

@@ -400,6 +400,14 @@ const drawerPrimitive = /* @__PURE__ */ definePrimitive({
         props: { container: "value", initialFocus: "string", finalFocus: "string", keepMounted: "boolean" },
         connect: registerPopupElement,
         role: "dialog",
+        refs: {
+          labelledby: {
+            slot: "title",
+            key: "",
+            when: (state, { api }) => !!api.internal.triggerName?.titled(state),
+          },
+          describedby: { slot: "description", key: "", when: (state) => state.described },
+        },
         state: (state) => ({
           open: state.open,
           modal: state.modal,
@@ -417,8 +425,7 @@ const drawerPrimitive = /* @__PURE__ */ definePrimitive({
         present: (state, { props }) => state.mounted || !!props.keepMounted,
         attrs: (state, { id, api }) => ({
           ...popupContentAttrs(state, id),
-          ...api.internal.triggerName?.contentAttrs(state, id),
-          "aria-describedby": state.described ? `${id}-description` : undefined,
+          ...api.internal.triggerName?.contentAttrs(state),
           "data-side": state.side,
           "data-snap-point": state.snapPoint === null ? undefined : String(state.snapPoint),
           "data-expanded": state.snapCount > 0 && state.snapIndex === state.snapCount - 1 ? "" : undefined,
@@ -485,9 +492,9 @@ const drawerPrimitive = /* @__PURE__ */ definePrimitive({
           canExpand: state.snapIndex >= 0 && state.snapIndex < state.snapCount - 1,
           canCollapse: state.snapIndex > 0,
         }),
-        attrs: (state, { id }) => ({
+        refs: { controls: { slot: "content", key: "", when: (state) => state.mounted } },
+        attrs: (state) => ({
           type: "button",
-          "aria-controls": state.mounted ? `${id}-content` : undefined,
           "data-snap-point": state.snapPoint === null ? undefined : String(state.snapPoint),
           "data-expanded": state.snapCount > 0 && state.snapIndex === state.snapCount - 1 ? "" : undefined,
         }),

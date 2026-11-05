@@ -193,6 +193,22 @@ box: slot({
 
 A state that `live` keeps current is `undefined` in `attrs`, so `attrs` still names it. Development builds warn about anything the types can't see, like a spread slot or JavaScript, and about a required state that renders without a value. Set `globalThis.__UI_SDK_STRICT__ = true` in your test setup to turn every warning into an error.
 
+## References
+
+A part that points at another, like a tab at its panel, names its slot in `refs`, never an id. Core writes the reference and gives the part it points at its id:
+
+```ts
+tab: slot({
+  role: "tab",
+  focus: "roving",
+  press: ({ api, key }) => api.select(key),
+  refs: { controls: { slot: "panel", when: (state, { key }) => state.panels.includes(key) } },
+}),
+panel: slot({ role: "tabpanel", refs: { labelledby: "tab" } }),
+```
+
+Each name is the attribute without `aria-`, like `controls`, `labelledby` or `activedescendant`. A slot's name points at its part with the same key, and `{ slot, key }` at another one, like the highlighted option. `when` points only while it holds, and a list points at every target that does. Add `live: true` to keep a reference that changes often current without rendering the part. An author's own id on the element still works: references follow it. Development builds warn about a slot the primitive doesn't have, and about `attrs` writing the same attribute.
+
 ## Working with the Element
 
 Use `bind` for work that needs an element, such as measuring it or attaching an observer. It runs in the browser once the part is bound. Return a cleanup function:

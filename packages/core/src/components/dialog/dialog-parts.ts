@@ -39,8 +39,8 @@ function dialogSlots(slot: SlotFactory<DialogState, DialogApi>, { name }: { name
     // useful, so it leaves `aria-expanded` out. A non-modal one keeps it, and
     // so does one that only traps focus, since the page still takes presses.
     trigger: slot<TriggerProps, DialogTriggerState>({
+      ...trigger,
       props: { id: "id", disabled: "boolean", payload: "value", shortcut: "string" },
-      state: trigger.state,
       attrs: (state, part) => ({
         ...trigger.attrs!(state, part),
         ...(state.modal === true && { "aria-expanded": undefined }),
@@ -48,8 +48,6 @@ function dialogSlots(slot: SlotFactory<DialogState, DialogApi>, { name }: { name
           ? ariaKeyshortcuts(part.props.shortcut, state.apple)
           : undefined,
       }),
-      on: trigger.on,
-      press: trigger.press,
       bind(el, part) {
         const { key, store, api } = part
         const unbind = trigger.bind!(el, part)
@@ -90,6 +88,14 @@ function dialogSlots(slot: SlotFactory<DialogState, DialogApi>, { name }: { name
       connect: registerPopupElement,
       role: (state, { api }) => api.internal.role,
       roles: ["dialog", "alertdialog"],
+      refs: {
+        labelledby: {
+          slot: "title",
+          key: "",
+          when: (state, { api }) => !!api.internal.triggerName?.titled(state),
+        },
+        describedby: { slot: "description", key: "", when: (state) => state.described },
+      },
       state: (state) => ({
         open: state.open,
         modal: state.modal,
@@ -103,8 +109,7 @@ function dialogSlots(slot: SlotFactory<DialogState, DialogApi>, { name }: { name
       present: (state, { props }) => state.mounted || !!props.keepMounted,
       attrs: (state, { id, api }) => ({
         ...popupContentAttrs(state, id),
-        ...api.internal.triggerName?.contentAttrs(state, id),
-        "aria-describedby": state.described ? `${id}-description` : undefined,
+        ...api.internal.triggerName?.contentAttrs(state),
         "data-nested": state.nested ? "" : undefined,
         "data-nested-open": state.stack > 0 ? "" : undefined,
         // Only a dialog presents, so only a dialog says how.

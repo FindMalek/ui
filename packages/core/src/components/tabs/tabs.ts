@@ -8,14 +8,12 @@ import { itemIconPart, type ItemIconProps, type ItemIconState } from "../../foun
 import { animateIn, animateOut } from "../../foundation/motion/presence"
 import { createRovingFocus } from "../../foundation/focus/roving-focus"
 import { bindTabStop } from "../../foundation/focus/tabbable"
-import { idPart } from "../../foundation/kernel/attrs"
 import { createController } from "../../foundation/kernel/controller"
 import { deriveFromOptions } from "../../foundation/kernel/derive"
 import type { ChangeDetails, ChangeOptions } from "../../foundation/kernel/details"
 import { definePrimitive } from "../../foundation/kernel/primitive"
 import type { PrimitiveContext, PrimitiveOptions, WithGeneric } from "../../foundation/kernel/primitive-types"
 import { selects } from "../../foundation/kernel/selects"
-import { live } from "../../foundation/kernel/live"
 import { createChange } from "../../foundation/kernel/input-source"
 import { onProps, subscribe } from "../../foundation/kernel/part"
 
@@ -499,6 +497,8 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
     tab: slot<TabProps, TabsTabState>({
       role: "tab",
       focus: "roving",
+      // Only panels in the page can be pointed at.
+      refs: { controls: { slot: "panel", when: (state, { key }) => state.panels.includes(key), live: true } },
       props: { value: "string", disabled: "boolean" },
       // Until there's a stop, the selected tab holds it, or with nothing
       // selected, the first enabled one claims it: those hear a change to null.
@@ -518,7 +518,6 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
       attrs: (state, { id, key, props, api }) => {
         const selected = api.internal.shows(state, key)
         return {
-          id: `${id}-tab-${idPart(key)}`,
           // On a link, `type` names the linked file's kind, so only a button gets one.
           type: (state.elements[key] ?? "button") === "button" ? "button" : undefined,
           tabindex: api.internal.roving.tabIndex(state, { key, props }),
@@ -530,10 +529,6 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
           "data-activation-direction": state.direction,
         }
       },
-      // Only panels in the page can be pointed at.
-      live: live((state, { id, key }) => ({
-        "aria-controls": state.panels.includes(key) ? `${id}-panel-${idPart(key)}` : undefined,
-      })),
       press({ api, el, key, props }, event) {
         if (props.disabled) {
           // A disabled link must not navigate either.
@@ -611,6 +606,7 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
 
     panel: slot<PanelProps, TabsPanelState>({
       role: "tabpanel",
+      refs: { labelledby: "tab" },
       props: { value: "string", keepMounted: "boolean", hiddenUntilFound: "boolean" },
       // Panels never read the tab stop, which moves with every arrow key, or
       // which panels are in the page, and only ask whether they're exiting.
@@ -628,9 +624,7 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
         api.internal.shows(state, key) ||
         state.exiting.includes(key),
       state: (state, { key, api }) => ({ selected: api.internal.shows(state, key) }),
-      attrs: (state, { id, key, props, api }) => ({
-        id: `${id}-panel-${idPart(key)}`,
-        "aria-labelledby": `${id}-tab-${idPart(key)}`,
+      attrs: (state, { key, props, api }) => ({
         ...hiddenAttrs(api.internal.shows(state, key) || state.exiting.includes(key), findable(state, props)),
         "data-selected": api.internal.shows(state, key) ? "" : undefined,
         "data-orientation": api.internal.orientation(),

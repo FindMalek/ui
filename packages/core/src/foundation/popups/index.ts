@@ -8,6 +8,7 @@ export { measureScrollerEarly } from "./modal"
 export { createSafeArea } from "./safe-area"
 export { modalAttribute, pointerModalAttribute } from "./modal-attribute"
 export {
+  controlsContent,
   createPopupController,
   deriveOpen,
   type Modal,
@@ -21,6 +22,7 @@ export {
   type PopupOpenOptions,
   type PopupResult,
   popupTriggerAttrs,
+  popupTriggerBaseAttrs,
   resetPopoverStyles,
 } from "./popup"
 export { createOpenSteps, createSteppedPopup, unopened } from "./popup-steps"

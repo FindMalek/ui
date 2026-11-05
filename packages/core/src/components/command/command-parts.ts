@@ -81,12 +81,12 @@ const commandSlots = (slot: SlotFactory<CommandStore, CommandApi>) => ({
   input: slot<{}, CommandInputState>({
     ...field,
     keys: [...field.keys, "Enter", "Escape", "Backspace"],
+    refs: { controls: "list" },
     state: (state) => ({ page: currentPage(state) }),
     attrs: (state, context) => ({
       ...field.attrs(state, context),
       type: "text",
       "aria-autocomplete": "list",
-      "aria-controls": `${context.id}-list`,
     }),
     bind(el, context) {
       if (dev)
@@ -105,9 +105,8 @@ const commandSlots = (slot: SlotFactory<CommandStore, CommandApi>) => ({
       status: state.status,
       items: (api.internal.listbox.visibleData()?.list as CommandData | undefined) ?? noCommands,
     }),
-    attrs: (state, { id }) => ({
-      id: `${id}-list`,
-      "aria-labelledby": `${id}-input`,
+    refs: { labelledby: "input" },
+    attrs: (state) => ({
       "aria-busy": state.status === "loading" ? "true" : undefined,
     }),
     on: pressKeepsFocus,

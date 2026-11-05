@@ -315,8 +315,6 @@ type NavigationMenuIndicatorState = {
   orientation: NavigationMenuOrientation
 }
 
-const contentId = (id: string, key: string) => `${id}-content-${idPart(key)}`
-
 const navigationMenuPrimitive = /* @__PURE__ */ definePrimitive({
   name: "navigation-menu",
   options: {
@@ -387,11 +385,11 @@ const navigationMenuPrimitive = /* @__PURE__ */ definePrimitive({
     trigger: slot<TriggerProps, NavigationMenuTriggerState>({
       props: { value: { kind: "string", from: "item" }, disabled: "boolean" },
       state: (state, { key, props }) => ({ open: state.value === key, disabled: !!props.disabled }),
+      refs: { controls: { slot: "content", when: (state, { key }) => isShown(state, key) } },
       attrs: (state, { id, key, props }) => ({
         id: `${id}-trigger-${idPart(key)}`,
         type: "button",
         "aria-expanded": String(state.value === key),
-        "aria-controls": isShown(state, key) ? contentId(id, key) : undefined,
         disabled: props.disabled ? "" : undefined,
         "data-disabled": props.disabled ? "" : undefined,
         ...openAttrs(state.value === key),
@@ -434,10 +432,9 @@ const navigationMenuPrimitive = /* @__PURE__ */ definePrimitive({
       }),
       present: (state, { key, props }) =>
         isShown(state, key) || !!props.keepMounted || !!props.hiddenUntilFound,
-      attrs: (state, { id, key, props }) => {
+      attrs: (state, { key, props }) => {
         const shown = isShown(state, key)
         return {
-          id: contentId(id, key),
           // Without a viewport, the content is a popup that touch can focus.
           tabindex: state.viewport ? undefined : "-1",
           hidden: shown ? undefined : props.hiddenUntilFound ? "until-found" : "",

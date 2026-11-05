@@ -319,16 +319,14 @@ const popoverPrimitive = /* @__PURE__ */ definePrimitive({
     return {
       // A popup trigger whose `shortcut` presses it.
       trigger: slot<TriggerProps, PopoverTriggerState>({
+        ...trigger,
         props: { id: "id", disabled: "boolean", payload: "value", shortcut: "string" },
-        state: trigger.state,
         attrs: (state, part) => ({
           ...trigger.attrs!(state, part),
           "aria-keyshortcuts": part.props.shortcut
             ? ariaKeyshortcuts(part.props.shortcut, state.apple)
             : undefined,
         }),
-        on: trigger.on,
-        press: trigger.press,
         bind(el, part) {
           const { api, key } = part
           const unbind = trigger.bind!(el, part)

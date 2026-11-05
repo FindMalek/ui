@@ -504,6 +504,7 @@ const treePrimitive = /* @__PURE__ */ definePrimitive({
     item: slot<ItemProps, TreeItemState>({
       role: "treeitem",
       focus: "roving",
+      refs: { labelledby: "label" },
       keys: (state) => [
         "ArrowUp",
         "ArrowDown",
@@ -538,7 +539,6 @@ const treePrimitive = /* @__PURE__ */ definePrimitive({
         return {
           id: `${id}-item-${idPart(key)}`,
           tabindex: api.internal.tabIndex(state, part),
-          "aria-labelledby": `${id}-label-${idPart(key)}`,
           "aria-level": String(item.level),
           "aria-posinset": position && String(position.index),
           "aria-setsize": position && String(position.size),
@@ -579,8 +579,7 @@ const treePrimitive = /* @__PURE__ */ definePrimitive({
       selects: selects(partReads),
       state: (state, { props, api }) => itemState(state, itemOf(props), undefined, api),
       // The item's data attributes too, so a row styles from its label, apart from the items nested in it.
-      attrs: (state, { id, props, api }) => ({
-        id: `${id}-label-${idPart(itemOf(props))}`,
+      attrs: (state, { props, api }) => ({
         ...itemDataAttrs(itemState(state, itemOf(props), undefined, api)),
       }),
       // A link inside an item leaves the tab order to the item.

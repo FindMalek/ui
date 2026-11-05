@@ -66,7 +66,14 @@ export {
   valueInputPart,
   warnIfUnnamed,
 } from "./listbox-parts"
-export { bindListContent, inputState, listContentPart, listId, listPart } from "./listbox-popup"
+export {
+  bindListContent,
+  inputState,
+  labelledByLabel,
+  listContentPart,
+  listControls,
+  listPart,
+} from "./listbox-popup"
 export {
   announceResults,
   createLoadMore,
