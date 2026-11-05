@@ -45,6 +45,7 @@
     "./radio": "./src/radio.tsx",
     "./resizable": "./src/resizable.tsx",
     "./scroll-area": "./src/scroll-area.tsx",
+    "./segmented-control": "./src/segmented-control.tsx",
     "./select": "./src/select.tsx",
     "./separator": "./src/separator.tsx",
     "./shortcuts": "./src/shortcuts.ts",
@@ -230,6 +231,10 @@
       "./scroll-area": {
         "types": "./dist/scroll-area.d.ts",
         "default": "./dist/scroll-area.js"
+      },
+      "./segmented-control": {
+        "types": "./dist/segmented-control.d.ts",
+        "default": "./dist/segmented-control.js"
       },
       "./select": {
         "types": "./dist/select.d.ts",
