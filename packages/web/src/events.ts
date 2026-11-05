@@ -89,6 +89,8 @@ import type {
   DatePickerValue,
   DatePickerValueChangeReason,
 } from "@ui-sdk/core/date-picker"
+import type { DateInputController, DateInputValueChangeReason } from "@ui-sdk/core/date-input"
+import type { TimeInputController, TimeInputValueChangeReason } from "@ui-sdk/core/time-input"
 import type {
   CarouselController,
   CarouselPageChangeReason,
@@ -195,7 +197,9 @@ import type { checkbox, checkboxGroup } from "@ui-sdk/core/checkbox"
 import type { collapsible } from "@ui-sdk/core/collapsible"
 import type { combobox } from "@ui-sdk/core/combobox"
 import type { command } from "@ui-sdk/core/command"
+import type { dateInput } from "@ui-sdk/core/date-input"
 import type { datePicker } from "@ui-sdk/core/date-picker"
+import type { timeInput } from "@ui-sdk/core/time-input"
 import type { dialog } from "@ui-sdk/core/dialog"
 import type { drawer } from "@ui-sdk/core/drawer"
 import type { field, fieldGroup, fieldSet } from "@ui-sdk/core/field"
@@ -988,6 +992,48 @@ interface UiDatePickerElement
 }
 
 /**
+ * The events of `<ui-date-input>`. `valuechange` fires as a whole value forms, and with `null` as one empties.
+ * @stable
+ */
+type DateInputEvents = {
+  valuechange: UiChangeEvent<string | null, DateInputValueChangeReason>
+}
+/**
+ * `<ui-date-input>`: `value`, the controller's methods on `api`, form members like a native input, and typed events.
+ * @stable
+ */
+interface UiDateInputElement
+  extends
+    UiElement<DateInputEvents>,
+    FormControlProperties<typeof dateInput, "api" | "controller" | "unavailable" | "value"> {
+  value: string | null
+  api: DateInputController
+  controller?: DateInputController
+  /** Dates that can't be chosen, as any matcher, like `{ weekday: [0, 6] }`. The attribute takes a list of dates. */
+  unavailable?: DateMatchers
+}
+
+/**
+ * The events of `<ui-time-input>`. `valuechange` fires as a whole time forms, and with `null` as one empties.
+ * @stable
+ */
+type TimeInputEvents = {
+  valuechange: UiChangeEvent<string | null, TimeInputValueChangeReason>
+}
+/**
+ * `<ui-time-input>`: `value`, the controller's methods on `api`, form members like a native input, and typed events.
+ * @stable
+ */
+interface UiTimeInputElement
+  extends
+    UiElement<TimeInputEvents>,
+    FormControlProperties<typeof timeInput, "api" | "controller" | "value"> {
+  value: string | null
+  api: TimeInputController
+  controller?: TimeInputController
+}
+
+/**
  * The events of `<ui-otp-input>`. `valuecommit` fires when a change fills every slot.
  * @stable
  */
@@ -1550,6 +1596,8 @@ declare global {
     "ui-pagination": UiPaginationElement
     "ui-calendar": UiCalendarElement
     "ui-calendar-weeks": HTMLElement
+    "ui-date-input": UiDateInputElement
+    "ui-time-input": UiTimeInputElement
     "ui-date-picker": UiDatePickerElement
     "ui-carousel": UiCarouselElement
     "ui-listbox": UiListboxElement
@@ -1711,6 +1759,8 @@ declare global {
     "ui-command-separator": UiPartElement<typeof command, "separator">
     "ui-command-empty": UiPartElement<typeof command, "empty">
     "ui-command-status": UiPartElement<typeof command, "status">
+    "ui-date-input-segment": UiPartElement<typeof dateInput, "segment", "segment">
+    "ui-time-input-segment": UiPartElement<typeof timeInput, "segment", "segment">
     "ui-date-picker-input": UiPartElement<typeof datePicker, "input", "end">
     "ui-date-picker-trigger": UiPartElement<typeof datePicker, "trigger">
     "ui-date-picker-content": UiPartElement<
@@ -2083,6 +2133,7 @@ export {
   type CollapsibleEvents,
   type ComboboxEvents,
   type CommandEvents,
+  type DateInputEvents,
   type DatePickerEvents,
   type DialogEvents,
   type DrawerEvents,
@@ -2094,6 +2145,7 @@ export {
   type NavigationMenuEvents,
   type NumberInputEvents,
   type OTPInputEvents,
+  type TimeInputEvents,
   type PaginationEvents,
   type PartEvents,
   type PartProperties,
@@ -2126,6 +2178,7 @@ export {
   type UiCollapsibleElement,
   type UiComboboxElement,
   type UiCommandElement,
+  type UiDateInputElement,
   type UiDatePickerElement,
   type UiDetailedChangeEvent,
   type UiDialogElement,
@@ -2152,6 +2205,7 @@ export {
   type UiNumberInputElement,
   type UiOpenChangeCompleteEvent,
   type UiOTPInputElement,
+  type UiTimeInputElement,
   type UiOverlayHostElement,
   type UiPaginationElement,
   type UiPartElement,

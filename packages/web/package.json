@@ -18,6 +18,7 @@
     "./combobox": "./src/entries/combobox.ts",
     "./command": "./src/entries/command.ts",
     "./date-picker": "./src/entries/date-picker.ts",
+    "./date-input": "./src/entries/date-input.ts",
     "./dialog": "./src/entries/dialog.ts",
     "./drawer": "./src/entries/drawer.ts",
     "./events": "./src/events.ts",
@@ -53,6 +54,7 @@
     "./switch": "./src/entries/switch.ts",
     "./tabs": "./src/entries/tabs.ts",
     "./textarea": "./src/entries/textarea.ts",
+    "./time-input": "./src/entries/time-input.ts",
     "./toast": "./src/entries/toast.ts",
     "./toggle": "./src/entries/toggle.ts",
     "./token-input": "./src/entries/token-input.ts",
@@ -127,6 +129,10 @@
       "./date-picker": {
         "types": "./dist/entries/date-picker.d.ts",
         "default": "./dist/entries/date-picker.js"
+      },
+      "./date-input": {
+        "types": "./dist/entries/date-input.d.ts",
+        "default": "./dist/entries/date-input.js"
       },
       "./dialog": {
         "types": "./dist/entries/dialog.d.ts",
@@ -267,6 +273,10 @@
       "./textarea": {
         "types": "./dist/entries/textarea.d.ts",
         "default": "./dist/entries/textarea.js"
+      },
+      "./time-input": {
+        "types": "./dist/entries/time-input.d.ts",
+        "default": "./dist/entries/time-input.js"
       },
       "./toast": {
         "types": "./dist/entries/toast.d.ts",
