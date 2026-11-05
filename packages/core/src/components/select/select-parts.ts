@@ -2,7 +2,7 @@
 import { dev } from "#dev"
 import { popupContentAttrs } from "../../foundation/popups/popup"
 import { ownsEvent, registerPopupElement } from "../../foundation/popups/popup-elements"
-import { bindListContent } from "../../foundation/lists/listbox-popup"
+import { bindListContent, listControls } from "../../foundation/lists/listbox-popup"
 import { holdFocus } from "../../foundation/focus/press-keeps-focus"
 import {
   arrowPart,
@@ -141,11 +141,23 @@ const unreadByItems = {
 // Focus stays in the search field while there is one, unless a touch screen reader moved it into the list.
 const searching = (state: SelectState) => state.searchable && !state.focusInList
 
+// The label names the list, or the trigger does while there's no label.
+const selectLabels = (named: (state: { listed: boolean }) => boolean) => [
+  {
+    slot: "label",
+    when: (state: { labeled: boolean | null; listed: boolean }) => named(state) && !!state.labeled,
+  },
+  {
+    slot: "trigger",
+    when: (state: { labeled: boolean | null; listed: boolean }) => named(state) && !state.labeled,
+  },
+]
+
 const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
   root: slot(rootPart<SelectState, SelectApi>({ focusOnSelfClick: true })),
 
   label: slot({
-    attrs: (state, { id }) => ({ id: `${id}-label`, ...formAttrs(state) }),
+    attrs: (state) => ({ ...formAttrs(state) }),
     // Pressing the label focuses the trigger without opening the list, like a native select's label.
     press: ({ api }) => api.focus(),
     bind: (el, { store }) => flagWhileBound(store, "labeled"),
@@ -161,17 +173,20 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
       named: { kind: "boolean", from: "field" },
     },
     state: (state, { props }) => triggerState(state, props),
-    attrs: (state, { id, props }) => {
+    refs: {
+      controls: listControls,
+      // Until a SelectLabel is known to be missing, it names the trigger, unless something else does.
+      labelledby: {
+        slot: "label",
+        when: (state, { props }) => state.labeled || (state.labeled === null && !props.named),
+      },
+    },
+    attrs: (state, { props }) => {
       const { disabled, placeholder } = triggerState(state, props)
       return {
-        id: `${id}-trigger`,
         type: "button",
         "aria-haspopup": "listbox",
         "aria-expanded": String(state.open),
-        "aria-controls": state.mounted ? `${id}-${state.listed ? "list" : "content"}` : undefined,
-        // Until a SelectLabel is known to be missing, it names the trigger, unless something else does.
-        "aria-labelledby":
-          state.labeled || (state.labeled === null && !props.named) ? `${id}-label` : undefined,
         "aria-readonly": state.readOnly ? "true" : undefined,
         "aria-required": state.required ? "true" : undefined,
         disabled: disabled ? "" : undefined,
@@ -271,10 +286,11 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
       searching(state)
         ? [...listStepKeys, "Enter", "Tab"]
         : [...listStepKeys, "Home", "End", "Enter", " ", "Tab", "typeahead"],
+    // The list part inside names itself once it renders.
+    refs: { labelledby: selectLabels((state) => !state.listed) },
     attrs: (state, { id }) => ({
       ...popupContentAttrs(state, id),
       "aria-multiselectable": !state.listed && state.multiple ? "true" : undefined,
-      "aria-labelledby": state.listed ? undefined : state.labeled ? `${id}-label` : `${id}-trigger`,
       "aria-busy": !state.listed && state.status === "loading" ? "true" : undefined,
       "data-presentation": state.presentation,
     }),
@@ -303,10 +319,9 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
     role: "listbox",
     keys: { none: "The content around it handles them." },
     state: contentState,
-    attrs: (state, { id }) => ({
-      id: `${id}-list`,
+    refs: { labelledby: selectLabels(() => true) },
+    attrs: (state) => ({
       "aria-multiselectable": state.multiple ? "true" : undefined,
-      "aria-labelledby": state.labeled ? `${id}-label` : `${id}-trigger`,
       "aria-busy": state.status === "loading" ? "true" : undefined,
     }),
     bind: (el, { store }) => flagWhileBound(store, "listed"),
@@ -320,6 +335,7 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
     focus: "native",
     keys: { none: "The content around it handles them as they bubble from the field." },
     state: (state) => ({ open: state.open, disabled: isDisabled(state) }),
+    refs: { controls: "list" },
     attrs: (state, { id }) => ({
       id: `${id}-input`,
       type: "text",
@@ -329,7 +345,6 @@ const selectSlots = (slot: SlotFactory<SelectState, SelectApi>) => ({
       spellcheck: "false",
       "aria-autocomplete": "list",
       "aria-expanded": String(state.open),
-      "aria-controls": `${id}-list`,
       disabled: isDisabled(state) ? "" : undefined,
     }),
     live: live((state, { api }) => ({ "aria-activedescendant": api.internal.activeDescendant(state) })),

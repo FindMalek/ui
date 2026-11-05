@@ -333,12 +333,10 @@ function itemStyle(state: State) {
   return declarations.join(";")
 }
 
-const contentId = (id: string) => `${id}-content`
 const slideId = (id: string, key: string) => `${id}-slide-${idPart(key)}`
 
-const stepAttrs = (disabled: boolean, id: string) => ({
+const stepAttrs = (disabled: boolean) => ({
   type: "button",
-  "aria-controls": contentId(id),
   "aria-disabled": disabled ? "true" : undefined,
   "data-disabled": disabled ? "" : undefined,
 })
@@ -428,8 +426,7 @@ const carouselPrimitive = /* @__PURE__ */ definePrimitive({
 
     content: slot<{}, CarouselContentState>({
       state: (state) => ({ orientation: state.orientation }),
-      attrs: (state, { id }) => ({
-        id: contentId(id),
+      attrs: (state) => ({
         // Slides coming into view are read out, except while rotating, as the carousel pattern asks.
         "aria-live": state.playing ? "off" : "polite",
         "aria-atomic": "false",
@@ -467,8 +464,9 @@ const carouselPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     previous: slot<{}, CarouselPreviousState>({
+      refs: { controls: "content" },
       state: (state, { api }) => ({ disabled: !api.internal.canStep(-1) }),
-      attrs: (state, { id, api }) => stepAttrs(!api.internal.canStep(-1), id),
+      attrs: (state, { api }) => stepAttrs(!api.internal.canStep(-1)),
       press: ({ api }, event) => {
         api.previous({ reason: "previous-press", event })
       },
@@ -476,8 +474,9 @@ const carouselPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     next: slot<{}, CarouselNextState>({
+      refs: { controls: "content" },
       state: (state, { api }) => ({ disabled: !api.internal.canStep(1) }),
-      attrs: (state, { id, api }) => stepAttrs(!api.internal.canStep(1), id),
+      attrs: (state, { api }) => stepAttrs(!api.internal.canStep(1)),
       press: ({ api }, event) => {
         api.next({ reason: "next-press", event })
       },
@@ -521,10 +520,10 @@ const carouselPrimitive = /* @__PURE__ */ definePrimitive({
     }),
 
     "play-toggle": slot<{}, CarouselPlayToggleState>({
+      refs: { controls: "content" },
       state: (state) => ({ playing: state.playing, paused: state.paused }),
-      attrs: (state, { id }) => ({
+      attrs: (state) => ({
         type: "button",
-        "aria-controls": contentId(id),
         "data-playing": state.playing ? "" : undefined,
       }),
       live: live((state) => ({ "data-paused": state.playing && state.paused ? "" : undefined })),

@@ -233,23 +233,33 @@ function deriveOpen<State extends { open: boolean }>(
   )
 }
 
+type TriggerState = { open: boolean; mounted: boolean; trigger?: string | null }
+
+const opensFrom = (state: TriggerState, key: string) => state.trigger == null || state.trigger === key
+
+// Whether a trigger points at the content: with several triggers, only the
+// one that opened the popup does, and only while the content renders.
+const controlsContent = (state: TriggerState, key = "") => opensFrom(state, key) && state.mounted
+
 // ARIA every popup trigger carries. Only the kind of popup differs. With
 // several triggers, only the one that opened the popup is expanded and named
 // by it.
-function popupTriggerAttrs(
-  state: { open: boolean; mounted: boolean; trigger?: string | null },
-  id: string,
-  haspopup: string,
-  key = "",
-) {
-  const active = state.trigger == null || state.trigger === key
+function popupTriggerBaseAttrs(state: TriggerState, id: string, haspopup: string, key = "") {
+  const active = opensFrom(state, key)
   const open = state.open && active
   return {
     id: active ? `${id}-trigger` : undefined,
     "aria-haspopup": haspopup,
     "aria-expanded": String(open),
-    "aria-controls": active && state.mounted ? `${id}-content` : undefined,
     ...openAttrs(open),
+  }
+}
+
+// For a trigger without `refs` to the content, like Date Picker's.
+function popupTriggerAttrs(state: TriggerState, id: string, haspopup: string, key = "") {
+  return {
+    ...popupTriggerBaseAttrs(state, id, haspopup, key),
+    "aria-controls": controlsContent(state, key) ? `${id}-content` : undefined,
   }
 }
 
@@ -1097,6 +1107,7 @@ type Popup<Reason extends string = string> = ReturnType<
 export {
   type AttachConfig,
   createPopupLayer,
+  controlsContent,
   createPopupController,
   deriveOpen,
   firstUsable,
@@ -1118,6 +1129,7 @@ export {
   type PopupOpenOptions,
   type PopupResult,
   popupTriggerAttrs,
+  popupTriggerBaseAttrs,
   prepareReset,
   resetPopoverStyles,
   type ReturnMode,

@@ -30,7 +30,13 @@ import {
   warnIfUnnamed,
 } from "../../foundation/lists/listbox-parts"
 import { flagWhileBound } from "../../foundation/kernel/bound-keys"
-import { inputState, listContentPart, listId, listPart } from "../../foundation/lists/listbox-popup"
+import {
+  inputState,
+  labelledByLabel,
+  listContentPart,
+  listControls,
+  listPart,
+} from "../../foundation/lists/listbox-popup"
 import { itemIconPart, optionIcon } from "../../foundation/lists/item-icon"
 import { itemTextPart, type ListItemTextProps } from "../../foundation/lists/listbox-search"
 import { openAttrs } from "../../foundation/kernel/attrs"
@@ -88,7 +94,7 @@ const unreadByItems = {
 
 const autocompleteSlots = (slot: SlotFactory<AutocompleteState, AutocompleteApi>) => ({
   label: slot({
-    attrs: (state, { id }) => ({ id: `${id}-label`, for: `${id}-input`, ...formAttrs(state) }),
+    attrs: (state, { id }) => ({ for: `${id}-input`, ...formAttrs(state) }),
     // A label that isn't a native one for the field, like a custom element, focuses it all the same.
     press({ api, el }) {
       if (el instanceof HTMLLabelElement && el.control) return
@@ -109,13 +115,12 @@ const autocompleteSlots = (slot: SlotFactory<AutocompleteState, AutocompleteApi>
       ...(state.inline ? ["ArrowRight", "End"] : []),
     ],
     state: inputState,
+    refs: { controls: listControls, labelledby: labelledByLabel },
     attrs: (state, context) => ({
       ...field.attrs(state, context),
       name: state.name,
       form: state.form,
       "aria-autocomplete": state.inline ? "both" : "list",
-      "aria-controls": state.mounted ? listId(state, context.id) : undefined,
-      "aria-labelledby": state.labeled ? `${context.id}-label` : undefined,
       required: state.required ? "" : undefined,
       readonly: state.readOnly ? "" : undefined,
       disabled: state.disabled ? "" : undefined,
@@ -170,11 +175,11 @@ const autocompleteSlots = (slot: SlotFactory<AutocompleteState, AutocompleteApi>
   // A button that opens and closes the suggestions. Out of the tab order, since the field already does it.
   trigger: slot<{}, AutocompleteTriggerState>({
     state: inputState,
-    attrs: (state, { id }) => ({
+    refs: { controls: listControls },
+    attrs: (state) => ({
       type: "button",
       tabindex: "-1",
       "aria-expanded": String(state.open),
-      "aria-controls": state.mounted ? listId(state, id) : undefined,
       disabled: isDisabled(state) ? "" : undefined,
       ...openAttrs(state.open),
       ...formAttrs(state),

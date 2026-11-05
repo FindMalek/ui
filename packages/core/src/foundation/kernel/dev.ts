@@ -211,6 +211,38 @@ function checkAria(
   }
 }
 
+const checkedRefs = new WeakSet<object>()
+
+// A slot's `refs` against its owner's slots and its own `attrs`, once per slot.
+function checkRefs(
+  definition: { refs?: Record<string, unknown> },
+  slot: string,
+  own: Record<string, unknown> | undefined,
+  slots: Record<string, unknown>,
+  from: { component: string; id?: string },
+) {
+  if (checkedRefs.has(definition)) return
+  checkedRefs.add(definition)
+  for (const [name, ref] of Object.entries(definition.refs ?? {})) {
+    if (own?.[`aria-${name}`] !== undefined)
+      warn(
+        `the "${slot}" part's \`refs\` writes \`aria-${name}\`, and its \`attrs\` writes it too. Leave it out of \`attrs\`.`,
+        from,
+      )
+    const targets = (Array.isArray(ref) ? ref : [ref]) as (string | { slot: string; live?: boolean })[]
+    if (new Set(targets.map((each) => typeof each !== "string" && !!each.live)).size > 1)
+      warn(
+        `the "${slot}" part's \`refs\` writes \`aria-${name}\` both live and as it renders. Mark every one of its targets \`live\`, or none.`,
+        from,
+      )
+    for (const each of targets) {
+      const target = typeof each === "string" ? each : each.slot
+      if (!(target in slots))
+        warn(`the "${slot}" part's \`refs\` points at "${target}", which isn't one of its slots.`, from)
+    }
+  }
+}
+
 const focusesOnItsOwn =
   'button, input, select, textarea, a[href], summary, iframe, [contenteditable]:not([contenteditable="false"])'
 
@@ -560,6 +592,7 @@ const isMeasuring = () => measuring > 0
 export {
   checkControlled,
   checkFocus,
+  checkRefs,
   checkRole,
   checkRoles,
   checkEvent,

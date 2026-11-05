@@ -212,6 +212,8 @@ const hoverCardPrimitive = /* @__PURE__ */ definePrimitive({
       }),
       content: slot<ContentProps, HoverCardContentState>({
         ...content,
+        // A hover card has no description to point at.
+        refs: undefined,
         props: {
           side: "string",
           align: "string",

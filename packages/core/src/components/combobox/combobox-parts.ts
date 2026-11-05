@@ -46,7 +46,13 @@ import {
   warnIfUnnamed,
 } from "../../foundation/lists/listbox-parts"
 import { flagWhileBound } from "../../foundation/kernel/bound-keys"
-import { inputState, listContentPart, listId, listPart } from "../../foundation/lists/listbox-popup"
+import {
+  inputState,
+  labelledByLabel,
+  listContentPart,
+  listControls,
+  listPart,
+} from "../../foundation/lists/listbox-popup"
 import { itemIconsFeature, optionIcon, rememberIcon } from "../../foundation/lists/item-icon"
 import { itemTextPart, type ListItemTextProps } from "../../foundation/lists/listbox-search"
 import { selectAllFeature } from "../../foundation/lists/listbox-select-all"
@@ -164,7 +170,7 @@ const comboboxSlots = (slot: SlotFactory<ComboboxState, ComboboxApi>) => ({
   root: slot(rootPart<ComboboxState, ComboboxApi>({ focusOnSelfClick: false })),
 
   label: slot({
-    attrs: (state, { id }) => ({ id: `${id}-label`, for: `${id}-input`, ...formAttrs(state) }),
+    attrs: (state, { id }) => ({ for: `${id}-input`, ...formAttrs(state) }),
     // A label that isn't a native one for the input, like a custom element, focuses it all the same.
     press({ api, el }) {
       if (el instanceof HTMLLabelElement && el.control) return
@@ -184,8 +190,8 @@ const comboboxSlots = (slot: SlotFactory<ComboboxState, ComboboxApi>) => ({
       ...(state.multiple ? ["Backspace", "ArrowLeft", "ArrowRight"] : []),
     ],
     state: inputState,
-    attrs: (state, { id }) => ({
-      id: `${id}-input`,
+    refs: { controls: listControls, labelledby: labelledByLabel },
+    attrs: (state) => ({
       type: "text",
       value: state.query,
       autocomplete: "off",
@@ -193,8 +199,6 @@ const comboboxSlots = (slot: SlotFactory<ComboboxState, ComboboxApi>) => ({
       spellcheck: "false",
       "aria-autocomplete": "list",
       "aria-expanded": String(state.open),
-      "aria-controls": state.mounted ? listId(state, id) : undefined,
-      "aria-labelledby": state.labeled ? `${id}-label` : undefined,
       "aria-required": state.required ? "true" : undefined,
       readonly: state.readOnly ? "" : undefined,
       disabled: isDisabled(state) ? "" : undefined,
@@ -262,11 +266,11 @@ const comboboxSlots = (slot: SlotFactory<ComboboxState, ComboboxApi>) => ({
   // input, since the input already does it, and in it when the input is in the popup.
   trigger: slot<{}, ComboboxTriggerState>({
     state: inputState,
-    attrs: (state, { id }) => ({
+    refs: { controls: listControls },
+    attrs: (state) => ({
       type: "button",
       tabindex: state.inlineInput ? "-1" : undefined,
       "aria-expanded": String(state.open),
-      "aria-controls": state.mounted ? listId(state, id) : undefined,
       disabled: isDisabled(state) ? "" : undefined,
       ...openAttrs(state.open),
       ...formAttrs(state),
@@ -475,9 +479,9 @@ const comboboxChips = /* @__PURE__ */ (() => ({
       role: "toolbar",
       keys: { none: "Each chip handles the arrows that move between chips." },
       // Named by the combobox's label, like the input the chips sit around.
-      attrs: (state, { id }) => ({
+      refs: { labelledby: labelledByLabel },
+      attrs: (state) => ({
         "aria-orientation": "horizontal",
-        "aria-labelledby": state.labeled ? `${id}-label` : undefined,
         ...formAttrs(state),
       }),
       on: {

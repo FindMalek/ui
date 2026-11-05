@@ -14,7 +14,7 @@ import { tabbables } from "../focus/tabbable"
 import { accessibleName } from "../text/accessible-name"
 import type { PopupCore, PopupState } from "./create-popup"
 import { createHoverIntent } from "./hover"
-import { openerOf, popupTriggerAttrs, prepareReset, resetPopoverStyles } from "./popup"
+import { openerOf, popupTriggerBaseAttrs, prepareReset, resetPopoverStyles } from "./popup"
 import type { PopupContentProps, PopupTriggerProps } from "./popup-slots"
 
 // What a popup is placed against: its content's `anchor` setting, else
@@ -107,13 +107,11 @@ function pressOpening(core: PopupCore) {
       if (typeof setting === "string") return content.querySelector<HTMLElement>(setting) ?? content
       return isBrowser && setting instanceof HTMLElement ? setting : content
     },
-    // Named by its title, else its trigger, and described by its description.
-    // Until the content binds, as on the server, the trigger names it: a title
-    // may not render, and a missing one would leave it with no name at all.
-    // Only a popup that can present as a sheet says how it presents.
+    // Named by its title, else its trigger, which names it until the content
+    // binds, as on the server: a title may not render, and a missing one would
+    // leave it with no name. Only a popup that can be a sheet says how it presents.
     contentAttrs: (state: PopupState, id: string, role: string | undefined) => ({
       "aria-labelledby": role ? (state.titled ? `${id}-title` : `${id}-trigger`) : undefined,
-      "aria-describedby": state.described ? `${id}-description` : undefined,
       "aria-modal":
         (role === "dialog" || role === "alertdialog") && state.modal === true ? "true" : undefined,
       "data-presentation": preset.presentation && state.presentation,
@@ -123,7 +121,7 @@ function pressOpening(core: PopupCore) {
     triggerAttrs(state: PopupState, id: string, key: string, props: PopupTriggerProps, role?: string) {
       const haspopup = role === "menu" || role === "listbox" ? role : role && "dialog"
       return {
-        ...popupTriggerAttrs(state, id, haspopup ?? "", key),
+        ...popupTriggerBaseAttrs(state, id, haspopup ?? "", key),
         "aria-haspopup": haspopup,
         type: "button",
         disabled: props.disabled ? "" : undefined,
@@ -225,11 +223,13 @@ function focusOpening(core: PopupCore) {
       const content = core.popup.element()
       return event.key === "Tab" && !(content && tabbables(content).length)
     },
-    triggerAttrs(state: PopupState, id: string, key: string, props: PopupTriggerProps, role?: string) {
+    // A tooltip describes the trigger it opened from, or every one before it opens.
+    describes: (state: PopupState, key: string) =>
+      core.role === "tooltip" && (state.trigger === null || state.trigger === key),
+    triggerAttrs(state: PopupState, _id: string, key: string, props: PopupTriggerProps) {
       const active = state.trigger === null || state.trigger === key
       return {
         ...openAttrs(state.open && active),
-        "aria-describedby": role === "tooltip" && active ? `${id}-content` : undefined,
         "data-disabled": props.disabled ? "" : undefined,
       }
     },
@@ -246,10 +246,10 @@ const nameOf = (el: HTMLElement | undefined) => (el && accessibleName(el)) || un
 // bind, as on the server, its title names it.
 function triggerName(core: PopupCore) {
   return {
+    titled: (state: PopupState) => state.titled !== false,
     // Only a dialog that makes the page inert is modal to assistive
     // technology. One that only traps focus leaves the page usable.
-    contentAttrs: (state: PopupState, id: string) => ({
-      "aria-labelledby": state.titled !== false ? `${id}-title` : undefined,
+    contentAttrs: (state: PopupState) => ({
       "aria-label": state.titled === false ? nameOf(core.triggerElement()) : undefined,
       "aria-modal": state.modal === true ? "true" : undefined,
     }),

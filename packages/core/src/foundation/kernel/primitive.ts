@@ -5,7 +5,8 @@ import { connectController } from "./controller"
 import { withDerived } from "./derive"
 import { withSource, type ChangeSource } from "./details"
 import { discard, whileDestroying, withLifecycle } from "./keep"
-import { propsRendered, provisional, type PartOwner, type PartRecord } from "./part"
+import { live } from "./live"
+import { hasLiveRefs, propsRendered, provisional, type PartOwner, type PartRecord } from "./part"
 import type {
   AnySlot,
   BaseSlotProps,
@@ -23,6 +24,15 @@ import type {
 } from "./primitive-types"
 import { createStore, heldState, renders, sameValue, standFor } from "./store"
 import { watchWhileKept } from "./watchers"
+
+// A slot whose `refs` keeps a reference current with `live` gets an empty
+// `live`, which core attaches to its element, to write it.
+function withLiveRefs<Slots extends Record<string, unknown>>(slots: Slots) {
+  for (const name in slots)
+    if (hasLiveRefs(slots[name] as object) && !(slots[name] as { live?: unknown }).live)
+      slots[name] = { ...(slots[name] as object), live: live(() => ({})) } as Slots[typeof name]
+  return slots
+}
 
 /**
  * Defines a component's behavior without its markup: its state, an api that
@@ -111,7 +121,7 @@ function definePrimitive<
     }
   } & OptionsSchema<Options>,
 ) {
-  const slots = definition.slots((slot) => slot)
+  const slots = withLiveRefs(definition.slots((slot) => slot))
   const name = definition.name
   const label = definition.label ?? name
   if (dev) checkRoles(slots as Record<string, object>, { component: label })
@@ -139,7 +149,8 @@ function definePrimitive<
     function use(feature: Feature<Api>) {
       if (used.has(feature)) return
       used.add(feature)
-      Object.assign(own, feature.slots)
+      Object.assign(own, withLiveRefs({ ...feature.slots }))
+      owner.referenced = undefined
       feature.extend?.(api)
     }
 

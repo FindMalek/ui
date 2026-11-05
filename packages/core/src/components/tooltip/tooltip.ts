@@ -392,16 +392,18 @@ const tooltipPrimitive = /* @__PURE__ */ definePrimitive({
         state: (state, { key }) => ({
           open: state.open && (state.trigger === null || state.trigger === key),
         }),
-        attrs: (state, { id, key }) => {
-          const active = state.trigger === null || state.trigger === key
-          const label = labels(state)
-          return {
-            type: "button",
-            "aria-labelledby": label ? `${id}-content` : undefined,
-            "aria-describedby": !label && active ? `${id}-content` : undefined,
-            "aria-keyshortcuts": state.shortcut ? ariaKeyshortcuts(state.shortcut, state.apple) : undefined,
-          }
+        refs: {
+          labelledby: { slot: "content", key: "", when: labels },
+          describedby: {
+            slot: "content",
+            key: "",
+            when: (state, { key }) => !labels(state) && (state.trigger === null || state.trigger === key),
+          },
         },
+        attrs: (state) => ({
+          type: "button",
+          "aria-keyshortcuts": state.shortcut ? ariaKeyshortcuts(state.shortcut, state.apple) : undefined,
+        }),
         on: {
           ...trigger.on,
           pointerenter: (event, { api, key, props }) => api.internal.enter(event, key, props.payload),
@@ -437,6 +439,8 @@ const tooltipPrimitive = /* @__PURE__ */ definePrimitive({
       // described before focus reaches it, which says when it opened at once.
       content: slot<ContentProps, TooltipContentState>({
         ...content,
+        // A tooltip has no description to point at.
+        refs: undefined,
         props: {
           side: "string",
           align: "string",

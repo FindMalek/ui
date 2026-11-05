@@ -66,11 +66,20 @@ const inputState = (state: FieldState) => ({
 })
 
 // The id of the element the field controls: the list part's, or the content's.
-const listId = (state: { listed: boolean }, id: string) => `${id}-${state.listed ? "list" : "content"}`
+// What the field and its trigger control while the list renders: the list
+// part once one renders inside the content, else the content itself.
+const listControls = [
+  { slot: "list", when: (state: { mounted: boolean; listed: boolean }) => state.mounted && state.listed },
+  { slot: "content", when: (state: { mounted: boolean; listed: boolean }) => state.mounted && !state.listed },
+]
+
+const labelledByLabel = { slot: "label", when: (state: { labeled: boolean }) => state.labeled }
 
 // The label names the list, or the field does while there's no label.
-const listLabelledBy = (state: { labeled: boolean }, id: string) =>
-  state.labeled ? `${id}-label` : `${id}-input`
+const listLabels = (named: (state: { listed: boolean }) => boolean) => [
+  { slot: "label", when: (state: { labeled: boolean; listed: boolean }) => named(state) && state.labeled },
+  { slot: "input", when: (state: { labeled: boolean; listed: boolean }) => named(state) && !state.labeled },
+]
 
 // The popup the list opens in. It's the listbox itself until a list part
 // renders inside it, next to a header or a status.
@@ -93,10 +102,11 @@ function listContentPart<State extends ListPopupState, Api extends ListPopupApi>
     roles: ["presentation", "listbox"],
     // Only while a screen reader moved real focus into the list. Otherwise the field's input takes them.
     keys: [...listStepKeys, "Home", "End", "Enter", " ", "typeahead"],
+    // The list part inside names itself once it renders.
+    refs: { labelledby: listLabels((state) => !state.listed) },
     attrs: (state, { id }) => ({
       ...popupContentAttrs(state, id),
       "aria-multiselectable": !state.listed && state.multiple ? "true" : undefined,
-      "aria-labelledby": state.listed ? undefined : listLabelledBy(state, id),
       "aria-busy": !state.listed && state.status === "loading" ? "true" : undefined,
       "data-presentation": state.presentation,
     }),
@@ -165,14 +175,13 @@ function listPart<State extends ListPopupState, Api>() {
   return {
     role: "listbox",
     keys: { none: "The field's input handles them, or the content around the list once focus is in it." },
-    attrs: (state, { id }) => ({
-      id: `${id}-list`,
+    refs: { labelledby: listLabels(() => true) },
+    attrs: (state) => ({
       "aria-multiselectable": state.multiple ? "true" : undefined,
-      "aria-labelledby": listLabelledBy(state, id),
       "aria-busy": state.status === "loading" ? "true" : undefined,
     }),
     bind: (el, { store }) => flagWhileBound(store, "listed"),
   } satisfies SlotDefinition<State, Api, BaseSlotProps, {}> & RoleFields<State, Api, BaseSlotProps>
 }
 
-export { bindListContent, inputState, listContentPart, listId, listPart }
+export { bindListContent, inputState, labelledByLabel, listContentPart, listControls, listPart }

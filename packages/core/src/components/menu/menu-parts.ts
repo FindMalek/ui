@@ -5,7 +5,7 @@ import { keyWhileBound } from "../../foundation/kernel/bound-keys"
 import { opensElsewhere } from "../../foundation/platform/button"
 import { isRTL } from "../../foundation/platform/env"
 import { ariaKeyshortcuts } from "../../foundation/platform/platform"
-import { popupContentAttrs, popupTriggerAttrs } from "../../foundation/popups/popup"
+import { controlsContent, popupContentAttrs, popupTriggerBaseAttrs } from "../../foundation/popups/popup"
 import { registerPopupElement } from "../../foundation/popups/popup-elements"
 import { placementOptions } from "../../foundation/popups/popup-features"
 import { animateIn } from "../../foundation/motion/presence"
@@ -71,10 +71,17 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
       open: state.open && (api.root() !== api || state.trigger === null || state.trigger === key),
       disabled: triggerDisabled(state, props),
     }),
+    refs: {
+      controls: {
+        slot: "content",
+        key: "",
+        when: (state, { api, key }) => (api.root() !== api ? state.mounted : controlsContent(state, key)),
+      },
+    },
     attrs: (state, { id, key, api, props }) => {
       if (api.root() !== api)
         return {
-          ...popupTriggerAttrs({ ...state, trigger: null }, id, "menu"),
+          ...popupTriggerBaseAttrs({ ...state, trigger: null }, id, "menu"),
           tabindex: "-1",
           "aria-disabled": props.disabled ? "true" : undefined,
           "data-disabled": props.disabled ? "" : undefined,
@@ -85,7 +92,7 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
         const disabled = triggerDisabled(state, props)
         const stop = state.barStop ?? api.menubar()!.internal.isStop(id, !disabled)
         return {
-          ...popupTriggerAttrs(state, id, "menu", key),
+          ...popupTriggerBaseAttrs(state, id, "menu", key),
           type: "button",
           tabindex: stop ? "0" : "-1",
           "aria-disabled": disabled ? "true" : undefined,
@@ -94,7 +101,7 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
         }
       }
       return {
-        ...popupTriggerAttrs(state, id, "menu", key),
+        ...popupTriggerBaseAttrs(state, id, "menu", key),
         type: "button",
         disabled: props.disabled ? "" : undefined,
         "data-disabled": props.disabled ? "" : undefined,

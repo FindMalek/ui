@@ -5,7 +5,6 @@ import {
   gaugeSettings,
   formatGaugeValue,
   indicatorStyle,
-  labelId,
   percentBetween,
   roundPercent,
   type GaugeOptions,
@@ -112,12 +111,12 @@ const progressPrimitive = /* @__PURE__ */ definePrimitive({
   slots: (slot) => ({
     root: slot<{}, ProgressState>({
       role: "progressbar",
+      refs: { labelledby: { slot: "label", when: (state) => state.labels > 0 } },
       state: progressState,
-      attrs: (state, { id }) => {
+      attrs: (state) => {
         const percent = percentOf(state)
         return {
           ...gaugeAria(state.value, state),
-          "aria-labelledby": state.labels ? labelId(id) : undefined,
           ...statusAttrs(state),
           // For anything else that should follow the value, like a gradient stop.
           style: percent === null ? undefined : css({ "--progress-value": `${roundPercent(percent)}%` }),
@@ -140,7 +139,7 @@ const progressPrimitive = /* @__PURE__ */ definePrimitive({
     }),
     label: slot<{}, ProgressState>({
       state: progressState,
-      attrs: (state, { id }) => ({ id: labelId(id), ...statusAttrs(state) }),
+      attrs: statusAttrs,
       bind: (_, { api }) => api.internal.label(),
     }),
     // The formatted value. Its text isn't announced on its own: a progressbar's

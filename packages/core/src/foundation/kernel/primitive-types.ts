@@ -233,7 +233,42 @@ type RoleFields<State extends object, Api, Props> = {
    * like a combobox's input for its listbox.
    */
   keys?: Keys<State> | Unneeded
+  /**
+   * The parts this one points at, by their slot's name, which core gives ids:
+   * `{ controls: "panel" }` writes `aria-controls` with the id of the panel of
+   * the same key. `{ slot, when }` points only while `when` holds, like while
+   * the panel renders, and `key` picks another part of the slot. Never write
+   * these attributes in `attrs`.
+   */
+  refs?: { [Name in RefName]?: SlotRef<State, Api, Props> | readonly SlotRef<State, Api, Props>[] }
 }
+
+// The ARIA attributes that point at other parts, without their `aria-` prefix.
+type RefName =
+  | "activedescendant"
+  | "controls"
+  | "describedby"
+  | "details"
+  | "errormessage"
+  | "flowto"
+  | "labelledby"
+  | "owns"
+
+type SlotRef<State, Api, Props> =
+  | string
+  | {
+      slot: string
+      /** The part of `slot` to point at. Defaults to this part's own key; `""` for a slot with one part. */
+      key?: string | ((state: State, context: { id: string; key: string; props: Props; api: Api }) => string)
+      /** Whether to point at it now, like while it renders. Defaults to always. */
+      when?: (state: State, context: { id: string; key: string; props: Props; api: Api }) => boolean
+      /**
+       * Keeps it current on the element without rendering the part, for a
+       * reference that changes often, like the highlighted option. It isn't
+       * in server HTML, like `live`.
+       */
+      live?: boolean
+    }
 
 // An attribute the role doesn't take, typed as the sentence that says so, so
 // the error names it: "aria-orientation isn't allowed on a group". Roles that
@@ -569,11 +604,13 @@ export {
   type PropSpec,
   type PropsOf,
   type ReasonFor,
+  type RefName,
   type RoleFields,
   type SlotDefinition,
   type SlotFactory,
   type SlotName,
   type SlotProps,
+  type SlotRef,
   type StateOf,
   type TypesOf,
   type WithFeatures,

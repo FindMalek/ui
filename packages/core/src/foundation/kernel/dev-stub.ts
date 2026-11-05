@@ -18,6 +18,14 @@ function exposeShortcuts(_list: () => unknown[]) {}
 
 function checkRoles(_slots: Record<string, object>, _from: { component: string }) {}
 
+function checkRefs(
+  _definition: object,
+  _slot: string,
+  _own: Record<string, unknown> | undefined,
+  _slots: Record<string, unknown>,
+  _from: { component: string; id?: string },
+) {}
+
 function checkRole(
   _definition: object,
   _slot: string,
@@ -66,6 +74,7 @@ function checkControlled(_from: { component: string; id: string }, _keys: string
 export {
   checkControlled,
   checkFocus,
+  checkRefs,
   checkRole,
   checkRoles,
   checkEvent,

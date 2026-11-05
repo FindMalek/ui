@@ -106,13 +106,14 @@ const datePickerSlots = (slot: SlotFactory<State, DatePickerApi>) => ({
   // A text input that reads a date typed in the locale's order, with any
   // separator, month names or digits alone, on Enter or blur.
   input: slot<DatePickerInputProps, DatePickerInputState>({
+    refs: { describedby: { slot: "hint", when: (state) => state.hinted } },
     props: { end: "boolean" },
     state: (state, { props }) => ({
       invalid: invalidAt(state, indexOf(props)),
       disabled: isDisabled(state),
       readOnly: state.readOnly,
     }),
-    attrs: (state, { id, props }) => {
+    attrs: (state, { props }) => {
       const index = indexOf(props)
       const invalid = invalidAt(state, index)
       return {
@@ -125,7 +126,6 @@ const datePickerSlots = (slot: SlotFactory<State, DatePickerApi>) => ({
         disabled: isDisabled(state) ? "" : undefined,
         readonly: state.readOnly ? "" : undefined,
         "aria-invalid": invalid ? "true" : undefined,
-        "aria-describedby": state.hinted ? `${id}-hint` : undefined,
         "data-invalid": invalid ? "" : undefined,
         "data-disabled": isDisabled(state) ? "" : undefined,
       }
@@ -253,7 +253,6 @@ const datePickerSlots = (slot: SlotFactory<State, DatePickerApi>) => ({
       const { placeholder, example } = datePattern(localeOf(state))
       return { placeholder, example }
     },
-    attrs: (state, { id }) => ({ id: `${id}-hint` }),
     bind: (el, { store }) => flagWhileBound(store, "hinted"),
   }),
 
