@@ -2,7 +2,7 @@
 // first native one. A radio is the control of a label for it alone. A label
 // for its whole group finds the group first, since it comes first in the page.
 const controlSelector =
-  '[data-slot="slider-root"],[data-slot="date-input-root"],[data-slot="time-input-root"],input:not([type="hidden"]):not([aria-hidden="true"]),select,textarea,[data-slot="checkbox-group"],[role="checkbox"],[role="switch"],[role="radiogroup"],[role="radio"],[role="combobox"],[role="slider"],[role="spinbutton"],[role="textbox"],[role="listbox"],[data-slot="file-input-trigger"]'
+  '[data-slot="slider-root"],[data-slot="color-picker-root"],[data-slot="date-input-root"],[data-slot="time-input-root"],input:not([type="hidden"]):not([aria-hidden="true"]),select,textarea,[data-slot="checkbox-group"],[role="checkbox"],[role="switch"],[role="radiogroup"],[role="radio"],[role="combobox"],[role="slider"],[role="spinbutton"],[role="textbox"],[role="listbox"],[data-slot="file-input-trigger"]'
 
 // A slider with several thumbs is a group the label names, ahead of its
 // thumbs. One thumb is the control itself. Checked here rather than with
@@ -35,7 +35,11 @@ function activateControl(control: HTMLElement, event?: Event) {
   const plainButton = control instanceof HTMLButtonElement && !role
   if (checkable || plainButton || role === "radiogroup") control.click()
   // A group, like a range slider, focuses its first control.
-  else if (role === "group") control.querySelector<HTMLElement>("input:not([type='hidden'])")?.focus()
+  else if (role === "group")
+    (
+      control.querySelector<HTMLElement>("input:not([type='hidden'])") ??
+      control.querySelector<HTMLElement>('[tabindex="0"]')
+    )?.focus()
   else control.focus()
   event?.preventDefault()
 }
