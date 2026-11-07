@@ -4,6 +4,8 @@ Each snippet comes from a component that passes its tests. Adapt the names. When
 
 ## Grid arrows with `createRovingFocus` and `move`
 
+A set of choices in two dimensions, like emoji, colors or dates, is a `grid` of `row`s and `gridcell`s, and the root has a name. Use `createGridFocus` only when every row has the same columns, like a calendar. Emoji, swatches and other lists that wrap into rows are a flowing grid: `createRovingFocus` with the `move` below. A set in one dimension is a `listbox` of `option`s. Don't use plain buttons for the cells.
+
 For a grid whose rows and columns are in state. Keys find cells by id, not by index. Past an edge, return `from.key` so the arrow is handled and the page doesn't scroll.
 
 ```ts
@@ -150,9 +152,9 @@ Two lists side by side need two `createRovingFocus` groups, and a group is one s
 slots: (slot) => {
   const option = (side: Side) =>
     slot<OptionProps>({
+      role: "option",
       props: { value: "string" },
       attrs: (state, part) => ({
-        role: "option",
         tabindex: part.api.blocks[side].roving.tabIndex(state, part),
       }),
       // …
@@ -167,9 +169,13 @@ To let typing in a grid go back to its search field, focus the field on keydown 
 
 ## Reasons the vocabulary lacks
 
-Declare them in the callback's type, and say on the type which aren't shared:
+Declare them in the callback's type, with a one-line comment naming which aren't shared:
 
 ```ts
-/** Why the selection changed. `"select-all"` isn't in the shared vocabulary. */
+// "select-all" isn't in the shared vocabulary.
 export type DataGridValueChangeReason = "item-press" | "list-navigation" | "select-all"
 ```
+
+## Stepper
+
+A stepper is a list of buttons with one tab stop, and the current step has `aria-current="step"`. Don't use radio or tab roles for it. A step a person can't go to yet is `aria-disabled`.
