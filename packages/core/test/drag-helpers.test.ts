@@ -137,3 +137,35 @@ describe("keepFocus", () => {
     expect(document.activeElement).toBe(b)
   })
 })
+
+describe("bindDrag's lock", () => {
+  const userAgents = {
+    chrome:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+    firefoxMac: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:145.0) Gecko/20100101 Firefox/145.0",
+    firefoxLinux: "Mozilla/5.0 (X11; Linux x86_64; rv:145.0) Gecko/20100101 Firefox/145.0",
+  }
+  const mouse = (type: string, clientX: number) =>
+    new PointerEvent(type, { clientX, button: 0, buttons: 1, pointerType: "mouse", bubbles: true })
+
+  function drag(userAgent: string) {
+    vi.spyOn(navigator, "userAgent", "get").mockReturnValue(userAgent)
+    cleanups.push(() => vi.restoreAllMocks())
+    const el = document.createElement("div")
+    document.body.append(el)
+    const requestPointerLock = vi.fn()
+    el.requestPointerLock = requestPointerLock
+    cleanups.push(bindDrag(el, mouse("pointerdown", 0), { lock: true, onMove: () => {}, onEnd: () => {} }))
+    document.dispatchEvent(mouse("pointermove", 20))
+    return requestPointerLock
+  }
+
+  test("locks the mouse once a press becomes a drag", () => {
+    expect(drag(userAgents.chrome)).toHaveBeenCalledTimes(1)
+    expect(drag(userAgents.firefoxLinux)).toHaveBeenCalledTimes(1)
+  })
+
+  test("follows the pointer unlocked in Firefox on a Mac, which drops part of each locked move", () => {
+    expect(drag(userAgents.firefoxMac)).not.toHaveBeenCalled()
+  })
+})

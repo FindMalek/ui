@@ -42,7 +42,8 @@ type BindDragOptions = {
   /**
    * Locks the pointer once it has moved past `dragThreshold`, so it can travel
    * without limit, like a scrub, while a plain click never hides the cursor.
-   * Falls back to capture where the browser refuses, as Safari does.
+   * Falls back to capture where the browser refuses, as Safari does, and in
+   * Firefox on a Mac, which loses part of each locked move.
    */
   lock?: boolean
   /**
@@ -301,14 +302,19 @@ function isDrag(dx: number, dy: number) {
   return Math.abs(dx) >= dragThreshold || Math.abs(dy) >= dragThreshold
 }
 
-// Pointer lock hides the cursor and frees it from the screen's edges. Safari
-// shows a banner and can refuse, so failures fall back to plain movement.
+// Pointer lock hides the cursor and frees it from the screen's edges. Safari can
+// refuse, so failures fall back to plain movement. Firefox on a Mac drops the
+// fraction of each locked move, so a slow trackpad drag stalls. No lock there.
 function requestLock(el: HTMLElement) {
-  if (typeof el.requestPointerLock !== "function") return
+  if (typeof el.requestPointerLock !== "function" || dropsLockedMovement()) return
   try {
     const result = el.requestPointerLock() as unknown
     if (result instanceof Promise) result.catch(() => {})
   } catch {}
+}
+
+function dropsLockedMovement() {
+  return /Macintosh.+Firefox\//.test(navigator.userAgent)
 }
 
 // Swallows the click a drag's release sends, so the drag doesn't press what
