@@ -82,7 +82,7 @@ function CodeBlockTabsTrigger({ value, children }: { value: string; children: Re
   return (
     <TabsTab
       value={value}
-      className={value === "css" || value === "tailwind" ? undefined : "font-mono text-xs"}
+      className={value === "css" || value === "tailwind" ? undefined : "text-xs tracking-normal normal-case"}
     >
       {children}
     </TabsTab>
@@ -139,7 +139,7 @@ const frameworkItems = frameworkIds.map((value) => ({ value, label: frameworks[v
 
 function FrameworkTabs({
   children,
-  copyLabel = "Copy prompt",
+  copyLabel = "Copy Prompt",
 }: {
   children: React.ReactNode
   copyLabel?: string
@@ -174,7 +174,7 @@ function FrameworkTabs({
               ))}
             </SelectContent>
           </Select>
-          <CopyButton label={copyLabel} className="ms-auto max-sm:[&>span]:sr-only" />
+          <CopyButton label={copyLabel} className="ms-auto" />
         </TabBar>
         {children}
       </Tabs>
