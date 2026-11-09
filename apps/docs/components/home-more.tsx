@@ -3,15 +3,26 @@
 import { cn } from "cn"
 import * as React from "react"
 
-function PhoneMore({ label, children }: { label: string; children: React.ReactNode }) {
+function PhoneMore({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) {
   const [open, setOpen] = React.useState(false)
   const ref = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     const reveal = () => {
       const target =
-        location.hash && ref.current?.querySelector(`[id="${CSS.escape(location.hash.slice(1))}"]`)
-      if (!target || target.getClientRects().length) return
+        location.hash &&
+        ref.current?.querySelector(
+          `[id="${CSS.escape(location.hash.slice(1))}"]`
+        )
+      if (!target || target.getClientRects().length) {
+        return
+      }
       setOpen(true)
       requestAnimationFrame(() => target.scrollIntoView())
     }
@@ -21,14 +32,19 @@ function PhoneMore({ label, children }: { label: string; children: React.ReactNo
   }, [])
 
   return (
-    <div ref={ref} data-more="" data-open={open ? "" : undefined} className="flex flex-col gap-3">
+    <div
+      ref={ref}
+      data-more=""
+      data-open={open ? "" : undefined}
+      className="flex flex-col gap-3"
+    >
       {children}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
           className={cn(
-            "flex h-12 w-full items-center justify-center gap-2 border border-foreground bg-background font-mono text-[12px] tracking-[0.06em] uppercase transition-colors outline-none hover:bg-foreground/[0.06] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-[#006bff] sm:hidden",
+            "flex h-12 w-full items-center justify-center gap-2 border border-foreground bg-background font-mono text-[12px] tracking-[0.06em] uppercase transition-colors outline-none hover:bg-foreground/[0.06] focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-2 focus-visible:outline-[#006bff] sm:hidden"
           )}
         >
           {label}
@@ -54,20 +70,37 @@ function PhoneStrip({
 
   const onScroll = () => {
     const element = ref.current
-    if (!element) return
+    if (!element) {
+      return
+    }
     const center = element.scrollLeft + element.clientWidth / 2
-    const cards = ([...element.children] as HTMLElement[]).filter((card) => card.offsetParent)
-    const distance = (card: HTMLElement) => Math.abs(card.offsetLeft + card.offsetWidth / 2 - center)
-    const next = cards.indexOf(cards.reduce((best, card) => (distance(card) < distance(best) ? card : best)))
-    if (next === current.current) return
+    const cards = ([...element.children] as HTMLElement[]).filter(
+      (card) => card.offsetParent
+    )
+    const distance = (card: HTMLElement) =>
+      Math.abs(card.offsetLeft + card.offsetWidth / 2 - center)
+    const next = cards.indexOf(
+      cards.reduce((best, card) =>
+        distance(card) < distance(best) ? card : best
+      )
+    )
+    if (next === current.current) {
+      return
+    }
     current.current = next
     setIndex(next)
   }
 
   const go = (next: number) => {
     const element = ref.current
-    const card = element && ([...element.children] as HTMLElement[]).filter((card) => card.offsetParent)[next]
-    if (!element || !card) return
+    const card =
+      element &&
+      ([...element.children] as HTMLElement[]).filter(
+        (card) => card.offsetParent
+      )[next]
+    if (!element || !card) {
+      return
+    }
     element.scrollTo({
       left: card.offsetLeft - (element.clientWidth - card.offsetWidth) / 2,
       behavior: "smooth",
@@ -75,13 +108,21 @@ function PhoneStrip({
   }
 
   const advance = () => {
-    if (index === names.length - 1) setPlaying(false)
-    else go(index + 1)
+    if (index === names.length - 1) {
+      setPlaying(false)
+    } else {
+      go(index + 1)
+    }
   }
 
   return (
     <>
-      <div ref={ref} onScroll={onScroll} onPointerDown={() => setPlaying(false)} className={className}>
+      <div
+        ref={ref}
+        onScroll={onScroll}
+        onPointerDown={() => setPlaying(false)}
+        className={className}
+      >
         {children}
       </div>
       <div className="mt-6 flex items-center justify-center gap-2 sm:hidden">
@@ -103,7 +144,11 @@ function PhoneStrip({
                   key={`${index}-${playing}`}
                   onAnimationEnd={advance}
                   className="absolute inset-y-0 start-0 bg-foreground"
-                  style={playing ? { animation: "strip-fill 4s linear forwards" } : { width: "100%" }}
+                  style={
+                    playing
+                      ? { animation: "strip-fill 4s linear forwards" }
+                      : { width: "100%" }
+                  }
                 />
               )}
             </button>
@@ -112,7 +157,9 @@ function PhoneStrip({
         <button
           type="button"
           onClick={() => {
-            if (!playing && index === names.length - 1) go(0)
+            if (!playing && index === names.length - 1) {
+              go(0)
+            }
             setPlaying(!playing)
           }}
           className="relative grid h-10 place-items-center bg-foreground/[0.06] px-4 text-[13px] font-medium transition-colors outline-none hover:bg-foreground/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#006bff] *:[grid-area:1/1]"
@@ -125,21 +172,34 @@ function PhoneStrip({
   )
 }
 
-function PhoneShot({ width, children }: { width: number; children: React.ReactNode }) {
+function PhoneShot({
+  width,
+  children,
+}: {
+  width: number
+  children: React.ReactNode
+}) {
   const ref = React.useRef<HTMLDivElement>(null)
   const inner = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
     const element = ref.current
     const shot = inner.current
-    if (!element || !shot) return
+    if (!element || !shot) {
+      return
+    }
     const phone = matchMedia("(width < 40rem)")
     const update = () => {
       shot.inert = phone.matches
-      if (!phone.matches) return
+      if (!phone.matches) {
+        return
+      }
       const scale = element.clientWidth / width
       element.style.setProperty("--shot-scale", String(scale))
-      element.style.setProperty("--shot-height", `${shot.offsetHeight * scale}px`)
+      element.style.setProperty(
+        "--shot-height",
+        `${shot.offsetHeight * scale}px`
+      )
     }
     const observer = new ResizeObserver(update)
     observer.observe(element)

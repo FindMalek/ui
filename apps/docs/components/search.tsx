@@ -9,7 +9,12 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command"
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { type Framework, isFramework } from "@/lib/frameworks"
 import { useFramework } from "@/lib/preferences"
 import { createSearchIndex, type SearchPage, searchIndex } from "@/lib/search"
@@ -22,18 +27,23 @@ import * as React from "react"
 
 function Highlighted({ text }: { text: string }) {
   return text.split(/(<mark>.*?<\/mark>|`[^`]+`)/).map((part, index) => {
-    if (part.startsWith("<mark>"))
+    if (part.startsWith("<mark>")) {
       return (
-        <mark key={index} className="bg-transparent font-medium text-foreground">
+        <mark
+          key={index}
+          className="bg-transparent font-medium text-foreground"
+        >
           {part.slice(6, -7)}
         </mark>
       )
-    if (part.startsWith("`"))
+    }
+    if (part.startsWith("`")) {
       return (
         <code key={index} className="font-mono text-[0.9em]">
           <Highlighted text={part.slice(1, -1)} />
         </code>
       )
+    }
     return part
   })
 }
@@ -45,7 +55,9 @@ let searchOpen = false
 const searchListeners = new Set<() => void>()
 
 function setSearchOpen(next: boolean) {
-  if (next === searchOpen) return
+  if (next === searchOpen) {
+    return
+  }
   searchOpen = next
   searchListeners.forEach((listener) => listener())
 }
@@ -59,17 +71,22 @@ function useSearchOpen() {
   return React.useSyncExternalStore(
     subscribeSearch,
     () => searchOpen,
-    () => false,
+    () => false
   )
 }
 
-const indexes = new Map<Framework, Promise<ReturnType<typeof createSearchIndex>>>()
+const indexes = new Map<
+  Framework,
+  Promise<ReturnType<typeof createSearchIndex>>
+>()
 
 function loadIndex(framework: Framework) {
   let index = indexes.get(framework)
   if (!index) {
     index = fetch(`/api/search/${framework}`).then(async (response) => {
-      if (!response.ok) throw new Error(`Search index responded ${response.status}`)
+      if (!response.ok) {
+        throw new Error(`Search index responded ${response.status}`)
+      }
       return createSearchIndex((await response.json()) as SearchPage[])
     })
     index.catch(() => indexes.delete(framework))
@@ -85,11 +102,13 @@ function useSearchIndex(framework: Framework, enabled: boolean) {
     error?: unknown
   }>()
   React.useEffect(() => {
-    if (!enabled) return
+    if (!enabled) {
+      return
+    }
     let current = true
     loadIndex(framework).then(
       (index) => current && setLoaded({ framework, index }),
-      (error: unknown) => current && setLoaded({ framework, error }),
+      (error: unknown) => current && setLoaded({ framework, error })
     )
     return () => {
       current = false
@@ -124,27 +143,38 @@ function SearchTrigger({
   )
 }
 
-function Search({ section, pages }: { section?: Section; pages: { name: string; url: string }[] }) {
+function Search({
+  section,
+  pages,
+}: {
+  section?: Section
+  pages: { name: string; url: string }[]
+}) {
   const open = useSearchOpen()
   const [preferredFramework] = useFramework()
   const router = useRouter()
 
   const [search, setSearch] = React.useState("")
   React.useEffect(() => {
-    if (!open) setSearch("")
+    if (!open) {
+      setSearch("")
+    }
   }, [open])
 
   React.useEffect(() => {
     const header = document.querySelector<HTMLElement>("[data-mobile-header]")
-    return open && header?.checkVisibility() ? bindPersistentLayer(header) : undefined
+    return open && header?.checkVisibility()
+      ? bindPersistentLayer(header)
+      : undefined
   }, [open])
 
-  const framework = section && isFramework(section) ? section : preferredFramework
+  const framework =
+    section && isFramework(section) ? section : preferredFramework
   const loaded = useSearchIndex(framework, open)
   const searching = search !== "" && !loaded
   const results = React.useMemo(
     () => (loaded?.index ? searchIndex(loaded.index, search) : []),
-    [loaded, search],
+    [loaded, search]
   )
 
   return (
@@ -161,7 +191,8 @@ function Search({ section, pages }: { section?: Section; pages: { name: string; 
           filter={false}
           onQueryChange={setSearch}
           onAction={(value) => {
-            const url = results.find((result) => result.id === value)?.url ?? value
+            const url =
+              results.find((result) => result.id === value)?.url ?? value
             setSearchOpen(false)
             router.push(url)
           }}
@@ -197,7 +228,11 @@ function Search({ section, pages }: { section?: Section; pages: { name: string; 
               <CommandGroup>
                 <CommandGroupLabel>Pages</CommandGroupLabel>
                 {pages.map((page) => (
-                  <CommandItem key={page.url} value={page.url} label={page.name}>
+                  <CommandItem
+                    key={page.url}
+                    value={page.url}
+                    label={page.name}
+                  >
                     {page.name}
                   </CommandItem>
                 ))}
