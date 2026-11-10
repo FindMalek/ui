@@ -1,12 +1,7 @@
 import type { IssuePatch } from "tracker-data"
-import { refreshNuxtData, useFetch } from "#imports"
 import { toast } from "~/components/ui/toast"
 
 type Options = NonNullable<Parameters<typeof $fetch>[1]>
-
-function useIssues() {
-  return useFetch("/api/issues", { key: "issues", default: () => [] })
-}
 
 async function send(url: string, options: Options) {
   try {
@@ -42,11 +37,4 @@ function addComment(id: string, form: FormData) {
   return send(`/api/issues/${id}/comments`, { method: "POST", body: form })
 }
 
-export {
-  addComment,
-  createIssue,
-  deleteIssues,
-  setSubtasksDone,
-  updateIssues,
-  useIssues,
-}
+export { addComment, createIssue, deleteIssues, setSubtasksDone, updateIssues }

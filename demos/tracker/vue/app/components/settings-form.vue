@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Info } from "@lucide/vue"
 import type { Settings } from "tracker-data"
-import { ref } from "vue"
 import { Button, buttonVariants } from "~/components/ui/button"
 import { Field, FieldDescription, FieldLabel } from "~/components/ui/field"
 import { NumberInput } from "~/components/ui/number-input"
@@ -15,7 +14,6 @@ import {
 import { Slider } from "~/components/ui/slider"
 import { Switch } from "~/components/ui/switch"
 import { toast } from "~/components/ui/toast"
-import { saveSettings } from "~/composables/settings"
 
 defineProps<{ settings: Settings }>()
 
