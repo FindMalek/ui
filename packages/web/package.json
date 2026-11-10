@@ -82,6 +82,7 @@
     "./tabs": "./src/entries/tabs.ts",
     "./textarea": "./src/entries/textarea.ts",
     "./time-input": "./src/entries/time-input.ts",
+    "./timeline": "./src/entries/timeline.ts",
     "./toast": "./src/entries/toast.ts",
     "./toggle": "./src/entries/toggle.ts",
     "./token-input": "./src/entries/token-input.ts",
@@ -316,6 +317,10 @@
       "./time-input": {
         "types": "./dist/entries/time-input.d.ts",
         "default": "./dist/entries/time-input.js"
+      },
+      "./timeline": {
+        "types": "./dist/entries/timeline.d.ts",
+        "default": "./dist/entries/timeline.js"
       },
       "./toast": {
         "types": "./dist/entries/toast.d.ts",

@@ -89,6 +89,7 @@
     "./history": "./src/history.ts",
     "./textarea": "./src/textarea.tsx",
     "./time-input": "./src/time-input.tsx",
+    "./timeline": "./src/timeline.tsx",
     "./toast": "./src/toast.tsx",
     "./toggle": "./src/toggle.tsx",
     "./token-input": "./src/token-input.tsx",
@@ -399,6 +400,11 @@
         "types": "./dist/time-input.d.ts",
         "solid": "./dist/solid/time-input.jsx",
         "default": "./dist/time-input.js"
+      },
+      "./timeline": {
+        "types": "./dist/timeline.d.ts",
+        "solid": "./dist/solid/timeline.jsx",
+        "default": "./dist/timeline.js"
       },
       "./toast": {
         "types": "./dist/toast.d.ts",

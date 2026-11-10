@@ -236,6 +236,7 @@ import type { Toast, Toaster } from "@ui-sdk/core/toast"
 import type { Overlays } from "@ui-sdk/core/overlays"
 import type { OverlayHostToastOptions } from "./overlays"
 import type { ToolbarController } from "@ui-sdk/core/toolbar"
+import type { TimelineController } from "@ui-sdk/core/timeline"
 import type { MenubarController } from "@ui-sdk/core/menubar"
 import type {
   TooltipController,
@@ -250,6 +251,7 @@ import type { button } from "@ui-sdk/core/button"
 import type { calendar } from "@ui-sdk/core/calendar"
 import type { carousel } from "@ui-sdk/core/carousel"
 import type { checkbox, checkboxGroup } from "@ui-sdk/core/checkbox"
+import type { timeline } from "@ui-sdk/core/timeline"
 import type { collapsible } from "@ui-sdk/core/collapsible"
 import type { colorPicker } from "@ui-sdk/core/color-picker"
 import type { combobox } from "@ui-sdk/core/combobox"
@@ -1505,6 +1507,16 @@ interface UiToolbarElement
 }
 
 /**
+ * `<ui-timeline>`: the controller's methods on `api`, and the `controller` it follows.
+ * @experimental
+ */
+interface UiTimelineElement
+  extends UiElement<{}>, AttributeProperties<typeof timeline> {
+  api: TimelineController
+  controller?: TimelineController
+}
+
+/**
  * `<ui-toast-region>`: the toaster it shows, how toasts rendered from data look, and `api` to focus or pause it.
  * @stable
  */
@@ -1924,6 +1936,7 @@ declare global {
     "ui-navigation-menu": UiNavigationMenuElement
     "ui-resizable": UiResizableElement
     "ui-checkbox": UiCheckboxElement
+    "ui-timeline": UiTimelineElement
     "ui-switch": UiSwitchElement
     "ui-checkbox-group": UiCheckboxGroupElement
     "ui-radio-group": UiRadioGroupElement
@@ -2087,6 +2100,16 @@ declare global {
       "indicator",
       "keepMounted"
     >
+    "ui-timeline-item": UiPartElement<
+      typeof timeline,
+      "item",
+      "value" | "status"
+    >
+    "ui-timeline-marker": UiPartElement<typeof timeline, "marker">
+    "ui-timeline-connector": UiPartElement<typeof timeline, "connector">
+    "ui-timeline-time": UiPartElement<typeof timeline, "time">
+    "ui-timeline-title": UiPartElement<typeof timeline, "title">
+    "ui-timeline-description": UiPartElement<typeof timeline, "description">
     "ui-collapsible-trigger": UiPartElement<typeof collapsible, "trigger">
     "ui-collapsible-panel": UiPartElement<
       typeof collapsible,
@@ -2865,6 +2888,7 @@ export {
   type UiChangeEvent,
   type UiCheckboxElement,
   type UiCheckboxGroupElement,
+  type UiTimelineElement,
   type UiCollapsibleElement,
   type UiColorPickerElement,
   type UiComboboxElement,

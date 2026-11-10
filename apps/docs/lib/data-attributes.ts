@@ -1,5 +1,6 @@
 import type { Framework } from "./frameworks"
 import { accordion } from "@ui-sdk/core/accordion"
+import { timeline } from "@ui-sdk/core/timeline"
 import { collapsible } from "@ui-sdk/core/collapsible"
 import { colorPicker } from "@ui-sdk/core/color-picker"
 import { imageCropper } from "@ui-sdk/core/image-cropper"
@@ -81,6 +82,10 @@ const coreSource = (file: string) => {
 }
 
 type Description = { text: string; values?: string[] }
+
+const statuses = (["complete", "current", "upcoming"] as const).map(
+  (status) => ({ value: status, status })
+)
 
 // Date Input and Time Input set the same attributes.
 const segmentedDescriptions = (
@@ -852,6 +857,48 @@ const components: Record<
         text: "Present while a panel animates closed. Style the state you animate to.",
       },
     },
+  },
+  timeline: {
+    instances: () => [
+      timeline({ id: "docs" }),
+      timeline({ id: "docs-feed", feed: true, busy: true }),
+    ],
+    samples: {
+      root: [{}],
+      item: statuses,
+      marker: statuses,
+      connector: statuses,
+      time: statuses,
+      title: statuses,
+      description: statuses,
+    },
+    interactive: [],
+    extra: { item: ["data-first", "data-last"] },
+    descriptions: {
+      "data-orientation": {
+        text: "Which way the events run.",
+        values: ["horizontal", "vertical"],
+      },
+      "data-busy": {
+        text: "Present while a feed is loading or changing events, with `busy`.",
+      },
+      "data-complete": {
+        text: "Present when the event's status is `complete`.",
+      },
+      "data-current": {
+        text: "Present when the event's status is `current`.",
+      },
+      "data-upcoming": {
+        text: "Present when the event's status is `upcoming`.",
+      },
+      "data-first": {
+        text: "Present on the first event. Written once it's in the page.",
+      },
+      "data-last": {
+        text: "Present on the last event. Written once it's in the page.",
+      },
+    },
+    parts: { root: { react: "Timeline", web: "<ui-timeline>" } },
   },
   collapsible: {
     instances: () => [

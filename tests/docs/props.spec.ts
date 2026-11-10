@@ -605,6 +605,20 @@ const components: Record<string, Component> = {
       debug: "ToolbarOptions",
     },
   },
+  timeline: {
+    source: "timeline/timeline.ts",
+    examples: "timeline",
+    types: [
+      "TimelineOptions",
+      "TimelineItemProps",
+      "TimelineState",
+      "TimelineItemState",
+    ],
+    allowed: {
+      // Logs every change to the console, which no example should do.
+      debug: "TimelineOptions",
+    },
+  },
   tree: {
     source: "tree/tree.ts",
     examples: "tree",

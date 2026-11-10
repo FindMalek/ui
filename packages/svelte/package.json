@@ -91,6 +91,7 @@
     "./history": "./src/history.ts",
     "./textarea": "./src/textarea.ts",
     "./time-input": "./src/time-input.ts",
+    "./timeline": "./src/timeline.ts",
     "./toast": "./src/toast.ts",
     "./toggle": "./src/toggle.ts",
     "./token-input": "./src/token-input.ts",
@@ -380,6 +381,11 @@
         "types": "./dist/time-input.d.ts",
         "svelte": "./dist/time-input.js",
         "default": "./dist/time-input.js"
+      },
+      "./timeline": {
+        "types": "./dist/timeline.d.ts",
+        "svelte": "./dist/timeline.js",
+        "default": "./dist/timeline.js"
       },
       "./toast": {
         "types": "./dist/toast.d.ts",
