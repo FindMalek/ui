@@ -9,10 +9,9 @@ import {
   type LeakSnapshot,
 } from "../perf/leaks"
 
-// Leak gates: open and close a popup or a panel 200 times, move through tabs
-// a toolbar or a tree, or drag a slider, a resizable handle or a scroll area's thumb,
-// then mount and unmount it 200 times, and nothing it added stays behind. See
-// tests/perf/budgets.ts.
+// Leak gates: open and close a popup or a panel 200 times, move through tabs, a toolbar,
+// a tree or a waterfall, or drag a slider, a resizable handle or a scroll area's thumb, then
+// mount and unmount it 200 times, and nothing it added stays behind. See tests/perf/budgets.ts.
 
 // How each popup or panel opens and closes from the keyboard, from its trigger.
 // A collapsible's panel has no role, so it's found by its class.
@@ -439,17 +438,26 @@ test.describe("leaks", () => {
   })
 
   // Tabs select on focus, so each arrow key moves focus and swaps the panel.
-  // A tree's first item expands, focus moves into its group and back, and it
-  // collapses, so its group mounts and unmounts.
-  const roving = { tabs: "tab", toolbar: "button", tree: "treeitem" } as const
+  // A tree's or a waterfall's first item expands, focus moves into its
+  // children and back, and it collapses, so its children mount and unmount.
+  const roving = {
+    tabs: "tab",
+    toolbar: "button",
+    tree: "treeitem",
+    waterfall: "row",
+  } as const
   type Roving = keyof typeof roving
   const keys = (name: Roving) =>
-    name === "tree"
+    name === "tree" || name === "waterfall"
       ? ["ArrowRight", "ArrowDown", "ArrowUp", "ArrowLeft"]
       : ["ArrowRight", "ArrowRight", "ArrowLeft", "ArrowLeft"]
 
+  // A waterfall row's name also holds its bar's label.
   const firstItem = (page: Page, name: Roving) =>
-    page.getByRole(roving[name], { name: "Item 1", exact: true })
+    page.getByRole(roving[name], {
+      name: name === "waterfall" ? /^Item 1 / : "Item 1",
+      exact: true,
+    })
 
   // Moves through the items and back `times` times, so focus ends where it started.
   async function moveThrough(page: Page, name: Roving, times: number) {

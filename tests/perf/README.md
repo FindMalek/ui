@@ -409,6 +409,35 @@ cd tests && PLAYGROUND_PORT=5310 ../scripts/test-slot.sh npx playwright test spe
 cd tests && PLAYGROUND_PORT=5310 ../scripts/test-slot.sh npx playwright test specs/tree.counts --project react -g 'expanding a folder does no work that grows with the item count'
 ```
 
+<a id="waterfall-arrow-key"></a>
+
+### waterfall.arrow-key
+
+**Measures:** Work done by 10 ArrowDown presses 50 ms apart and an Enter in a long trace whose every row is rendered.
+
+**Why:** Rows are keyed by span, so a key reaches the row it leaves and the row it lands on, and a selection the two rows it moves between, never every row of a trace with thousands of spans.
+
+**Budget:**
+
+- At most 22 `row` renders.
+- At most 22 `bar` renders.
+- No `compareDocumentPosition` calls.
+- At most 2,000 `getAttribute` calls.
+- No `getComputedStyle` calls.
+- No `offsetHeight` calls.
+
+**Notes:** Web components compare the attributes of the two rows a key reaches and their parts, and React renders them, 2 of each per key and 1 for Enter. Up, Down and Enter read no style or layout.
+
+**Tests:**
+
+- `waterfall.counts.spec.ts` › arrow keys and selection do no work that grows with the span count
+
+**Run:**
+
+```bash
+cd tests && PLAYGROUND_PORT=5310 ../scripts/test-slot.sh npx playwright test specs/waterfall.counts --project react -g 'arrow keys and selection do no work that grows with the span count'
+```
+
 <a id="collapsible-toggle"></a>
 
 ### collapsible.toggle
@@ -954,7 +983,7 @@ cd tests && PLAYGROUND_PORT=5310 ../scripts/test-slot.sh npx playwright test spe
 
 ### leaks.cycles
 
-**Measures:** What stays behind after a menu, select, combobox, popover, dialog, tooltip, accordion or collapsible opens and closes 200 times, the arrow keys move through tabs, a toolbar or a tree 200 times, or a slider, a resizable handle or a scroll area's thumb is dragged 200 times (stepped with keys, or scrolled with the wheel so its scrollbar shows and hides), then mounts and unmounts 200 times, against the page after a warmup: listeners on the window and the document, pending animation frames, open layers, detached parts, and heap after garbage collection.
+**Measures:** What stays behind after a menu, select, combobox, popover, dialog, tooltip, accordion or collapsible opens and closes 200 times, the arrow keys move through tabs, a toolbar, a tree or a waterfall 200 times, or a slider, a resizable handle or a scroll area's thumb is dragged 200 times (stepped with keys, or scrolled with the wheel so its scrollbar shows and hides), then mounts and unmounts 200 times, against the page after a warmup: listeners on the window and the document, pending animation frames, open layers, detached parts, and heap after garbage collection.
 
 **Why:** A popup adds document listeners, animation frames and a layer while it's open, a panel animates and observes its size, tabs swap panels and measure their indicator, and a slider, a resizable group or a scroll area adds document listeners and frames while it's dragged or scrolled. A page does each thousands of times. Anything it doesn't give back grows with every open, key, drag or mount, until the page slows or runs out of memory.
 
@@ -987,7 +1016,7 @@ cd tests && PLAYGROUND_PORT=5310 ../scripts/test-slot.sh npx playwright test spe
 
 ### leaks.unmount-open
 
-**Measures:** What stays behind after a popup, an accordion or a collapsible unmounts while it's open, tabs, a toolbar or a tree right after an arrow key, or a slider, a resizable group or a scroll area in the middle of a drag, 50 times: listeners, pending animation frames, open layers, detached parts and heap.
+**Measures:** What stays behind after a popup, an accordion or a collapsible unmounts while it's open, tabs, a toolbar, a tree or a waterfall right after an arrow key, or a slider, a resizable group or a scroll area in the middle of a drag, 50 times: listeners, pending animation frames, open layers, detached parts and heap.
 
 **Why:** Unmounting skips the close and the end of the drag: the layer, the outside press and Escape listeners, positioning's and animations' frames, the work an arrow key starts, and a drag's pointer listeners must all go with the component, or every route change with a popup open or a handle or thumb held leaks them.
 
