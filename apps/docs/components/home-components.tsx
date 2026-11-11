@@ -587,7 +587,7 @@ function SegmentedDemo() {
         defaultValue="list"
         className={cn("relative flex w-full bg-background", ink)}
       >
-        <SegmentedControlIndicator className="absolute top-(--segmented-control-indicator-top) left-(--segmented-control-indicator-left) h-(--segmented-control-indicator-height) w-(--segmented-control-indicator-width) bg-foreground transition-[left,width] duration-200" />
+        <SegmentedControlIndicator className="absolute top-(--indicator-top) left-(--indicator-left) h-(--indicator-height) w-(--indicator-width) bg-foreground transition-[left,width] duration-200" />
         {["List", "Grid", "Board"].map((view) => (
           <SegmentedControlItem
             key={view}
@@ -673,7 +673,7 @@ function ColorDemo() {
           }}
           className={cn("relative flex w-full bg-background", ink)}
         >
-          <SegmentedControlIndicator className="absolute top-(--segmented-control-indicator-top) left-(--segmented-control-indicator-left) h-(--segmented-control-indicator-height) w-(--segmented-control-indicator-width) bg-foreground transition-[left,width] duration-200" />
+          <SegmentedControlIndicator className="absolute top-(--indicator-top) left-(--indicator-left) h-(--indicator-height) w-(--indicator-width) bg-foreground transition-[left,width] duration-200" />
           {formats.map((entry) => (
             <SegmentedControlItem
               key={entry.value}

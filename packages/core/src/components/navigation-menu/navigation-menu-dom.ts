@@ -4,6 +4,7 @@
 // offsets once something moved.
 import { supportsHiddenUntilFound } from "../../foundation/disclosure/disclosure"
 import { layoutBox, layoutSize } from "../../foundation/platform/layout"
+import { writeIndicatorBox } from "../../foundation/selection/indicator"
 
 // Writes the open content's size onto the viewport as `--viewport-width` and
 // `--viewport-height`, which a size transition can animate. Contents are
@@ -157,10 +158,9 @@ function collapseWhileHidden(
   }
 }
 
-// Places the indicator over its target through `--active-item-*` variables,
-// relative to the indicator's own positioned ancestor, and marks it
-// `data-visible` while it has one. Built from layout offsets, like Tabs', so a
-// transform animating on an ancestor never moves it. Returns a cleanup.
+// Measures against the indicator's own positioned ancestor, not the list, and
+// keeps the last box while nothing is active. Built from layout offsets, like
+// Tabs', so a transform animating on an ancestor never moves it.
 function bindIndicator(
   el: HTMLElement,
   config: {
@@ -183,12 +183,7 @@ function bindIndicator(
       return
     }
     const box = layoutBox(target, container)
-    el.style.setProperty("--active-item-left", `${box.left}px`)
-    el.style.setProperty("--active-item-right", `${box.right}px`)
-    el.style.setProperty("--active-item-top", `${box.top}px`)
-    el.style.setProperty("--active-item-bottom", `${box.bottom}px`)
-    el.style.setProperty("--active-item-width", `${box.width}px`)
-    el.style.setProperty("--active-item-height", `${box.height}px`)
+    writeIndicatorBox(el, box, (side) => `--active-item-${side}`)
     el.setAttribute("data-visible", "")
   }
   const sized =

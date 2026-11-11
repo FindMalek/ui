@@ -220,6 +220,26 @@ test.describe("enhancements", { tag: "@enhancement" }, () => {
         .toBe(true)
     })
 
+    test("the --active-item-* variables still hold the indicator's box", async ({
+      page,
+    }) => {
+      await expect
+        .poll(() => indicatorUnder(page, link(page, "Pricing")))
+        .toBe(true)
+      const pairs = await page
+        .locator(".nav-indicator")
+        .evaluate((el: HTMLElement) =>
+          ["left", "right", "top", "bottom", "width", "height"].map((side) => [
+            el.style.getPropertyValue(`--indicator-${side}`),
+            el.style.getPropertyValue(`--active-item-${side}`),
+          ])
+        )
+      for (const [shared, legacy] of pairs) {
+        expect(shared).toMatch(/px$/)
+        expect(legacy).toBe(shared)
+      }
+    })
+
     test("the indicator follows an item added later as it grows", async ({
       page,
       framework,

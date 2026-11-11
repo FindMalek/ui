@@ -160,12 +160,30 @@ test.describe("indicator", () => {
     await expect
       .poll(() =>
         indicator(page).evaluate((el) =>
-          el.style.getPropertyValue("--segmented-control-indicator-width")
+          el.style.getPropertyValue("--indicator-width")
         )
       )
       .toBe("")
     await item(page, "Grid").click()
     await expect.poll(() => coversItem(page, "Grid")).toBe(true)
+  })
+
+  test("the --segmented-control-indicator-* variables still hold the indicator's box", async ({
+    page,
+    open,
+  }) => {
+    await open("segmented-control")
+    await expect.poll(() => coversItem(page, "List")).toBe(true)
+    const pairs = await indicator(page).evaluate((el) =>
+      ["left", "right", "top", "bottom", "width", "height"].map((side) => [
+        el.style.getPropertyValue(`--indicator-${side}`),
+        el.style.getPropertyValue(`--segmented-control-indicator-${side}`),
+      ])
+    )
+    for (const [shared, legacy] of pairs) {
+      expect(shared).toMatch(/px$/)
+      expect(legacy).toBe(shared)
+    }
   })
 })
 

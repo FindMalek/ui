@@ -251,7 +251,7 @@ const NavigationMenuViewport = withElement(
 )
 
 /**
- * Sits under the open trigger, or under the link with `current` while every panel is closed. Screen readers
+ * Sits under the open trigger, or under the link with `current` while every panel is closed. Its box comes from the `--indicator-*` variables, measured from its positioned ancestor. Screen readers
  * skip it.
  * @stable
  */

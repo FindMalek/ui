@@ -432,6 +432,26 @@ test.describe("indicator", () => {
     await tabNamed(page, "Notifications").click()
     await expect.poll(() => coversTab(page, "Notifications")).toBe(true)
   })
+
+  test("the --active-tab-* variables still hold the indicator's box", async ({
+    page,
+    open,
+  }) => {
+    await open("tabs")
+    await expect.poll(() => coversTab(page, "Account")).toBe(true)
+    const pairs = await page
+      .locator('[data-slot="tabs-indicator"]')
+      .evaluate((el) =>
+        ["left", "right", "top", "bottom", "width", "height"].map((side) => [
+          el.style.getPropertyValue(`--indicator-${side}`),
+          el.style.getPropertyValue(`--active-tab-${side}`),
+        ])
+      )
+    for (const [shared, legacy] of pairs) {
+      expect(shared).toMatch(/px$/)
+      expect(legacy).toBe(shared)
+    }
+  })
 })
 
 test.describe("activation direction", () => {

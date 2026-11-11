@@ -93,7 +93,7 @@ function SegmentedControlItem({
 
 /**
  * Sits behind the checked item. Its box comes from the
- * `--segmented-control-indicator-*` variables, measured from the root.
+ * `--indicator-*` variables, measured from the root.
  * @experimental
  */
 const SegmentedControlIndicator = parts.Indicator

@@ -89,6 +89,7 @@ Use the default prop to start (`defaultValue`, `defaultOpen`, `defaultChecked`, 
 - Tailwind: `data-pressed:bg-neutral-100`. CSS: `[data-slot="select-trigger"][data-open]`.
 - Popups get `data-starting-style` before they enter and `data-ending-style` while they exit, and stay mounted until the exit finishes. Put exit styles on `data-ending-style`.
 - Popups expose `--anchor-width`, `--available-height` and `--transform-origin`.
+- Indicators that slide to the chosen item (Tabs, Segmented Control, Navigation Menu) expose its box as `--indicator-left`, `--indicator-top`, `--indicator-width` and `--indicator-height`, so one style fits all of them.
 - `@layer ui-sdk;` goes at the top of the global stylesheet so your styles win.
 
 ## 6. Framework rules

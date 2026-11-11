@@ -1,6 +1,6 @@
 <!--
 @component
-Marks the selected tab. Its box comes from the `--active-tab-*` variables, measured from the tab list.
+Marks the selected tab. Its box comes from the `--indicator-*` variables, measured from the tab list.
 @stable
 -->
 <script lang="ts">

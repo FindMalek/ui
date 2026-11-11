@@ -175,7 +175,7 @@ function Settings({
           defaultValue="hobby"
           className={cn("relative grid grid-cols-3 bg-background", ink)}
         >
-          <SegmentedControlIndicator className="absolute top-(--segmented-control-indicator-top) left-(--segmented-control-indicator-left) h-(--segmented-control-indicator-height) w-(--segmented-control-indicator-width) bg-foreground transition-[left,width] duration-200" />
+          <SegmentedControlIndicator className="absolute top-(--indicator-top) left-(--indicator-left) h-(--indicator-height) w-(--indicator-width) bg-foreground transition-[left,width] duration-200" />
           {plans.map((plan) => (
             <SegmentedControlItem
               key={plan}

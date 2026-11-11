@@ -2948,10 +2948,10 @@
 
   [data-slot="segmented-control-indicator"] {
     position: absolute;
-    top: var(--segmented-control-indicator-top);
-    left: var(--segmented-control-indicator-left);
-    width: var(--segmented-control-indicator-width);
-    height: var(--segmented-control-indicator-height);
+    top: var(--indicator-top);
+    left: var(--indicator-left);
+    width: var(--indicator-width);
+    height: var(--indicator-height);
     border: 1px solid var(--ui-input);
     border-radius: max(0px, calc(var(--ui-radius) - 3px));
     background: var(--ui-background);

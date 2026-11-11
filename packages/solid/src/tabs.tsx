@@ -37,7 +37,7 @@ const TabsTab = parts.Tab
 const TabsTabIcon = parts.TabIcon
 
 /**
- * Marks the selected tab. Its box comes from the `--active-tab-*` variables, measured from the tab list.
+ * Marks the selected tab. Its box comes from the `--indicator-*` variables, measured from the tab list.
  * @stable
  */
 const TabsIndicator = parts.Indicator

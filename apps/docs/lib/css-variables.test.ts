@@ -119,6 +119,7 @@ const helpers = {
   "foundation/popups/sheet-effects.ts": "a sheet",
   "foundation/popups/sheet-presentation.ts": "a popup that presents as a sheet",
   "foundation/popups/modal.ts": "a modal popup's scroll lock",
+  "foundation/selection/indicator.ts": "an indicator over the active item",
 }
 
 const unreached: Record<

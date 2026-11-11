@@ -321,7 +321,7 @@ function WeekDemo() {
           onValueChange={(value) => setTwelve(value === "12h")}
           className={cn("relative inline-flex bg-background", ink)}
         >
-          <SegmentedControlIndicator className="absolute top-(--segmented-control-indicator-top) left-(--segmented-control-indicator-left) h-(--segmented-control-indicator-height) w-(--segmented-control-indicator-width) bg-foreground transition-[left,width] duration-200" />
+          <SegmentedControlIndicator className="absolute top-(--indicator-top) left-(--indicator-left) h-(--indicator-height) w-(--indicator-width) bg-foreground transition-[left,width] duration-200" />
           {["24h", "12h"].map((value) => (
             <SegmentedControlItem
               key={value}

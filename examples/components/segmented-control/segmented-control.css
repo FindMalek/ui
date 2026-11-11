@@ -66,11 +66,11 @@
 
   [data-slot="segmented-control-indicator"] {
     position: absolute;
-    top: var(--segmented-control-indicator-top);
-    left: var(--segmented-control-indicator-left);
+    top: var(--indicator-top);
+    left: var(--indicator-left);
     box-sizing: border-box;
-    width: var(--segmented-control-indicator-width);
-    height: var(--segmented-control-indicator-height);
+    width: var(--indicator-width);
+    height: var(--indicator-height);
     border-radius: var(--radius-control);
     background: var(--surface-1);
     box-shadow:

@@ -10,7 +10,10 @@ import type {
   PrimitiveOptions,
   WithGeneric,
 } from "../../foundation/kernel/primitive-types"
-import { bindIndicator } from "../../foundation/selection/indicator"
+import {
+  bindIndicator,
+  writeIndicatorBox,
+} from "../../foundation/selection/indicator"
 import {
   radioGroupApi,
   type RadioGroupApi,
@@ -163,15 +166,6 @@ type SegmentedControlIndicatorState = {
 
 const slotNames = { group: "root", item: "item" }
 
-const indicatorVariables = [
-  "left",
-  "right",
-  "top",
-  "bottom",
-  "width",
-  "height",
-] as const
-
 const orientation = (options: SegmentedControlOptions) =>
   orientationOf(options.orientation, "horizontal")
 
@@ -240,20 +234,12 @@ const segmentedControlPrimitive = /* @__PURE__ */ definePrimitive({
                 value = store.get().value
                 remeasure()
               }),
-            write(box) {
-              for (const name of indicatorVariables) {
-                if (box) {
-                  el.style.setProperty(
-                    `--segmented-control-indicator-${name}`,
-                    `${box[name]}px`
-                  )
-                } else {
-                  el.style.removeProperty(
-                    `--segmented-control-indicator-${name}`
-                  )
-                }
-              }
-            },
+            write: (box) =>
+              writeIndicatorBox(
+                el,
+                box,
+                (side) => `--segmented-control-indicator-${side}`
+              ),
           })
         },
       }),

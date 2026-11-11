@@ -149,7 +149,7 @@ The menu waits for whatever animations run, and only those. Turn them off for pe
 
 ## Indicator
 
-`ui-navigation-menu-indicator` sits under the open trigger, or under the top-level link with `current` while every panel is closed. Its box comes from the `--active-item-*` [variables](#styling-navigationmenuindicator), relative to its positioned ancestor, and it gets `data-visible` while it has something to cover. Screen readers skip it.
+`ui-navigation-menu-indicator` sits under the open trigger, or under the top-level link with `current` while every panel is closed. Its box comes from the `--indicator-*` [variables](#styling-navigationmenuindicator), relative to its positioned ancestor, and it gets `data-visible` while it has something to cover. Screen readers skip it.
 
 ```html
 <ui-navigation-menu aria-label="Main">
@@ -166,9 +166,9 @@ The menu waits for whatever animations run, and only those. Turn them off for pe
 
 [data-slot="navigation-menu-indicator"] {
   position: absolute;
-  left: var(--active-item-left);
-  bottom: var(--active-item-bottom);
-  width: var(--active-item-width);
+  left: var(--indicator-left);
+  bottom: var(--indicator-bottom);
+  width: var(--indicator-width);
   height: 2px;
   opacity: 0;
 }

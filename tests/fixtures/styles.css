@@ -281,10 +281,10 @@
   [data-slot="tabs-indicator"] {
     position: absolute;
     z-index: -1;
-    left: var(--active-tab-left);
-    top: var(--active-tab-top);
-    width: var(--active-tab-width);
-    height: var(--active-tab-height);
+    left: var(--indicator-left);
+    top: var(--indicator-top);
+    width: var(--indicator-width);
+    height: var(--indicator-height);
     border-radius: 6px;
     background: #f0f0f0;
     pointer-events: none;
@@ -347,10 +347,10 @@
   [data-slot="segmented-control-indicator"] {
     position: absolute;
     z-index: -1;
-    left: var(--segmented-control-indicator-left);
-    top: var(--segmented-control-indicator-top);
-    width: var(--segmented-control-indicator-width);
-    height: var(--segmented-control-indicator-height);
+    left: var(--indicator-left);
+    top: var(--indicator-top);
+    width: var(--indicator-width);
+    height: var(--indicator-height);
     border-radius: 6px;
     background: #fff;
     pointer-events: none;
@@ -1706,9 +1706,9 @@
 
   .nav-indicator {
     position: absolute;
-    top: calc(var(--active-item-top, 0px) + var(--active-item-height, 0px));
-    left: var(--active-item-left, 0px);
-    width: var(--active-item-width, 0px);
+    top: calc(var(--indicator-top, 0px) + var(--indicator-height, 0px));
+    left: var(--indicator-left, 0px);
+    width: var(--indicator-width, 0px);
     height: 2px;
     background: #0a0a0a;
   }

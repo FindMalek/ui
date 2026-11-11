@@ -15,6 +15,11 @@ const positioned = [
   "--transform-origin",
   "--arrow-offset",
 ]
+const sides = ["left", "right", "top", "bottom", "width", "height"]
+const indicatorBox = (legacy: string) => [
+  ...sides.map((side) => `--indicator-${side}`),
+  ...sides.map((side) => `--${legacy}-${side}`),
+]
 const sheetMotion = ["--drawer-progress", "--drawer-dim", "--drawer-expand"]
 const keyboard = [
   "--keyboard-inset",
@@ -68,28 +73,14 @@ const components: Record<string, Group[]> = {
   tabs: [
     {
       part: "indicator",
-      variables: [
-        "--active-tab-left",
-        "--active-tab-right",
-        "--active-tab-top",
-        "--active-tab-bottom",
-        "--active-tab-width",
-        "--active-tab-height",
-      ],
+      variables: indicatorBox("active-tab"),
     },
   ],
   rating: [{ part: "item", variables: ["--rating-fill"] }],
   "segmented-control": [
     {
       part: "indicator",
-      variables: [
-        "--segmented-control-indicator-left",
-        "--segmented-control-indicator-right",
-        "--segmented-control-indicator-top",
-        "--segmented-control-indicator-bottom",
-        "--segmented-control-indicator-width",
-        "--segmented-control-indicator-height",
-      ],
+      variables: indicatorBox("segmented-control-indicator"),
     },
   ],
   slider: [
@@ -156,14 +147,7 @@ const components: Record<string, Group[]> = {
     },
     {
       part: "indicator",
-      variables: [
-        "--active-item-left",
-        "--active-item-right",
-        "--active-item-top",
-        "--active-item-bottom",
-        "--active-item-width",
-        "--active-item-height",
-      ],
+      variables: indicatorBox("active-item"),
     },
   ],
   tooltip: [{ part: "content", variables: positioned }],
@@ -253,40 +237,56 @@ const meaning: Record<string, string> = {
   "--image-cropper-aspect-ratio":
     "The image's width over its height as it shows, turned, once it loads. Give the viewport `aspect-ratio: var(--image-cropper-aspect-ratio)` to fit the image.",
   "--active-tab-left":
-    "Distance from the tab list's left edge to the selected tab.",
+    "Same as `--indicator-left`. An older name, written until it is removed.",
   "--active-tab-right":
-    "Distance from the tab list's right edge to the selected tab.",
+    "Same as `--indicator-right`. An older name, written until it is removed.",
   "--active-tab-top":
-    "Distance from the tab list's top edge to the selected tab.",
+    "Same as `--indicator-top`. An older name, written until it is removed.",
   "--active-tab-bottom":
-    "Distance from the tab list's bottom edge to the selected tab.",
-  "--active-tab-width": "Width of the selected tab.",
-  "--active-tab-height": "Height of the selected tab.",
+    "Same as `--indicator-bottom`. An older name, written until it is removed.",
+  "--active-tab-width":
+    "Same as `--indicator-width`. An older name, written until it is removed.",
+  "--active-tab-height":
+    "Same as `--indicator-height`. An older name, written until it is removed.",
+  "--indicator-left":
+    "Distance from the left edge of what the indicator is measured against to the item it marks: the tab list in Tabs, the root in Segmented Control, its positioned ancestor in Navigation Menu.",
+  "--indicator-right":
+    "Distance from the right edge of what it's measured against to the item it marks.",
+  "--indicator-top":
+    "Distance from the top edge of what it's measured against to the item it marks.",
+  "--indicator-bottom":
+    "Distance from the bottom edge of what it's measured against to the item it marks.",
+  "--indicator-width": "Width of the item it marks.",
+  "--indicator-height": "Height of the item it marks.",
   "--rating-fill": "How much of the star the shown score covers, from 0 to 1.",
   "--segmented-control-indicator-left":
-    "Distance from the control's left edge to the checked item.",
+    "Same as `--indicator-left`. An older name, written until it is removed.",
   "--segmented-control-indicator-right":
-    "Distance from the control's right edge to the checked item.",
+    "Same as `--indicator-right`. An older name, written until it is removed.",
   "--segmented-control-indicator-top":
-    "Distance from the control's top edge to the checked item.",
+    "Same as `--indicator-top`. An older name, written until it is removed.",
   "--segmented-control-indicator-bottom":
-    "Distance from the control's bottom edge to the checked item.",
-  "--segmented-control-indicator-width": "Width of the checked item.",
-  "--segmented-control-indicator-height": "Height of the checked item.",
+    "Same as `--indicator-bottom`. An older name, written until it is removed.",
+  "--segmented-control-indicator-width":
+    "Same as `--indicator-width`. An older name, written until it is removed.",
+  "--segmented-control-indicator-height":
+    "Same as `--indicator-height`. An older name, written until it is removed.",
   "--viewport-width":
     "The open content's width plus the viewport's own border. Transition width for a viewport that resizes as it switches.",
   "--viewport-height":
     "The open content's height plus the viewport's own border.",
   "--active-item-left":
-    "Distance from its positioned ancestor's left edge to the open trigger, or the current page's link.",
+    "Same as `--indicator-left`. An older name, written until it is removed.",
   "--active-item-right":
-    "Distance from its positioned ancestor's right edge to the item.",
+    "Same as `--indicator-right`. An older name, written until it is removed.",
   "--active-item-top":
-    "Distance from its positioned ancestor's top edge to the item.",
+    "Same as `--indicator-top`. An older name, written until it is removed.",
   "--active-item-bottom":
-    "Distance from its positioned ancestor's bottom edge to the item.",
-  "--active-item-width": "Width of the item it sits under.",
-  "--active-item-height": "Height of the item it sits under.",
+    "Same as `--indicator-bottom`. An older name, written until it is removed.",
+  "--active-item-width":
+    "Same as `--indicator-width`. An older name, written until it is removed.",
+  "--active-item-height":
+    "Same as `--indicator-height`. An older name, written until it is removed.",
   "--accordion-panel-height":
     "The panel's content height in pixels while it animates, auto once open and 0px while closed.",
   "--accordion-panel-width":

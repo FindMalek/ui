@@ -15,7 +15,10 @@ import {
   type ButtonElement,
 } from "../../foundation/platform/button"
 import { layoutBox } from "../../foundation/platform/layout"
-import { bindIndicator } from "../../foundation/selection/indicator"
+import {
+  bindIndicator,
+  writeIndicatorBox,
+} from "../../foundation/selection/indicator"
 import {
   itemIconPart,
   type ItemIconProps,
@@ -249,28 +252,6 @@ type TabsStore = {
   // What each tab is rendered as when it isn't a button, like a link. Known
   // once it binds, so servers render buttons.
   elements: Record<string, ButtonElement>
-}
-
-const indicatorVariables = [
-  "left",
-  "right",
-  "top",
-  "bottom",
-  "width",
-  "height",
-] as const
-
-function writeIndicator(
-  el: HTMLElement,
-  rect: ReturnType<typeof layoutBox> | undefined
-) {
-  for (const name of indicatorVariables) {
-    if (rect) {
-      el.style.setProperty(`--active-tab-${name}`, `${rect[name]}px`)
-    } else {
-      el.style.removeProperty(`--active-tab-${name}`)
-    }
-  }
 }
 
 /**
@@ -734,7 +715,8 @@ const tabsPrimitive = /* @__PURE__ */ definePrimitive({
               offTabsChange()
             }
           },
-          write: (box) => writeIndicator(el, box),
+          write: (box) =>
+            writeIndicatorBox(el, box, (side) => `--active-tab-${side}`),
         })
       },
     }),

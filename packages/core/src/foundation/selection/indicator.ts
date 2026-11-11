@@ -1,5 +1,28 @@
 import { layoutBox } from "../platform/layout"
 
+const sides = ["left", "right", "top", "bottom", "width", "height"] as const
+
+/**
+ * Writes an indicator's box as `--indicator-*`, the names every indicator
+ * shares, and as the component's own older names from `legacyName`, or
+ * removes both without a box.
+ */
+function writeIndicatorBox(
+  el: HTMLElement,
+  box: ReturnType<typeof layoutBox> | undefined,
+  legacyName: (side: (typeof sides)[number]) => string
+) {
+  for (const side of sides) {
+    if (box) {
+      el.style.setProperty(`--indicator-${side}`, `${box[side]}px`)
+      el.style.setProperty(legacyName(side), `${box[side]}px`)
+    } else {
+      el.style.removeProperty(`--indicator-${side}`)
+      el.style.removeProperty(legacyName(side))
+    }
+  }
+}
+
 /**
  * Keeps an indicator over a list's active item, like the selected tab, without
  * a render: measures the item against the list once they bind, whenever
@@ -53,4 +76,4 @@ function bindIndicator(options: {
   }
 }
 
-export { bindIndicator }
+export { bindIndicator, writeIndicatorBox }

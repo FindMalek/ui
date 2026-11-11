@@ -15,7 +15,7 @@ const topLink =
 // Covers the open trigger, or the current page's link while closed: a bar
 // under it when horizontal, beside it when vertical.
 const indicator =
-  "pointer-events-none absolute top-[calc(var(--active-item-top)+var(--active-item-height)+2px)] left-(--active-item-left) h-0.5 w-(--active-item-width) rounded-full bg-neutral-950 opacity-0 transition-[left,top,width,height,opacity] duration-200 data-visible:opacity-100 data-[orientation=vertical]:top-(--active-item-top) data-[orientation=vertical]:left-[calc(var(--active-item-left)-6px)] data-[orientation=vertical]:h-(--active-item-height) data-[orientation=vertical]:w-0.5 rtl:data-[orientation=vertical]:left-[calc(var(--active-item-left)+var(--active-item-width)+4px)] motion-reduce:transition-none"
+  "pointer-events-none absolute top-[calc(var(--indicator-top)+var(--indicator-height)+2px)] left-(--indicator-left) h-0.5 w-(--indicator-width) rounded-full bg-neutral-950 opacity-0 transition-[left,top,width,height,opacity] duration-200 data-visible:opacity-100 data-[orientation=vertical]:top-(--indicator-top) data-[orientation=vertical]:left-[calc(var(--indicator-left)-6px)] data-[orientation=vertical]:h-(--indicator-height) data-[orientation=vertical]:w-0.5 rtl:data-[orientation=vertical]:left-[calc(var(--indicator-left)+var(--indicator-width)+4px)] motion-reduce:transition-none"
 
 // The viewport takes the open content's size. Contents sit at its corner.
 const viewportBase =

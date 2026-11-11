@@ -111,11 +111,11 @@
 
   [data-slot="tabs-indicator"] {
     position: absolute;
-    top: var(--active-tab-top);
-    left: var(--active-tab-left);
+    top: var(--indicator-top);
+    left: var(--indicator-left);
     box-sizing: border-box;
-    width: var(--active-tab-width);
-    height: var(--active-tab-height);
+    width: var(--indicator-width);
+    height: var(--indicator-height);
     border-radius: var(--radius-control);
     background: var(--surface-1);
     box-shadow:

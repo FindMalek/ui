@@ -71,10 +71,10 @@ Name the control with `aria-label`, or put it in a [Field](./field) whose label 
 [data-slot="segmented-control-indicator"] {
   position: absolute;
   z-index: -1;
-  top: var(--segmented-control-indicator-top);
-  left: var(--segmented-control-indicator-left);
-  width: var(--segmented-control-indicator-width);
-  height: var(--segmented-control-indicator-height);
+  top: var(--indicator-top);
+  left: var(--indicator-left);
+  width: var(--indicator-width);
+  height: var(--indicator-height);
   transition-property: top, left, width, height;
   transition-duration: 200ms;
 }
@@ -86,7 +86,7 @@ Name the control with `aria-label`, or put it in a [Field](./field) whose label 
   defaultValue="list"
   className="relative isolate inline-flex"
 >
-  <SegmentedControlIndicator className="absolute -z-1 top-(--segmented-control-indicator-top) left-(--segmented-control-indicator-left) w-(--segmented-control-indicator-width) h-(--segmented-control-indicator-height) transition-[top,left,width,height] duration-200" />
+  <SegmentedControlIndicator className="absolute -z-1 top-(--indicator-top) left-(--indicator-left) w-(--indicator-width) h-(--indicator-height) transition-[top,left,width,height] duration-200" />
   <SegmentedControlItem value="list">List</SegmentedControlItem>
   <SegmentedControlItem value="grid">Grid</SegmentedControlItem>
 </SegmentedControl>
