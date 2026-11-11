@@ -223,6 +223,7 @@ function MenuContent<Payload = unknown>({
   collisionPadding,
   arrowPadding,
   anchor,
+  finalFocus,
   keepMounted,
   container,
   render,
@@ -239,6 +240,7 @@ function MenuContent<Payload = unknown>({
     collisionPadding,
     arrowPadding,
     anchor,
+    finalFocus,
     keepMounted,
   }
   // Submenus render inside their parent's popup.
@@ -621,6 +623,7 @@ export type {
   MenuData,
   MenuDataItem,
   MenuDismissReason,
+  MenuFinalFocus,
   MenuItemIconProps,
   MenuItemIconState,
   MenuItemIndicatorProps,

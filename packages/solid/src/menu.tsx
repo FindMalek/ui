@@ -310,6 +310,7 @@ function MenuContent<Payload = unknown>(
     collisionPadding: props.collisionPadding,
     arrowPadding: props.arrowPadding,
     anchor: props.anchor,
+    finalFocus: props.finalFocus,
     keepMounted: props.keepMounted,
   })
   const rest = omit(
@@ -321,6 +322,7 @@ function MenuContent<Payload = unknown>(
     "collisionPadding",
     "arrowPadding",
     "anchor",
+    "finalFocus",
     "keepMounted",
     "container"
   )
@@ -811,6 +813,7 @@ export type {
   MenuData,
   MenuDataItem,
   MenuDismissReason,
+  MenuFinalFocus,
   MenuItemIconProps,
   MenuItemIconState,
   MenuItemIndicatorProps,

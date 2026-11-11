@@ -47,6 +47,7 @@ import { elements } from "../../foundation/kernel/elements"
 import type {
   MenuCheckedChangeReason,
   MenuData,
+  MenuFinalFocus,
   MenuOpenChangeReason,
   MenuOptions,
   MenuOpenOptions,
@@ -223,6 +224,11 @@ type ContentProps = PositionProps &
     sideOffset?: number
     /** Shift along the trigger, in pixels. Submenus default to lining up their first item with the trigger. */
     alignOffset?: number
+    /**
+     * Where focus goes when the menu closes while focus is inside it. `"trigger"` returns it to the trigger and `"none"` leaves it. A CSS selector, an element or a function picks a specific element.
+     * @defaultValue "trigger"
+     */
+    finalFocus?: MenuFinalFocus
     /**
      * Whether the menu stays in the page, hidden, while closed. For animation libraries that drive the exit from state.
      * @defaultValue false

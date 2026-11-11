@@ -356,6 +356,7 @@ const menuSlots = (slot: SlotFactory<MenuState, MenuApi>) => ({
       arrowPadding: "number",
       container: "value",
       anchor: "string",
+      finalFocus: "string",
       keepMounted: "boolean",
     },
     selects: selects({ values: [] }),
