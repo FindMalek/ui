@@ -200,6 +200,7 @@ function triggerPart<
       inheritAttrs: false,
       props: {
         disabled: optionalBoolean,
+        focusableWhenDisabled: optionalBoolean,
         payload: null as unknown as PropType<unknown>,
         // A keyboard shortcut that opens the menu, like "mod+j". Root triggers only.
         shortcut: String,
@@ -216,6 +217,7 @@ function triggerPart<
         const part = () => ({
           id,
           disabled: props.disabled,
+          focusableWhenDisabled: props.focusableWhenDisabled,
           payload: props.payload,
           shortcut: props.shortcut,
         })
@@ -231,7 +233,16 @@ function triggerPart<
           () =>
             renderUnbound(
               tag,
-              { ...(tag === "button" && { type: "button" }), ...attrs },
+              {
+                ...(tag === "button" && {
+                  type: "button",
+                  disabled: props.disabled && !props.focusableWhenDisabled,
+                  "aria-disabled":
+                    (props.disabled && props.focusableWhenDisabled) ||
+                    undefined,
+                }),
+                ...attrs,
+              },
               { slots, state: { open: false, disabled: !!props.disabled } }
             )
         )
