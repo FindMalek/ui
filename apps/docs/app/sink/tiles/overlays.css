@@ -2680,3 +2680,14 @@
   padding: 20px 12px;
   font-size: 13px;
 }
+
+.ov-cmd-vercel {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.ov-inbox-zero .ov-inbox-zero-note {
+  margin: -6px 0 0;
+  font: 500 11px var(--mono);
+  color: var(--tile-ink-3);
+}

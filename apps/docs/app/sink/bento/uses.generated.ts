@@ -342,7 +342,6 @@ export const uses: Record<string, string[]> = {
     "live",
   ],
   "studio-notes": [
-    "ariaKeyshortcuts",
     "createParts",
     "createUndoStack",
     "definePrimitive",

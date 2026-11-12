@@ -301,13 +301,18 @@ function Palette() {
   const [command] = useState(() => createCommandController())
   const [pages, setPages] = useState<string[]>([])
   const [result, setResult] = useState("")
+  const [query, setQuery] = useState("")
   const page = pages.at(-1)
 
   async function run(value: string) {
     if (value === "back") return command.pop()
     if (page === "projects") setResult(`Switched to ${value}`)
     else if (page === "people") setResult(`ENG-506 assigned to ${value}`)
-    else if (value === "deploy") {
+    else if (value === "vercel") {
+      setResult("Building on ▲…")
+      await wait(900)
+      setResult("▲ Ready. Deployed to production in 0.9s")
+    } else if (value === "deploy") {
       setResult("Deploying…")
       await wait(1200)
       setResult(paletteResults.deploy)
@@ -322,6 +327,7 @@ function Palette() {
       pages={pages}
       onPagesChange={setPages}
       onAction={run}
+      onQueryChange={setQuery}
       loop
     >
       <div className="ov-cmd-search">
@@ -354,6 +360,23 @@ function Palette() {
               <PaletteItem key={entry.value} entry={entry} />
             ))}
           </CommandGroup>
+          {query.trim().length >= 3 &&
+            "vercel".startsWith(query.trim().toLowerCase()) && (
+              <CommandItem
+                value="vercel"
+                label="vercel --prod"
+                className="ov-cmd-item"
+              >
+                <CommandItemIcon className="ov-cmd-icon">
+                  <span className="ov-cmd-vercel" aria-hidden>
+                    ▲
+                  </span>
+                </CommandItemIcon>
+                <CommandItemText className="ov-cmd-text ov-cmd-mono">
+                  vercel --prod
+                </CommandItemText>
+              </CommandItem>
+            )}
         </CommandPage>
         <CommandPage value="projects">
           {paletteProjects.map((project) => (
@@ -1942,6 +1965,7 @@ function Inbox() {
       ) : (
         <div className="ov-inbox-zero">
           <p>All caught up</p>
+          <p className="ov-inbox-zero-note">Zero inbox, zero config ▲</p>
           <button
             type="button"
             className="b-btn"

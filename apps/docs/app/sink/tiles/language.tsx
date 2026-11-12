@@ -187,6 +187,18 @@ const CITIES = [
   { name: "Montevideo", country: "Uruguay", zone: "America/Montevideo" },
 ]
 
+const HQ = {
+  name: "Vercel HQ",
+  country: "San Francisco ▲",
+  zone: "America/Los_Angeles",
+}
+const citiesFor = (query: string) => {
+  const typed = query.trim().toLowerCase()
+  return typed.length >= 3 && "vercel".startsWith(typed)
+    ? [HQ, ...CITIES]
+    : CITIES
+}
+
 type MatchMode = "fuzzy" | "startsWith" | "contains"
 const MODES: { value: MatchMode; label: string }[] = [
   { value: "fuzzy", label: "Fuzzy" },
@@ -203,18 +215,19 @@ function CitySearch() {
   const id = useId()
   const locale = useUserLocale()
 
-  const results = CITIES.map((city) => ({
-    city,
-    score: fuzzyScore(city.name, query),
-    ranges: matchRanges(city.name, query, mode),
-  }))
+  const results = citiesFor(query)
+    .map((city) => ({
+      city,
+      score: fuzzyScore(city.name, query),
+      ranges: matchRanges(city.name, query, mode),
+    }))
     .filter(({ score, ranges }) =>
       !query ? true : mode === "fuzzy" ? score > 0 : ranges.length > 0
     )
     .sort((a, b) => b.score - a.score)
     .slice(0, 7)
 
-  const pickedCity = CITIES.find((city) => city.name === picked)
+  const pickedCity = [HQ, ...CITIES].find((city) => city.name === picked)
   const pickedClock = pickedCity ? clockIn(pickedCity.zone, now, locale) : null
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {

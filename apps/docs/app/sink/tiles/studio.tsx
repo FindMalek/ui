@@ -634,15 +634,29 @@ const EMOJI: [string, string, string][] = [
 ]
 const EMOJI_COLS = 7
 
+const HIDDEN_EMOJI: [string, string, string][] = [
+  ["▲", "vercel", "triangle deploy ship"],
+]
+
+const findsHidden = (query: string) => {
+  const typed = query.trim().toLowerCase()
+  return HIDDEN_EMOJI.filter(
+    ([, name, keywords]) =>
+      typed.length >= 3 &&
+      `${name} ${keywords}`.split(" ").some((word) => word.startsWith(typed))
+  )
+}
+
 const rankEmoji = (query: string) => {
   if (!query.trim()) return EMOJI
-  return EMOJI.map((entry) => ({
-    entry,
-    score: Math.max(
-      fuzzyScore(entry[1], query),
-      fuzzyScore(entry[2], query) * 0.9
-    ),
-  }))
+  return [...findsHidden(query), ...EMOJI]
+    .map((entry) => ({
+      entry,
+      score: Math.max(
+        fuzzyScore(entry[1], query),
+        fuzzyScore(entry[2], query) * 0.9
+      ),
+    }))
     .filter(({ score }) => score > 0)
     .sort((a, b) => b.score - a.score)
     .map(({ entry }) => entry)
@@ -778,7 +792,9 @@ function EmojiPicker() {
             results.slice(row * EMOJI_COLS, row * EMOJI_COLS + EMOJI_COLS)
         )
         const shown = preview !== null ? results[preview] : undefined
-        const pickedName = EMOJI.find((entry) => entry[0] === picked)?.[1]
+        const pickedName = [...EMOJI, ...HIDDEN_EMOJI].find(
+          (entry) => entry[0] === picked
+        )?.[1]
         return (
           <>
             <label className="st-emoji-search">
