@@ -15,14 +15,17 @@ const out = path.join(root, "app/sink/bento/uses.generated.ts")
 // ".../date-picker" is `DatePicker`, and `AlertDialogContent` from ".../dialog"
 // is `AlertDialog` when the tile imports that too.
 function componentOf({ name, from }, uses) {
-  if (!/^[A-Z]/.test(name)) return name
+  if (!/^[A-Z]/.test(name)) {
+    return name
+  }
   const entry = from.split("/")[2]?.replaceAll("-", "")
   if (
     entry &&
     name.toLowerCase().startsWith(entry) &&
     name.length > entry.length
-  )
+  ) {
     return name.slice(0, entry.length)
+  }
   const roots = [...uses]
     .filter(
       (other) =>
@@ -40,7 +43,9 @@ function componentOf({ name, from }, uses) {
 
 // Every name a binding declares, like `Root` and `Item` in `const { Root, Item } = parts`.
 function boundNames(name) {
-  if (ts.isIdentifier(name)) return [name.text]
+  if (ts.isIdentifier(name)) {
+    return [name.text]
+  }
   return name.elements.flatMap((element) =>
     ts.isOmittedExpression(element) ? [] : boundNames(element.name)
   )
@@ -61,46 +66,59 @@ function usesIn(file) {
     if (ts.isImportDeclaration(statement)) {
       const from = statement.moduleSpecifier.text
       const clause = statement.importClause
-      if (!from.startsWith("@ui-sdk/") || !clause || clause.isTypeOnly) continue
+      if (!from.startsWith("@ui-sdk/") || !clause || clause.isTypeOnly) {
+        continue
+      }
       const named = clause.namedBindings
-      if (named && ts.isNamedImports(named))
-        for (const element of named.elements)
-          if (!element.isTypeOnly)
+      if (named && ts.isNamedImports(named)) {
+        for (const element of named.elements) {
+          if (!element.isTypeOnly) {
             imported.set(element.name.text, {
               name: (element.propertyName ?? element.name).text,
               from,
             })
+          }
+        }
+      }
       continue
     }
-    if (ts.isFunctionDeclaration(statement) && statement.name)
+    if (ts.isFunctionDeclaration(statement) && statement.name) {
       declarations.set(statement.name.text, statement)
-    else if (ts.isClassDeclaration(statement) && statement.name)
+    } else if (ts.isClassDeclaration(statement) && statement.name) {
       declarations.set(statement.name.text, statement)
-    else if (ts.isVariableStatement(statement))
+    } else if (ts.isVariableStatement(statement)) {
       for (const declaration of statement.declarationList.declarations) {
         if (
           ts.isIdentifier(declaration.name) &&
           declaration.name.text === "tiles"
-        )
+        ) {
           list = declaration.initializer
-        else
-          for (const name of boundNames(declaration.name))
+        } else {
+          for (const name of boundNames(declaration.name)) {
             declarations.set(name, declaration)
+          }
+        }
       }
+    }
   }
   // The names a declaration mentions, outside type positions.
   const mentions = new Map()
   const namesIn = (node) => {
-    if (mentions.has(node)) return mentions.get(node)
+    if (mentions.has(node)) {
+      return mentions.get(node)
+    }
     const names = new Set()
     const visit = (child) => {
       if (
         ts.isTypeNode(child) ||
         ts.isTypeAliasDeclaration(child) ||
         ts.isInterfaceDeclaration(child)
-      )
+      ) {
         return
-      if (ts.isIdentifier(child)) names.add(child.text)
+      }
+      if (ts.isIdentifier(child)) {
+        names.add(child.text)
+      }
       ts.forEachChild(child, visit)
     }
     ts.forEachChild(node, visit)
@@ -113,20 +131,30 @@ function usesIn(file) {
     const pending = [start]
     while (pending.length) {
       const name = pending.pop()
-      if (seen.has(name)) continue
+      if (seen.has(name)) {
+        continue
+      }
       seen.add(name)
-      if (imported.has(name)) uses.add(imported.get(name))
+      if (imported.has(name)) {
+        uses.add(imported.get(name))
+      }
       const declaration = declarations.get(name)
-      if (declaration)
-        for (const mention of namesIn(declaration)) pending.push(mention)
+      if (declaration) {
+        for (const mention of namesIn(declaration)) {
+          pending.push(mention)
+        }
+      }
     }
     return [...new Set([...uses].map((use) => componentOf(use, uses)))].sort()
   }
   const result = {}
-  if (!list || !ts.isArrayLiteralExpression(list))
+  if (!list || !ts.isArrayLiteralExpression(list)) {
     throw new Error(`${file}: no \`tiles\` array`)
+  }
   for (const element of list.elements) {
-    if (!ts.isObjectLiteralExpression(element)) continue
+    if (!ts.isObjectLiteralExpression(element)) {
+      continue
+    }
     const property = (key) =>
       element.properties.find(
         (p) =>
@@ -136,8 +164,9 @@ function usesIn(file) {
       )
     const id = property("id")?.initializer
     const demo = property("Demo")?.initializer
-    if (!id || !ts.isStringLiteral(id) || !demo || !ts.isIdentifier(demo))
+    if (!id || !ts.isStringLiteral(id) || !demo || !ts.isIdentifier(demo)) {
       throw new Error(`${file}: a tile without id or Demo`)
+    }
     result[id.text] = reach(demo.text)
   }
   return result
