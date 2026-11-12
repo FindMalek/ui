@@ -108,7 +108,7 @@ function Poster({
       id={typeof title === "string" ? slug(title) : undefined}
       data-poster
       className={cn(
-        "@container relative scroll-mt-24 flex min-w-0 flex-col gap-10 border-(length:--poster-border) [--poster-border:1px] lg:min-h-[36rem] text-foreground border-foreground/10 bg-(--poster) p-6 sm:p-8 lg:p-10",
+        "@container relative scroll-mt-24 flex min-w-0 flex-col gap-10 border-(length:--poster-border) [--poster-border:1px] lg:min-h-[36rem] text-foreground border-frame bg-(--poster) p-6 sm:p-8 lg:p-10",
         tones[tone],
         className
       )}
@@ -218,30 +218,6 @@ function Numeral({
   )
 }
 
-function ComponentPoster({
-  title,
-  id,
-  island: Island,
-  ...props
-}: Omit<
-  React.ComponentProps<typeof Poster>,
-  "title" | "body" | "backdrop" | "island" | "children"
-> & {
-  title: string
-  id: string
-  island: Island
-}) {
-  return (
-    <Poster {...props} body="gap-8 sm:gap-10">
-      <div aria-hidden="true" className="h-12 max-sm:hidden" />
-      <Island className="flex flex-1 items-center justify-center" />
-      <Title id={id} max={13} className="-ms-[0.04em]">
-        {title}
-      </Title>
-    </Poster>
-  )
-}
-
 function StartPoster() {
   return (
     <Poster
@@ -264,4 +240,4 @@ function StartPoster() {
   )
 }
 
-export { ComponentPoster, Numeral, Poster, StartPoster, Title, slug }
+export { Numeral, Poster, StartPoster, Title, slug }
