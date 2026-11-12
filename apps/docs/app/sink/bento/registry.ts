@@ -27,14 +27,22 @@ export const groups: Record<string, Tile[]> = {
 // One tile from each file in turn, so neighbors come from different areas.
 function interleave(lists: Tile[][]) {
   const out: Tile[] = []
-  for (let i = 0; lists.some((list) => i < list.length); i++)
-    for (const list of lists) if (list[i]) out.push(list[i])
+  for (let i = 0; lists.some((list) => i < list.length); i++) {
+    for (const list of lists) {
+      if (list[i]) {
+        out.push(list[i])
+      }
+    }
+  }
   return out
 }
 
 const tileCount = new Map<string, number>()
-for (const names of Object.values(uses))
-  for (const name of names) tileCount.set(name, (tileCount.get(name) ?? 0) + 1)
+for (const names of Object.values(uses)) {
+  for (const name of names) {
+    tileCount.set(name, (tileCount.get(name) ?? 0) + 1)
+  }
+}
 const kindOrder = { component: 0, hook: 1, helper: 2 }
 
 // Components first, then hooks and helpers, the rarest first, so a tile shows what sets it apart before what every tile has.

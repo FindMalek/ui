@@ -305,10 +305,14 @@ function Palette() {
   const page = pages.at(-1)
 
   async function run(value: string) {
-    if (value === "back") return command.pop()
-    if (page === "projects") setResult(`Switched to ${value}`)
-    else if (page === "people") setResult(`ENG-506 assigned to ${value}`)
-    else if (value === "vercel") {
+    if (value === "back") {
+      return command.pop()
+    }
+    if (page === "projects") {
+      setResult(`Switched to ${value}`)
+    } else if (page === "people") {
+      setResult(`ENG-506 assigned to ${value}`)
+    } else if (value === "vercel") {
       setResult("Building on ▲…")
       await wait(900)
       setResult("▲ Ready. Deployed to production in 0.9s")
@@ -316,8 +320,12 @@ function Palette() {
       setResult("Deploying…")
       await wait(1200)
       setResult(paletteResults.deploy)
-    } else setResult(paletteResults[value] ?? value)
-    if (page) setPages([])
+    } else {
+      setResult(paletteResults[value] ?? value)
+    }
+    if (page) {
+      setPages([])
+    }
   }
 
   return (
@@ -471,8 +479,9 @@ function Invite() {
           if (open) {
             setEmail("")
             setError("")
-          } else if (details.reason === "action")
+          } else if (details.reason === "action") {
             setSent((list) => [...list, email])
+          }
         }}
       >
         <DialogTrigger className="b-btn ov-trigger" data-variant="primary">
@@ -534,10 +543,14 @@ function DeleteProject() {
       <AlertDialog
         pendingAnnouncement="Deleting legacy-cron"
         onOpenChange={(open, details) => {
-          if (!open && details.reason === "action") setDeleted(true)
+          if (!open && details.reason === "action") {
+            setDeleted(true)
+          }
         }}
         onOpenChangeComplete={(open) => {
-          if (!open) restore.current?.focus()
+          if (!open) {
+            restore.current?.focus()
+          }
         }}
       >
         {deleted ? (
@@ -598,7 +611,9 @@ function Tokens() {
   const reset = useRef<HTMLButtonElement>(null)
 
   async function revoke(name: string, button: HTMLButtonElement) {
-    if (!(await confirm({ name }))) return
+    if (!(await confirm({ name }))) {
+      return
+    }
     const row = button.closest("li")
     const next = (
       row?.nextElementSibling ?? row?.previousElementSibling
@@ -691,7 +706,9 @@ function Region() {
 
   async function move() {
     const { returnValue } = await picker.open({ payload: region })
-    if (!returnValue || returnValue === region) return
+    if (!returnValue || returnValue === region) {
+      return
+    }
     setMoving(returnValue)
     await wait(1400)
     setRegion(returnValue)
@@ -964,8 +981,9 @@ function DiffToolbar() {
       className="ov-diff"
       onFocus={() => (inside.current = true)}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget))
+        if (!event.currentTarget.contains(event.relatedTarget)) {
           inside.current = false
+        }
       }}
     >
       <div className="ov-diff-bar" role="toolbar" aria-label="Review">
@@ -1054,7 +1072,9 @@ function QuickKeys() {
   const [last, setLast] = useState<number | null>(null)
   const [flash, setFlash] = useState(0)
   useEffect(() => {
-    if (!flash) return
+    if (!flash) {
+      return
+    }
     const id = setTimeout(() => setFlash(0), 650)
     return () => clearTimeout(id)
   }, [flash])
@@ -1299,8 +1319,12 @@ function FileTree() {
   const [note, setNote] = useState("Right-click a file")
 
   function act(value: string, file: string) {
-    if (value === "copy") setNote(`Copied infra/${file}`)
-    if (value === "open") setNote(`Opened ${file}`)
+    if (value === "copy") {
+      setNote(`Copied infra/${file}`)
+    }
+    if (value === "open") {
+      setNote(`Opened ${file}`)
+    }
     if (value === "duplicate") {
       const dot = file.lastIndexOf(".")
       const copy =
@@ -1446,8 +1470,12 @@ function BranchRename() {
         </span>
         <Menu
           onAction={(value) => {
-            if (value === "copy") setNote("Name copied")
-            if (value === "compare") setNote("+148 −31 against develop")
+            if (value === "copy") {
+              setNote("Name copied")
+            }
+            if (value === "compare") {
+              setNote("+148 −31 against develop")
+            }
           }}
         >
           <MenuTrigger className="ov-dots" aria-label="Branch actions">
@@ -2100,16 +2128,22 @@ function LineComments() {
   const bubble = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (openLine === null) return
+    if (openLine === null) {
+      return
+    }
     const el = bubble.current
     const anchor = anchors.current.get(openLine)
-    if (!el || !anchor) return
+    if (!el || !anchor) {
+      return
+    }
     const stopLayer = bindLayer(el, {
       topLayer: true,
       contains: (target) => anchor.contains(target),
       onDismiss: (reason) => {
         setOpenLine(null)
-        if (reason === "escape-key") anchor.focus()
+        if (reason === "escape-key") {
+          anchor.focus()
+        }
       },
     })
     const stopPosition = position(anchor, el, {
@@ -2126,9 +2160,13 @@ function LineComments() {
   }, [openLine])
 
   function post() {
-    if (openLine === null) return
+    if (openLine === null) {
+      return
+    }
     const line = openLine
-    if (draft.trim()) setNotes((all) => ({ ...all, [line]: draft.trim() }))
+    if (draft.trim()) {
+      setNotes((all) => ({ ...all, [line]: draft.trim() }))
+    }
     setOpenLine(null)
     anchors.current.get(line)?.focus()
   }
@@ -2143,8 +2181,11 @@ function LineComments() {
               type="button"
               className="ov-line"
               ref={(el) => {
-                if (el) anchors.current.set(line.n, el)
-                else anchors.current.delete(line.n)
+                if (el) {
+                  anchors.current.set(line.n, el)
+                } else {
+                  anchors.current.delete(line.n)
+                }
               }}
               aria-expanded={openLine === line.n}
               aria-label={`Line ${line.n}: ${line.code.trim()}. Comment`}
@@ -2182,8 +2223,9 @@ function LineComments() {
             value={draft}
             onChange={(event) => setDraft(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === "Enter" && (event.metaKey || event.ctrlKey))
+              if (event.key === "Enter" && (event.metaKey || event.ctrlKey)) {
                 post()
+              }
             }}
           />
           <div className="ov-bubble-actions">

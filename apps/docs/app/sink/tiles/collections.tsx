@@ -165,7 +165,9 @@ function useInView<T extends Element>() {
   const [inView, setInView] = useState(false)
   useEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     const observer = new IntersectionObserver(([entry]) =>
       setInView(entry.isIntersecting)
     )
@@ -405,7 +407,9 @@ function NowPlaying() {
   const running = playing && !done && inView
 
   useEffect(() => {
-    if (!running) return
+    if (!running) {
+      return
+    }
     const timer = setInterval(() => setElapsed((value) => value + 1), 1000)
     return () => clearInterval(timer)
   }, [running])
@@ -416,7 +420,9 @@ function NowPlaying() {
     setPlaying(true)
   }
   const toggle = () => {
-    if (done) setElapsed(0)
+    if (done) {
+      setElapsed(0)
+    }
     setPlaying((value) => (done ? true : !value))
   }
   const listProps = { current, playing: playing && !done, onPick: pick }
@@ -625,7 +631,9 @@ function TenThousand() {
 
   useEffect(() => {
     const el = viewport.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     return virtual.connect(el)
   }, [virtual])
 
@@ -786,10 +794,18 @@ const fileMeta: Record<string, { kind: string; size: string; extra: string }> =
   }
 
 function fileIcon(path: string) {
-  if (/\.(flac|m4b|mp3)$/.test(path)) return FileAudioIcon
-  if (path.endsWith(".jpg")) return FileImageIcon
-  if (path.endsWith(".pdf")) return FilePdfIcon
-  if (path.endsWith(".epub")) return BookOpenTextIcon
+  if (/\.(flac|m4b|mp3)$/.test(path)) {
+    return FileAudioIcon
+  }
+  if (path.endsWith(".jpg")) {
+    return FileImageIcon
+  }
+  if (path.endsWith(".pdf")) {
+    return FilePdfIcon
+  }
+  if (path.endsWith(".epub")) {
+    return BookOpenTextIcon
+  }
   return FileTextIcon
 }
 
@@ -798,9 +814,13 @@ function findItem(
   value: string
 ): TreeItemData | undefined {
   for (const item of items) {
-    if (item.value === value) return item
+    if (item.value === value) {
+      return item
+    }
     const inside = item.children && findItem(item.children, value)
-    if (inside) return inside
+    if (inside) {
+      return inside
+    }
   }
 }
 
@@ -1493,15 +1513,20 @@ function FolderImport() {
   const complete = importFiles.every((file) => values[file.id] === 100)
 
   useEffect(() => {
-    if (!running) return
+    if (!running) {
+      return
+    }
     const timer = setInterval(() => {
       setValues((current) => {
         const next = { ...current }
         const audioDone = next.dawn === 100 && next.rain === 100
         for (const file of importFiles) {
           const value = next[file.id]
-          if (value === null) next[file.id] = audioDone ? 0 : null
-          else next[file.id] = Math.min(100, value + file.rate)
+          if (value === null) {
+            next[file.id] = audioDone ? 0 : null
+          } else {
+            next[file.id] = Math.min(100, value + file.rate)
+          }
         }
         return next
       })
@@ -1513,7 +1538,9 @@ function FolderImport() {
     if (complete) {
       setValues(importStart)
       setRunning(false)
-    } else setRunning((value) => !value)
+    } else {
+      setRunning((value) => !value)
+    }
   }
 
   return (
@@ -1716,7 +1743,9 @@ function ChapterPrompt() {
   const [asked, setAsked] = useState<string | null>(null)
   const send = (value: TokenInputValue) => {
     const count = value.filter((part) => typeof part !== "string").length
-    if (!prompt.getLabel().trim()) return
+    if (!prompt.getLabel().trim()) {
+      return
+    }
     setAsked(
       count === 1 ? "Asked about 1 chapter." : `Asked about ${count} chapters.`
     )
@@ -1860,7 +1889,9 @@ function BookSearch() {
         onValueChange={(value, details) => {
           books.setQuery(value)
           const match = catalog.find((book) => book.label === value)
-          if (match && details.reason === "item-press") setChosen(match)
+          if (match && details.reason === "item-press") {
+            setChosen(match)
+          }
         }}
       >
         <AutocompleteLabel className="cl-label">Find a book</AutocompleteLabel>
@@ -2058,12 +2089,16 @@ function SyncLog() {
 
   useEffect(() => {
     const el = scroller.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     return stick.connect(el)
   }, [stick])
 
   useEffect(() => {
-    if (!inView) return
+    if (!inView) {
+      return
+    }
     const timer = setInterval(() => setCount((value) => value + 1), 1100)
     return () => clearInterval(timer)
   }, [inView])
@@ -2129,7 +2164,9 @@ function createSmallStore<State extends object>(initial: State) {
     get: () => state,
     set(patch: Partial<State>) {
       state = { ...state, ...patch }
-      for (const listener of listeners) listener()
+      for (const listener of listeners) {
+        listener()
+      }
     },
     subscribe(listener: () => void) {
       listeners.add(listener)
@@ -2166,7 +2203,9 @@ function RenamePlaylists() {
       value: (id) => store.get().names[id],
       commit: (id, text) => {
         const name = text.trim()
-        if (!name) return false
+        if (!name) {
+          return false
+        }
         store.set({ names: { ...store.get().names, [id]: name } })
         return true
       },
@@ -2190,10 +2229,11 @@ function RenamePlaylists() {
     const id = lastEdited.current
     lastEdited.current = null
     const active = document.activeElement
-    if (id && (!active || active === document.body))
+    if (id && (!active || active === document.body)) {
       list.current
         ?.querySelector<HTMLButtonElement>(`[data-row="${id}"] .cl-rename-name`)
         ?.focus()
+    }
   }, [state.editing])
 
   return (
@@ -2269,15 +2309,22 @@ function HiddenPassage() {
   useEffect(() => {
     shownRef.current = shown
     const el = passage.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     const { hidden } = hiddenAttrs(shown, true)
-    if (hidden === undefined) el.removeAttribute("hidden")
-    else el.setAttribute("hidden", hidden)
+    if (hidden === undefined) {
+      el.removeAttribute("hidden")
+    } else {
+      el.setAttribute("hidden", hidden)
+    }
   }, [shown])
 
   useEffect(() => {
     const el = passage.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     const findable = bindFindable(el, {
       shown: () => shownRef.current,
       findable: () => true,

@@ -75,7 +75,9 @@ export function Filter({
           value={query}
           onValueChange={(value) => {
             setQuery(value)
-            if (value.trim()) setOpen(true)
+            if (value.trim()) {
+              setOpen(true)
+            }
           }}
         />
         <SegmentedControl
@@ -105,7 +107,9 @@ export function Filter({
         keepMounted
         className="filter-panel"
         onKeyDown={(event) => {
-          if (event.key !== "Escape") return
+          if (event.key !== "Escape") {
+            return
+          }
           setOpen(false)
           trigger.current?.focus()
         }}
@@ -115,7 +119,9 @@ export function Filter({
             const all = names.filter((name) => kindOf(name) === kind)
             const list = visible.filter((name) => kindOf(name) === kind)
             const mine = selected.filter((name) => kindOf(name) === kind)
-            if (!all.length) return null
+            if (!all.length) {
+              return null
+            }
             return (
               <div key={kind} className="filter-group">
                 <p className="filter-group-label">{label}</p>

@@ -129,7 +129,9 @@ const submitWhenValid = (
   work: () => Promise<void>
 ) => {
   const form = (event.currentTarget as HTMLElement).closest("form")
-  if (form && !form.checkValidity()) return
+  if (form && !form.checkValidity()) {
+    return
+  }
   return work()
 }
 
@@ -201,7 +203,9 @@ function Checkout() {
             value={card}
             onValueChange={(value, details) => {
               const digits = value.replace(/\D/g, "")
-              if (digits.length > 16) return details.cancel()
+              if (digits.length > 16) {
+                return details.cancel()
+              }
               setCard(digits.replace(/(\d{4})(?=\d)/g, "$1 "))
             }}
             inputMode="numeric"
@@ -477,7 +481,9 @@ function FlightSearch() {
           onClick={async () => {
             if (!from || !to) {
               setResult("Choose both airports first.")
-              if (!to) toController.focus()
+              if (!to) {
+                toController.focus()
+              }
               return
             }
             setResult("")
@@ -1370,11 +1376,13 @@ function Promo() {
             onClick={(event) =>
               submitWhenValid(event, async () => {
                 await wait(900)
-                if (code === "WANDER15") setApplied(true)
-                else
+                if (code === "WANDER15") {
+                  setApplied(true)
+                } else {
                   setError(
                     code === "SPRING10" ? "Expired Apr 30" : "Not a valid code"
                   )
+                }
               })
             }
           >

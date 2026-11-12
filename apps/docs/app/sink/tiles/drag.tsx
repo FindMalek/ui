@@ -93,8 +93,9 @@ function spring(
     if (
       (Math.abs(offset) < 0.3 && Math.abs(solver.velocity(t)) < 0.01) ||
       t > 1500
-    )
+    ) {
       return paint(to)
+    }
     paint(to + offset)
     frame = requestAnimationFrame(tick)
   }
@@ -107,7 +108,9 @@ function useWidth<T extends HTMLElement>() {
   const [width, setWidth] = useState(0)
   useLayoutEffect(() => {
     const el = ref.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     const observer = new ResizeObserver(() => setWidth(el.clientWidth))
     observer.observe(el)
     setWidth(el.clientWidth)
@@ -174,7 +177,9 @@ const sidebar = definePrimitive({
       },
       pointerdown(event: PointerEvent, el: HTMLElement) {
         const root = context.element("root")
-        if (event.button !== 0 || !root) return
+        if (event.button !== 0 || !root) {
+          return
+        }
         stop?.()
         const left = root.getBoundingClientRect().left + root.clientLeft
         // Where on the handle it was grabbed, so the edge doesn't jump to the pointer.
@@ -190,8 +195,9 @@ const sidebar = definePrimitive({
             const { draft, landing } = store.get()
             stop = undefined
             store.set({ draft: null, landing: null })
-            if (!canceled && draft !== null)
+            if (!canceled && draft !== null) {
               resize(Math.round(landing ?? draft))
+            }
           },
         })
       },
@@ -217,7 +223,9 @@ const sidebar = definePrimitive({
                   : event.key === "End"
                     ? max
                     : undefined
-        if (next === undefined) return
+        if (next === undefined) {
+          return
+        }
         event.preventDefault()
         resize(next)
       },
@@ -250,7 +258,9 @@ const sidebar = definePrimitive({
         let first = true
         const write = () => {
           const room = el.clientWidth
-          if (!room) return
+          if (!room) {
+            return
+          }
           const { min, max } = sidebarLimits(room)
           const { width, opened } = part.store.get()
           // A phone gets a narrower sidebar to start with, so the note still reads.
@@ -332,16 +342,23 @@ function sidebarHint(
   dragging: boolean,
   min: number
 ) {
-  if (landing === 0) return { text: "Release to collapse", tone: "fold" }
-  if (landing)
+  if (landing === 0) {
+    return { text: "Release to collapse", tone: "fold" }
+  }
+  if (landing) {
     return {
       text: committed
         ? `Release to rest at ${min} px`
         : `Release to open at ${min} px`,
       tone: "open",
     }
-  if (dragging) return { text: `${shown} px`, tone: "size" }
-  if (!committed) return { text: "Drag the edge right to open", tone: "idle" }
+  }
+  if (dragging) {
+    return { text: `${shown} px`, tone: "size" }
+  }
+  if (!committed) {
+    return { text: "Drag the edge right to open", tone: "idle" }
+  }
   return { text: "Drag the edge, or press Enter on it", tone: "idle" }
 }
 
@@ -509,8 +526,9 @@ function SwipeToast({
       event.button !== 0 ||
       leaving ||
       (event.target as Element).closest("button")
-    )
+    ) {
       return
+    }
     const width = event.currentTarget.offsetWidth
     // One snap point at 0: within 30% of the width there's a point to go back to; past it, none.
     const keeps = {
@@ -535,9 +553,11 @@ function SwipeToast({
         stop.current = undefined
         setDragging(false)
         setDismissing(false)
-        if (!canceled && scrubTo(moved, keeps).point === undefined)
+        if (!canceled && scrubTo(moved, keeps).point === undefined) {
           dismiss(Math.sign(moved), false)
-        else setOffset(0)
+        } else {
+          setOffset(0)
+        }
       },
     })
   }
@@ -606,7 +626,9 @@ function ToastsDemo() {
   const refocus = useRef<number | null>(null)
   useLayoutEffect(() => {
     const at = refocus.current
-    if (at === null) return
+    if (at === null) {
+      return
+    }
     refocus.current = null
     const buttons =
       list.current?.querySelectorAll<HTMLButtonElement>(".dg-toast-close")
@@ -626,7 +648,9 @@ function ToastsDemo() {
             key={toast.id}
             toast={toast}
             onDismiss={(byButton) => {
-              if (byButton) refocus.current = index
+              if (byButton) {
+                refocus.current = index
+              }
               setToasts((current) =>
                 current.filter((candidate) => candidate.id !== toast.id)
               )
@@ -768,8 +792,9 @@ function TabsDemo() {
       const at = el.offsetLeft
       next.set(key, at)
       const was = last.current.get(key)
-      if (drag || calm || was === undefined || Math.abs(was - at) < 0.5)
+      if (drag || calm || was === undefined || Math.abs(was - at) < 0.5) {
         continue
+      }
       el.animate([{ translate: `${was - at}px 0` }, { translate: "0 0" }], {
         duration: 220,
         easing: "cubic-bezier(0.22, 1, 0.36, 1)",
@@ -786,7 +811,9 @@ function TabsDemo() {
     event: ReactPointerEvent<HTMLButtonElement>,
     key: FileKey
   ) => {
-    if (event.button !== 0) return
+    if (event.button !== 0) {
+      return
+    }
     const widths = Object.fromEntries(
       order.map((candidate) => [
         candidate,
@@ -823,8 +850,9 @@ function TabsDemo() {
       },
       onEnd: (_end, canceled) => {
         stop.current = undefined
-        if (latest && !canceled)
+        if (latest && !canceled) {
           setOrder(insert(latest.others, latest.key, latest.target))
+        }
         setDrag(null)
       },
     })
@@ -837,7 +865,9 @@ function TabsDemo() {
     const dir =
       getComputedStyle(event.currentTarget).direction === "rtl" ? "rtl" : "ltr"
     const move = stepFromKey(event, { arrows: "horizontal", dir })
-    if (!move) return
+    if (!move) {
+      return
+    }
     event.preventDefault()
     const index = stepBy(order.indexOf(key), move, {
       min: 0,
@@ -888,8 +918,11 @@ function TabsDemo() {
               <button
                 key={key}
                 ref={(el) => {
-                  if (el) elements.current.set(key, el)
-                  else elements.current.delete(key)
+                  if (el) {
+                    elements.current.set(key, el)
+                  } else {
+                    elements.current.delete(key)
+                  }
                 }}
                 type="button"
                 role="tab"
@@ -1047,8 +1080,11 @@ function TimelineDemo() {
         const free = !!(event?.metaKey || event?.ctrlKey)
         const move =
           details.reason === "step-key" && event ? stepFromKey(event) : null
-        if (move) setTime(stepBy(time, move, songRange, { snap: !free }))
-        else setTime(scrubTo(value, songRange, { snap: !free }).value)
+        if (move) {
+          setTime(stepBy(time, move, songRange, { snap: !free }))
+        } else {
+          setTime(scrubTo(value, songRange, { snap: !free }).value)
+        }
       }}
       style={{ "--dg-played": percent(time) } as CSSProperties}
     >
@@ -1176,11 +1212,12 @@ function BandDemo() {
   )
   // Keep the page in place when the tile changes size.
   useLayoutEffect(() => {
-    if (!width) return
+    if (!width) {
+      return
+    }
     cancel.current()
     paint(PEEK - page * (Math.max(120, width - PEEK * 2) + CARD_GAP))
     // Only a new width should snap it; page changes settle with a spring.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [width])
 
   const go = (index: number, velocity: number) => {
@@ -1189,7 +1226,9 @@ function BandDemo() {
   }
 
   const down = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return
+    if (event.button !== 0) {
+      return
+    }
     cancel.current()
     tracker.current.reset()
     const from = position.current
@@ -1218,7 +1257,9 @@ function BandDemo() {
         stop.current = undefined
         setDragging(false)
         const velocity = canceled ? 0 : tracker.current.velocity(end.timeStamp)
-        if (!canceled) setSpeed(velocity)
+        if (!canceled) {
+          setSpeed(velocity)
+        }
         const moved = position.current - restAt(startPage)
         const flick = Math.abs(velocity) > 0.35 ? -Math.sign(velocity) : 0
         const far = Math.abs(moved) > pitch / 2 ? -Math.sign(moved) : 0
@@ -1233,12 +1274,17 @@ function BandDemo() {
   const keydown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
     const step =
       event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0
-    if (!step) return
+    if (!step) {
+      return
+    }
     event.preventDefault()
     const next = page + step
     // At an end, a key nudges past it, so the edge still answers.
-    if (next < 0 || next >= DAYS.length) settle(page, -step * 1.1)
-    else go(next, 0)
+    if (next < 0 || next >= DAYS.length) {
+      settle(page, -step * 1.1)
+    } else {
+      go(next, 0)
+    }
   }
 
   return (
@@ -1363,8 +1409,12 @@ const bay = definePrimitive({
     return {
       connect,
       sourceKeydown(event: KeyboardEvent, source: string) {
-        if (connect.keydown(event)) return
-        if (event.key !== "Enter" && event.key !== " ") return
+        if (connect.keydown(event)) {
+          return
+        }
+        if (event.key !== "Enter" && event.key !== " ") {
+          return
+        }
         event.preventDefault()
         connect.start(source)
       },
@@ -1410,7 +1460,9 @@ const bay = definePrimitive({
     draft: slot({
       live: live((state) => {
         const draft = state.drawing
-        if (!draft) return { d: "", "data-source": undefined }
+        if (!draft) {
+          return { d: "", "data-source": undefined }
+        }
         return {
           d: cablePath(jackAt(draft.from), draft.to ? jackAt(draft.to) : draft),
           "data-source": draft.from,
@@ -1420,8 +1472,9 @@ const bay = definePrimitive({
     tip: slot({
       live: live((state) => {
         const draft = state.drawing
-        if (!draft)
+        if (!draft) {
           return { transform: "translate(-40 -40)", "data-source": undefined }
+        }
         const at = draft.to ? jackAt(draft.to) : draft
         return {
           transform: `translate(${at.x} ${at.y})`,
@@ -1821,20 +1874,22 @@ const DesktopParts = createParts(desktop, {
 })
 
 function WindowBody({ id }: { id: string }) {
-  if (id === "reminders")
+  if (id === "reminders") {
     return (
       <ul className="dg-win-todo">
         <li data-done="">Renew passport</li>
         <li>Call the vet</li>
       </ul>
     )
-  if (id === "console")
+  }
+  if (id === "console") {
     return (
       <p className="dg-win-shell">
         <span>$ npm run build</span>
         <span className="dg-win-ok">built in 1.84s</span>
       </p>
     )
+  }
   return <p className="dg-win-timer">24:59</p>
 }
 

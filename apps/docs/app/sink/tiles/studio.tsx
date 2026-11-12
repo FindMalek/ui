@@ -119,7 +119,9 @@ const notes = definePrimitive({
       limit: NOTE_LIMIT,
       groupDelay: NOTE_DELAY,
     })
-    for (const text of NOTE_SEED.slice(1)) history.record(text)
+    for (const text of NOTE_SEED.slice(1)) {
+      history.record(text)
+    }
     // The history keeps its entries private, so the step counts mirror its grouping rule.
     let open: number | null = null
     const api = {
@@ -142,21 +144,29 @@ const notes = definePrimitive({
       undo() {
         open = null
         const text = history.undo()
-        if (text === undefined) return
+        if (text === undefined) {
+          return
+        }
         const { back, ahead } = store.get()
         store.set({ text, back: back - 1, ahead: ahead + 1 })
       },
       redo() {
         open = null
         const text = history.redo()
-        if (text === undefined) return
+        if (text === undefined) {
+          return
+        }
         const { back, ahead } = store.get()
         store.set({ text, back: back + 1, ahead: ahead - 1 })
       },
       keydown(event: KeyboardEvent) {
-        if (matchesShortcut(event, "mod+shift+z")) api.redo()
-        else if (matchesShortcut(event, "mod+z")) api.undo()
-        else return
+        if (matchesShortcut(event, "mod+shift+z")) {
+          api.redo()
+        } else if (matchesShortcut(event, "mod+z")) {
+          api.undo()
+        } else {
+          return
+        }
         event.preventDefault()
       },
     }
@@ -308,7 +318,9 @@ const confirmButton = definePrimitive({
       press: ({ api }, event) => api.press(event),
       on: {
         keydown: (event, { api, store }) => {
-          if (event.key !== "Escape" || !store.get().armed) return
+          if (event.key !== "Escape" || !store.get().armed) {
+            return
+          }
           event.preventDefault()
           api.disarm(event)
         },
@@ -328,7 +340,9 @@ function EmptyTrash() {
   const moved = useRef(false)
   // The pressed button unmounts, so focus goes to the one that replaces it.
   useLayoutEffect(() => {
-    if (!moved.current) return
+    if (!moved.current) {
+      return
+    }
     moved.current = false
     ;(emptied ? again : confirm).current?.focus()
   }, [emptied])
@@ -449,25 +463,35 @@ const brewTimer = definePrimitive({
     context.onDestroy(() => clearInterval(tick))
     const show = () => {
       const left = Math.max(0, Math.ceil(remaining / 1000))
-      if (left !== store.get().left) store.set({ left })
+      if (left !== store.get().left) {
+        store.set({ left })
+      }
     }
     return {
       start() {
-        if (store.get().running) return
-        if (remaining <= 0) remaining = total() * 1000
+        if (store.get().running) {
+          return
+        }
+        if (remaining <= 0) {
+          remaining = total() * 1000
+        }
         show()
         deadline = Date.now() + remaining
         change("running", true, { reason: "imperative" })
         tick = setInterval(() => {
           remaining = deadline - Date.now()
           show()
-          if (remaining > 0) return
+          if (remaining > 0) {
+            return
+          }
           clearInterval(tick)
           change("running", false, { reason: "timeout" })
         }, 200)
       },
       pause() {
-        if (!store.get().running) return
+        if (!store.get().running) {
+          return
+        }
         clearInterval(tick)
         remaining = deadline - Date.now()
         change("running", false, { reason: "imperative" })
@@ -648,7 +672,9 @@ const findsHidden = (query: string) => {
 }
 
 const rankEmoji = (query: string) => {
-  if (!query.trim()) return EMOJI
+  if (!query.trim()) {
+    return EMOJI
+  }
   return [...findsHidden(query), ...EMOJI]
     .map((entry) => ({
       entry,
@@ -690,14 +716,18 @@ const emojiPicker = definePrimitive({
       },
       pick(index: number) {
         const entry = results()[index]
-        if (!entry) return
+        if (!entry) {
+          return
+        }
         store.set({ picked: entry[0] })
         announce(`Reacted with ${entry[1]}`)
       },
       setHovered: (index: number | null) => store.set({ hovered: index }),
       setFocused: (index: number | null) => store.set({ focused: index }),
       searchKeydown(event: KeyboardEvent) {
-        if (!results().length) return
+        if (!results().length) {
+          return
+        }
         if (event.key === "ArrowDown") {
           event.preventDefault()
           grid.focus({ row: 0, col: 0 }, { reason: "imperative", event })
@@ -713,7 +743,9 @@ const emojiPicker = definePrimitive({
           !event.ctrlKey &&
           !event.metaKey &&
           !event.altKey
-        if (typing) return void context.element("search")?.focus()
+        if (typing) {
+          return void context.element("search")?.focus()
+        }
         if (event.key === "ArrowUp" && grid.active()?.row === 0) {
           event.preventDefault()
           context.element("search")?.focus()
@@ -901,13 +933,17 @@ const sightMap = definePrimitive({
     // Button moves ease into place; drags and the wheel follow the hand directly.
     const glide = () => {
       const frame = context.element("frame")
-      if (!frame || reduced()) return
+      if (!frame || reduced()) {
+        return
+      }
       frame.setAttribute("data-glide", "")
       clearTimeout(glideTimer)
       glideTimer = setTimeout(() => frame.removeAttribute("data-glide"), 480)
     }
     const fitAll = (animate = true) => {
-      if (animate) glide()
+      if (animate) {
+        glide()
+      }
       viewport.fit(boundsOf(SIGHTS.map((sight) => sight.key)), {
         padding: 64,
         maxZoom: 1,
@@ -918,14 +954,18 @@ const sightMap = definePrimitive({
       fitAll,
       fitSelection() {
         const { selected } = store.get()
-        if (!selected.length) return
+        if (!selected.length) {
+          return
+        }
         glide()
         viewport.fit(boundsOf(selected), { padding: 88, maxZoom: 1.6 })
       },
       act(action: string) {
-        if (action === "fit") fitAll()
-        else if (action === "selection") api.fitSelection()
-        else {
+        if (action === "fit") {
+          fitAll()
+        } else if (action === "selection") {
+          api.fitSelection()
+        } else {
           glide()
           viewport.zoomBy(action === "in" ? 1.25 : 0.8)
         }
@@ -946,13 +986,19 @@ const sightMap = definePrimitive({
           ArrowUp: [0, 60],
           ArrowDown: [0, -60],
         }
-        if (event.shiftKey && event.code === "Digit1") fitAll()
-        else if (event.shiftKey && event.code === "Digit2") api.fitSelection()
-        else if (event.key === "Escape" && store.get().selected.length)
+        if (event.shiftKey && event.code === "Digit1") {
+          fitAll()
+        } else if (event.shiftKey && event.code === "Digit2") {
+          api.fitSelection()
+        } else if (event.key === "Escape" && store.get().selected.length) {
           api.clear()
-        else if (onFrame && pans[event.key]) viewport.panBy(...pans[event.key])
-        else if (onFrame && viewport.keydown(event)) return
-        else return
+        } else if (onFrame && pans[event.key]) {
+          viewport.panBy(...pans[event.key])
+        } else if (onFrame && viewport.keydown(event)) {
+          return
+        } else {
+          return
+        }
         event.preventDefault()
       },
     }
@@ -984,12 +1030,14 @@ const sightMap = definePrimitive({
             event.ctrlKey ||
             event.metaKey ||
             el?.contains(document.activeElement)
-          )
+          ) {
             api.viewport.wheel(event)
+          }
         },
         pointerdown: (event, { api }) => {
-          if (!(event.target as Element).closest("button"))
+          if (!(event.target as Element).closest("button")) {
             api.viewport.pointerdown(event)
+          }
         },
         keydown: (event, { el, api }) =>
           api.keydown(event, event.target === el),
@@ -998,7 +1046,9 @@ const sightMap = definePrimitive({
         let width = 0
         const frame = requestAnimationFrame(() => api.fitAll(false))
         const observer = new ResizeObserver(() => {
-          if (width && Math.abs(el.clientWidth - width) > 1) api.fitAll(false)
+          if (width && Math.abs(el.clientWidth - width) > 1) {
+            api.fitAll(false)
+          }
           width = el.clientWidth
         })
         observer.observe(el)
@@ -1023,7 +1073,9 @@ const sightMap = definePrimitive({
       press: ({ api, key }) => api.toggle(key),
       on: {
         focus: (_event, { el, api }) => {
-          if (el) api.viewport.reveal(api.viewport.rectOf(el), { padding: 56 })
+          if (el) {
+            api.viewport.reveal(api.viewport.rectOf(el), { padding: 56 })
+          }
         },
       },
     }),
@@ -1345,15 +1397,18 @@ const weekPlan = definePrimitive({
         const onSpan =
           event && (event.target as Element).closest("[data-span-id]")
         if (!track || !event || onSpan || draft) {
-          if (hover) store.set({ hover: null })
+          if (hover) {
+            store.set({ hover: null })
+          }
           return
         }
         const at = Math.min(
           spans.valueAt(track, event.clientX, event.clientY),
           W_END - 60
         )
-        if (hover?.track !== track || hover.at !== at)
+        if (hover?.track !== track || hover.at !== at) {
           store.set({ hover: { track, at } })
+        }
       },
     }
   },
@@ -1375,7 +1430,9 @@ const weekPlan = definePrimitive({
       bind: (el, { store }) =>
         observeWidth(el, (width) => {
           const days = width < 440 ? 3 : 5
-          if (store.get().days !== days) store.set({ days })
+          if (store.get().days !== days) {
+            store.set({ days })
+          }
         }),
     }),
     day: slot<{ value: string }>({
@@ -1402,7 +1459,9 @@ const weekPlan = definePrimitive({
       attrs: (state, { api, key }) => {
         const all = api.spans.spans(state)
         const plan = all.find((other) => other.id === key)
-        if (!plan) return {}
+        if (!plan) {
+          return {}
+        }
         const lanes = stackSpans(
           all.filter((other) => other.track === plan.track)
         )
@@ -1435,7 +1494,9 @@ const WeekParts = createParts(weekPlan, {
 function WeekSpans() {
   const scroller = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (scroller.current) scroller.current.scrollTop = HOUR_PX - 12
+    if (scroller.current) {
+      scroller.current.scrollTop = HOUR_PX - 12
+    }
   }, [])
   const hours = Array.from(
     { length: (W_END - W_START) / 60 - 1 },
@@ -1640,7 +1701,9 @@ const thread = definePrimitive({
       type: (draft: string) => store.set({ draft }),
       send() {
         const text = store.get().draft.trim()
-        if (!text) return
+        if (!text) {
+          return
+        }
         store.set({ draft: "" })
         stick.scrollToBottom()
         add("me", text)
@@ -1685,7 +1748,9 @@ const thread = definePrimitive({
         input: (event, { api }) =>
           api.type((event.target as HTMLInputElement).value),
         keydown: (event, { api }) => {
-          if (event.key !== "Enter" || event.isComposing) return
+          if (event.key !== "Enter" || event.isComposing) {
+            return
+          }
           event.preventDefault()
           api.send()
         },
@@ -1817,7 +1882,9 @@ type SlideState = {
 }
 
 const groupBox = (state: SlideState) => {
-  if (!state.selected.length) return null
+  if (!state.selected.length) {
+    return null
+  }
   const boxes = state.selected.map((key) => {
     const at = state.positions[key]
     const drag = state.moving?.keys.includes(key)
@@ -1880,15 +1947,19 @@ const slide = definePrimitive({
         move: spatialMove(),
       }),
       select(key: string, add: boolean) {
-        if (LAYERS[key].locked) return
+        if (LAYERS[key].locked) {
+          return
+        }
         const { selected } = store.get()
-        if (add)
+        if (add) {
           store.set({
             selected: selected.includes(key)
               ? selected.filter((other) => other !== key)
               : [...selected, key],
           })
-        else if (!selected.includes(key)) store.set({ selected: [key] })
+        } else if (!selected.includes(key)) {
+          store.set({ selected: [key] })
+        }
       },
       clear: () => store.set({ selected: [] }),
     }
@@ -1906,10 +1977,14 @@ const slide = definePrimitive({
       }),
       on: {
         pointerdown: (event, { el, api }) => {
-          if (event.target === el) api.clear()
+          if (event.target === el) {
+            api.clear()
+          }
         },
         keydown: (event, { api }) => {
-          if (event.key === "Escape") api.clear()
+          if (event.key === "Escape") {
+            api.clear()
+          }
         },
       },
     }),
@@ -1946,7 +2021,9 @@ const slide = definePrimitive({
             event.preventDefault()
             return api.select(key, true)
           }
-          if (!api.move.keydown(event, key)) api.roving.keydown(event, el!)
+          if (!api.move.keydown(event, key)) {
+            api.roving.keydown(event, el!)
+          }
         },
         pointerdown: (event, { el, api, key }) => {
           api.select(key, event.shiftKey)
@@ -1972,7 +2049,9 @@ const slide = definePrimitive({
       },
       live: live((state: SlideState) => {
         const box = groupBox(state)
-        if (!box) return { style: css({ display: "none" }) }
+        if (!box) {
+          return { style: css({ display: "none" }) }
+        }
         return {
           style: css({
             left: `${box.x}px`,
@@ -2115,13 +2194,14 @@ const filmStrip = definePrimitive({
       act(action: string) {
         const el = context.element("reel")
         const behavior = reduced() ? "auto" : "smooth"
-        if (action === "latest")
+        if (action === "latest") {
           virtual.scrollToIndex(LATEST, { align: "center", behavior })
-        else
+        } else {
           el?.scrollBy({
             left: (action === "next" ? 1 : -1) * el.clientWidth * 0.8,
             behavior,
           })
+        }
       },
       keydown(event: KeyboardEvent, el: HTMLElement) {
         const by: Record<string, number> = {
@@ -2130,10 +2210,15 @@ const filmStrip = definePrimitive({
           PageDown: el.clientWidth,
           PageUp: -el.clientWidth,
         }
-        if (event.key in by) el.scrollBy({ left: by[event.key] })
-        else if (event.key === "Home") el.scrollTo({ left: 0 })
-        else if (event.key === "End") el.scrollTo({ left: el.scrollWidth })
-        else return
+        if (event.key in by) {
+          el.scrollBy({ left: by[event.key] })
+        } else if (event.key === "Home") {
+          el.scrollTo({ left: 0 })
+        } else if (event.key === "End") {
+          el.scrollTo({ left: el.scrollWidth })
+        } else {
+          return
+        }
         event.preventDefault()
       },
     }

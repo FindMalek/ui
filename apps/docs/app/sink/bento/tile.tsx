@@ -11,12 +11,13 @@ class Boundary extends Component<
     return { error }
   }
   render() {
-    if (this.state.error)
+    if (this.state.error) {
       return (
         <p className="tile-error" role="alert">
           {this.props.id} failed: {this.state.error.message}
         </p>
       )
+    }
     return this.props.children
   }
 }

@@ -109,7 +109,9 @@ function useFlip(ref: RefObject<HTMLElement | null>) {
   const last = useRef(new Map<string, { x: number; y: number }>())
   useLayoutEffect(() => {
     const root = ref.current
-    if (!root) return
+    if (!root) {
+      return
+    }
     const next = new Map<string, { x: number; y: number }>()
     const calm = reduced()
     for (const el of root.querySelectorAll<HTMLElement>("[data-flip]")) {
@@ -117,10 +119,12 @@ function useFlip(ref: RefObject<HTMLElement | null>) {
       const at = { x: el.offsetLeft, y: el.offsetTop }
       const was = last.current.get(id)
       next.set(id, at)
-      if (!was || calm || el.hasAttribute("data-grabbed")) continue
+      if (!was || calm || el.hasAttribute("data-grabbed")) {
+        continue
+      }
       const dx = was.x - at.x
       const dy = was.y - at.y
-      if (dx || dy)
+      if (dx || dy) {
         el.animate(
           [{ translate: `${dx}px ${dy}px` }, { translate: "0px 0px" }],
           {
@@ -128,6 +132,7 @@ function useFlip(ref: RefObject<HTMLElement | null>) {
             easing: "cubic-bezier(0.22, 1, 0.36, 1)",
           }
         )
+      }
     }
     last.current = next
   })
@@ -239,8 +244,9 @@ const layerList = definePrimitive({
       }),
       on: {
         keydown: (event, { el, api, key }) => {
-          if (!api.reorder.keydown(event, key) && el)
+          if (!api.reorder.keydown(event, key) && el) {
             api.roving.keydown(event, el)
+          }
         },
         pointerdown: (event, { api, key }) =>
           api.reorder.pointerdown(event, key),
@@ -350,10 +356,13 @@ const swatchGrid = definePrimitive({
       roving,
       press(event: PointerEvent, key: string) {
         const why = { reason: "item-press", event }
-        if (event.shiftKey)
+        if (event.shiftKey) {
           selection.extend(key, { ...why, from: context.store.get().focused })
-        else if (event.metaKey || event.ctrlKey) selection.toggle(key, why)
-        else if (!selection.isSelected(key)) selection.choose(key, why)
+        } else if (event.metaKey || event.ctrlKey) {
+          selection.toggle(key, why)
+        } else if (!selection.isSelected(key)) {
+          selection.choose(key, why)
+        }
       },
     }
   },
@@ -386,22 +395,28 @@ const swatchGrid = definePrimitive({
       }),
       on: {
         keydown: (event, { el, api, key }) => {
-          if (api.reorder.keydown(event, key) || !el) return
-          if (event.key === "Escape")
+          if (api.reorder.keydown(event, key) || !el) {
+            return
+          }
+          if (event.key === "Escape") {
             return api.selection.choose(key, {
               reason: "list-navigation",
               event,
             })
+          }
           const moved = api.roving.keydown(event, el)
-          if (moved?.shift)
+          if (moved?.shift) {
             api.selection.extend(moved.key, {
               from: moved.from,
               reason: "list-navigation",
               event,
             })
+          }
         },
         pointerdown: (event, { api, key }) => {
-          if (event.button !== 0) return
+          if (event.button !== 0) {
+            return
+          }
           api.press(event, key)
           api.reorder.pointerdown(event, key)
         },
@@ -634,7 +649,9 @@ const outline = definePrimitive({
       },
       on: {
         keydown: (event, { el, api, key }) => {
-          if (!api.tree.keydown(event, key) && el) api.roving.keydown(event, el)
+          if (!api.tree.keydown(event, key) && el) {
+            api.roving.keydown(event, el)
+          }
         },
         pointerdown: (event, { api, key }) => api.tree.pointerdown(event, key),
       },
@@ -700,7 +717,9 @@ function TagDrop() {
     setTags((current) => (current.includes(tag) ? current : [...current, tag]))
 
   const down = (event: ReactPointerEvent<HTMLButtonElement>, tag: string) => {
-    if (event.button !== 0 || tags.includes(tag)) return
+    if (event.button !== 0 || tags.includes(tag)) {
+      return
+    }
     const el = event.currentTarget
     const from = { x: event.clientX, y: event.clientY }
     let preview: DragPreview | undefined
@@ -732,7 +751,9 @@ function TagDrop() {
         preview?.el.toggleAttribute("data-over", over)
       },
       onEnd: (_event, canceled) => {
-        if (preview && over && !canceled) add(tag)
+        if (preview && over && !canceled) {
+          add(tag)
+        }
         clear()
       },
     })
@@ -804,7 +825,9 @@ function DropOnDate() {
   useEffect(() => () => stop.current?.(), [])
 
   const down = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0) return
+    if (event.button !== 0) {
+      return
+    }
     const el = event.currentTarget
     let preview: DragPreview | undefined
     let target: string | null = null
@@ -814,9 +837,13 @@ function DropOnDate() {
         .elementFromPoint(last.x, last.y)
         ?.closest<HTMLElement>("[data-day]")
       const next = hit && list.current?.contains(hit) ? hit.dataset.day! : null
-      if (next === target) return
+      if (next === target) {
+        return
+      }
       list.current?.querySelector(`[data-over]`)?.removeAttribute("data-over")
-      if (hit && next) hit.setAttribute("data-over", "")
+      if (hit && next) {
+        hit.setAttribute("data-over", "")
+      }
       target = next
     }
     const scroll = createAutoScroll({
@@ -841,14 +868,18 @@ function DropOnDate() {
         el.setAttribute("data-dragging", "")
       },
       onMove: ({ x, y }) => {
-        if (!preview) return
+        if (!preview) {
+          return
+        }
         last = { x, y }
         preview.move(x, y)
         scroll.update(x, y)
         find()
       },
       onEnd: (_event, canceled) => {
-        if (preview && target && !canceled) setDay(target)
+        if (preview && target && !canceled) {
+          setDay(target)
+        }
         clear()
       },
     })
@@ -1050,7 +1081,9 @@ const artboard = definePrimitive({
       },
       on: {
         pointerdown: (event, { el, api }) => {
-          if ((event.target as Element).closest("[data-resize-handle]")) return
+          if ((event.target as Element).closest("[data-resize-handle]")) {
+            return
+          }
           api.resize.pointerdown(event, "frame", "move", el!)
         },
       },
@@ -1408,11 +1441,14 @@ const timeline = definePrimitive({
       createAutoScroll: false,
     })
     const freeSlot = (bookings: Booking[]) => {
-      for (let start = OPEN; start + 60 <= CLOSE; start += 30)
+      for (let start = OPEN; start + 60 <= CLOSE; start += 30) {
         for (const track of Object.keys(ROOMS)) {
           const probe = { id: "probe", track, start, end: start + 60 }
-          if (isSpanFree(bookings, probe)) return probe
+          if (isSpanFree(bookings, probe)) {
+            return probe
+          }
         }
+      }
       return null
     }
     return {
@@ -1421,12 +1457,13 @@ const timeline = definePrimitive({
       addHold: () => {
         const { bookings } = context.store.get()
         const slot = freeSlot(bookings)
-        if (slot)
+        if (slot) {
           change(
             "bookings",
             [...bookings, { ...slot, id: `hold-${++made}`, title: "Hold" }],
             { reason: "imperative" }
           )
+        }
       },
     }
   },
@@ -1445,7 +1482,9 @@ const timeline = definePrimitive({
       attrs: (_state, { key }) => ({ "aria-label": ROOMS[key] }),
       on: {
         pointerdown: (event, { el, api, key }) => {
-          if (event.target === el) api.spans.trackPointerdown(event, key)
+          if (event.target === el) {
+            api.spans.trackPointerdown(event, key)
+          }
         },
       },
       bind: (el, part) => part.api.spans.bindTrack(el, part.key),
@@ -1454,7 +1493,9 @@ const timeline = definePrimitive({
       props: { value: "string" },
       attrs: (state, { api, key }) => {
         const booking = api.spans.spans(state).find((b) => b.id === key)
-        if (!booking) return {}
+        if (!booking) {
+          return {}
+        }
         return {
           ...api.spans.spanAttrs(state, key),
           tabindex: "0",
@@ -1618,7 +1659,9 @@ const dayPlan = definePrimitive({
       attrs: () => ({ "aria-label": "Thursday" }),
       on: {
         pointerdown: (event, { el, api }) => {
-          if (event.target === el) api.spans.trackPointerdown(event, "thu")
+          if (event.target === el) {
+            api.spans.trackPointerdown(event, "thu")
+          }
         },
       },
       bind: (el, part) => part.api.spans.bindTrack(el, "thu"),
@@ -1628,7 +1671,9 @@ const dayPlan = definePrimitive({
       attrs: (state, { api, key }) => {
         const all = api.spans.spansOn(state, "thu")
         const plan = all.find((p) => p.id === key)
-        if (!plan) return {}
+        if (!plan) {
+          return {}
+        }
         const lanes = stackSpans(all)
         return {
           ...api.spans.spanAttrs(state, key),
@@ -1754,8 +1799,9 @@ const themePicker = definePrimitive({
           if (
             api.preview.dragging() ||
             el?.contains(event.relatedTarget as Node)
-          )
+          ) {
             return
+          }
           api.preview.clear({ reason: "focus-out", event })
         },
       },
@@ -1780,10 +1826,13 @@ const themePicker = definePrimitive({
           void api.preview.clear({ reason: "item-hover", event }),
         click: (event, { api, key }) => void api.preview.choose(key, { event }),
         keydown: (event, { el, api, key }) => {
-          if (api.preview.keydown(event, key) || !el) return
+          if (api.preview.keydown(event, key) || !el) {
+            return
+          }
           const moved = api.roving.keydown(event, el)
-          if (moved)
+          if (moved) {
             api.preview.show(moved.key, { reason: "list-navigation", event })
+          }
         },
       },
       bind: (el, part) => part.api.roving.bind(el, part),
@@ -1873,7 +1922,9 @@ const pinMap = definePrimitive({
       attrs: () => ({ role: "group", "aria-label": "Coffee map" }),
       on: {
         pointerdown: (event, { el, api }) => {
-          if (el && event.target === el) api.lasso.pointerdown(event, el)
+          if (el && event.target === el) {
+            api.lasso.pointerdown(event, el)
+          }
         },
       },
     }),
@@ -1892,9 +1943,11 @@ const pinMap = definePrimitive({
       on: {
         click: (event, { api, key }) => {
           const why = { reason: "item-press", event }
-          if (event.shiftKey || event.metaKey || event.ctrlKey)
+          if (event.shiftKey || event.metaKey || event.ctrlKey) {
             api.selection.toggle(key, why)
-          else api.selection.choose(key, why)
+          } else {
+            api.selection.choose(key, why)
+          }
         },
       },
     }),
@@ -1983,10 +2036,11 @@ const placed = (
   moving: MoveDraft | null
 ) => {
   const at: Record<string, MovePoint> = {}
-  for (const [key, p] of Object.entries(positions))
+  for (const [key, p] of Object.entries(positions)) {
     at[key] = moving?.keys.includes(key)
       ? { x: p.x + moving.dx, y: p.y + moving.dy }
       : p
+  }
   return at
 }
 const curve = (a: MovePoint, b: MovePoint) => {
@@ -2064,7 +2118,9 @@ const flow = definePrimitive({
         { padding: 28, maxZoom: 1 }
       )
       // On a phone, keep nodes readable and let the canvas pan instead.
-      if (viewport.get().zoom < 0.7) viewport.zoomTo(0.7)
+      if (viewport.get().zoom < 0.7) {
+        viewport.zoomTo(0.7)
+      }
     }
     return { viewport, move, connect, fit }
   },
@@ -2085,10 +2141,14 @@ const flow = definePrimitive({
       on: {
         wheel: (event, { api }) => api.viewport.wheel(event),
         pointerdown: (event, { el, api }) => {
-          if (event.target === el) api.viewport.pointerdown(event)
+          if (event.target === el) {
+            api.viewport.pointerdown(event)
+          }
         },
         keydown: (event, { el, api }) => {
-          if (event.target === el) api.viewport.keydown(event)
+          if (event.target === el) {
+            api.viewport.keydown(event)
+          }
         },
       },
       bind: (_el, part) => {
@@ -2132,11 +2192,15 @@ const flow = definePrimitive({
       },
       on: {
         pointerdown: (event, { el, api, key }) => {
-          if ((event.target as Element).closest("[data-port]")) return
+          if ((event.target as Element).closest("[data-port]")) {
+            return
+          }
           api.move.pointerdown(event, key, el!)
         },
         keydown: (event, { api, key }) => {
-          if (api.connect.active()) return void api.connect.keydown(event)
+          if (api.connect.active()) {
+            return void api.connect.keydown(event)
+          }
           if (
             event.key.toLowerCase() === "c" &&
             NODES[key].ports.includes("out")
@@ -2148,7 +2212,9 @@ const flow = definePrimitive({
           api.move.keydown(event, key)
         },
         focus: (_event, { el, api }) => {
-          if (el) api.viewport.reveal(api.viewport.rectOf(el), { padding: 24 })
+          if (el) {
+            api.viewport.reveal(api.viewport.rectOf(el), { padding: 24 })
+          }
         },
       },
     }),
@@ -2163,7 +2229,9 @@ const flow = definePrimitive({
       })),
       on: {
         pointerdown: (event, { el, api, key }) => {
-          if (el) api.connect.pointerdown(event, key, el)
+          if (el) {
+            api.connect.pointerdown(event, key, el)
+          }
         },
       },
     }),
@@ -2179,9 +2247,13 @@ const flow = definePrimitive({
               : "Fit to screen",
       }),
       press: ({ api, key }) => {
-        if (key === "in") api.viewport.zoomBy(1.25)
-        else if (key === "out") api.viewport.zoomBy(0.8)
-        else api.fit()
+        if (key === "in") {
+          api.viewport.zoomBy(1.25)
+        } else if (key === "out") {
+          api.viewport.zoomBy(0.8)
+        } else {
+          api.fit()
+        }
       },
     }),
     readout: slot({
@@ -2305,7 +2377,9 @@ function ThrowCard() {
   const paint = (point: MovePoint) => {
     pos.current = point
     const el = top.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     el.style.translate = `${point.x}px ${point.y}px`
     el.style.rotate = `${point.x / 16}deg`
   }
@@ -2332,7 +2406,9 @@ function ThrowCard() {
   }
 
   const down = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0) return
+    if (event.button !== 0) {
+      return
+    }
     cancel.current()
     const el = event.currentTarget
     const start = { x: event.clientX, y: event.clientY }
@@ -2358,21 +2434,24 @@ function ThrowCard() {
           : { x: tx.velocity(up.timeStamp), y: ty.velocity(up.timeStamp) }
         const landing = pos.current.x + projectDistance(velocity.x, 0.994)
         const width = el.parentElement?.clientWidth ?? 260
-        if (!canceled && Math.abs(landing) > width * 0.55)
+        if (!canceled && Math.abs(landing) > width * 0.55) {
           fling(Math.sign(landing), velocity)
-        else
+        } else {
           cancel.current = runSpring(
             pos.current,
             { x: 0, y: 0 },
             velocity,
             paint
           )
+        }
       },
     })
   }
 
   const key = (event: ReactKeyboardEvent<HTMLDivElement>) => {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return
+    }
     event.preventDefault()
     const direction = event.key === "ArrowLeft" ? -1 : 1
     fling(direction, { x: direction * 2, y: 0 })
@@ -2448,7 +2527,9 @@ function PullToRefresh() {
   const paint = (y: number) => {
     offset.current = y
     const el = sheet.current
-    if (!el) return
+    if (!el) {
+      return
+    }
     el.style.setProperty("--pull", `${y}px`)
     el.style.setProperty("--pull-progress", String(Math.min(y / PULL_AT, 1)))
   }
@@ -2482,7 +2563,9 @@ function PullToRefresh() {
   }
 
   const down = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.button !== 0 || phase === "refreshing") return
+    if (event.button !== 0 || phase === "refreshing") {
+      return
+    }
     cancel.current()
     const el = event.currentTarget
     const startY = event.clientY
@@ -2497,8 +2580,9 @@ function PullToRefresh() {
         setPhase(shown >= PULL_AT ? "ready" : "idle")
       },
       onEnd: (_event, canceled) => {
-        if (!canceled && offset.current >= PULL_AT) refresh()
-        else {
+        if (!canceled && offset.current >= PULL_AT) {
+          refresh()
+        } else {
           setPhase("idle")
           springTo(0)
         }
@@ -2584,9 +2668,13 @@ function RadialMenu() {
   useEffect(() => () => stop.current?.(), [])
 
   useEffect(() => {
-    if (!open) return
+    if (!open) {
+      return
+    }
     const away = (event: PointerEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false)
+      if (!root.current?.contains(event.target as Node)) {
+        setOpen(false)
+      }
     }
     document.addEventListener("pointerdown", away)
     return () => document.removeEventListener("pointerdown", away)
@@ -2599,7 +2687,9 @@ function RadialMenu() {
   }
 
   const down = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (event.button !== 0) return
+    if (event.button !== 0) {
+      return
+    }
     const el = event.currentTarget
     const rect = el.getBoundingClientRect()
     const center = {
@@ -2617,13 +2707,19 @@ function RadialMenu() {
         current = sectorOf(x - center.x, y - center.y, ACTIONS.length, {
           deadZone: 24,
         })
-        if (current >= 0) strayed = true
+        if (current >= 0) {
+          strayed = true
+        }
         setActive(current)
       },
       onEnd: (_event, canceled) => {
-        if (canceled) setOpen(false)
-        else if (current >= 0) choose(current)
-        else if (strayed) setOpen(false)
+        if (canceled) {
+          setOpen(false)
+        } else if (current >= 0) {
+          choose(current)
+        } else if (strayed) {
+          setOpen(false)
+        }
         // A press without a stroke leaves the menu open to click.
       },
     })
@@ -2642,8 +2738,11 @@ function RadialMenu() {
       setActive(arrows[event.key])
     } else if (event.key === "Enter" || event.key === " ") {
       event.preventDefault()
-      if (open && active >= 0) choose(active)
-      else setOpen((value) => !value)
+      if (open && active >= 0) {
+        choose(active)
+      } else {
+        setOpen((value) => !value)
+      }
     } else if (event.key === "Escape") {
       setOpen(false)
       setActive(-1)

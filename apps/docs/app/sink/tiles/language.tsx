@@ -360,16 +360,21 @@ const currencyList = definePrimitive({
           event.defaultPrevented ||
           roving.keydown(event, el) ||
           !isTypeaheadKey(event)
-        )
+        ) {
           return
-        if (event.key === " " && typeahead.active()) event.preventDefault()
+        }
+        if (event.key === " " && typeahead.active()) {
+          event.preventDefault()
+        }
         const items = roving.items()
         const index = typeahead(
           event.key,
           items.map((item) => labelOf(item.el)),
           items.findIndex((item) => item.el === el)
         )
-        if (index !== -1) roving.focus(items[index].key)
+        if (index !== -1) {
+          roving.focus(items[index].key)
+        }
       },
     }
   },
@@ -386,7 +391,9 @@ const currencyList = definePrimitive({
       press: ({ api, key }) => api.choose(key),
       on: {
         keydown: (event, { el, api }) => {
-          if (el) api.keydown(event, el)
+          if (el) {
+            api.keydown(event, el)
+          }
         },
       },
       bind: (el, part) => part.api.roving.bind(el, part),
@@ -462,7 +469,9 @@ const formatPicker = definePrimitive({
       select: (format: string) => context.store.set({ format }),
       keydown(event: KeyboardEvent, el: HTMLElement) {
         const moved = roving.keydown(event, el)
-        if (moved) context.store.set({ format: moved.key })
+        if (moved) {
+          context.store.set({ format: moved.key })
+        }
       },
     }
   },
@@ -483,7 +492,9 @@ const formatPicker = definePrimitive({
       press: ({ api, key }) => api.select(key),
       on: {
         keydown: (event, { el, api }) => {
-          if (el) api.keydown(event, el)
+          if (el) {
+            api.keydown(event, el)
+          }
         },
       },
       bind: (el, part) => part.api.roving.bind(el, part),
@@ -622,8 +633,9 @@ const seatMap = definePrimitive({
     return {
       grid,
       choose(cell: GridCell) {
-        if (!TAKEN.has(`${cell.row}:${cell.col}`))
+        if (!TAKEN.has(`${cell.row}:${cell.col}`)) {
           context.store.set({ seat: { row: cell.row, col: cell.col } })
+        }
       },
     }
   },
@@ -748,13 +760,14 @@ type SheetState = {
 
 function sheetBounds(state: SheetState) {
   const { range, active } = state
-  if (range)
+  if (range) {
     return {
       top: Math.min(range.anchor.row, range.end.row),
       bottom: Math.max(range.anchor.row, range.end.row),
       left: Math.min(range.anchor.col, range.end.col),
       right: Math.max(range.anchor.col, range.end.col),
     }
+  }
   return active
     ? {
         top: active.row,
@@ -784,7 +797,9 @@ const sheet = definePrimitive({
       copy(event: ClipboardEvent) {
         const state = context.store.get()
         const text = range.text(state, ({ row, col }) => state.cells[row][col])
-        if (!text) return
+        if (!text) {
+          return
+        }
         event.preventDefault()
         event.clipboardData?.setData("text/plain", text)
         context.store.set({ note: `Copied ${text.split("\n").length} rows` })
@@ -795,7 +810,9 @@ const sheet = definePrimitive({
         )
         const state = context.store.get()
         const bounds = range.bounds(state)
-        if (!rowsIn.length || !bounds) return
+        if (!rowsIn.length || !bounds) {
+          return
+        }
         event.preventDefault()
         const cells = state.cells.map((row) => [...row])
         let bottom = bounds.top
@@ -804,7 +821,9 @@ const sheet = definePrimitive({
           row.forEach((value, j) => {
             const r = bounds.top + i
             const c = bounds.left + j
-            if (r >= cells.length || c >= SHEET_COLS.length) return
+            if (r >= cells.length || c >= SHEET_COLS.length) {
+              return
+            }
             cells[r][c] = value
             bottom = Math.max(bottom, r)
             right = Math.max(right, c)
@@ -836,10 +855,12 @@ const sheet = definePrimitive({
     >({
       state: (state) => {
         const b = sheetBounds(state)
-        if (!b) return { label: "–", sum: 0, count: 0, note: state.note }
+        if (!b) {
+          return { label: "–", sum: 0, count: 0, note: state.note }
+        }
         let sum = 0
         let count = 0
-        for (let r = b.top; r <= b.bottom; r++)
+        for (let r = b.top; r <= b.bottom; r++) {
           for (let c = b.left; c <= b.right; c++) {
             const value = Number(state.cells[r][c])
             if (r > 0 && state.cells[r][c] !== "" && Number.isFinite(value)) {
@@ -847,6 +868,7 @@ const sheet = definePrimitive({
               count++
             }
           }
+        }
         const from = `${SHEET_COLS[b.left]}${b.top + 1}`
         const to = `${SHEET_COLS[b.right]}${b.bottom + 1}`
         return {
@@ -1308,7 +1330,9 @@ const stepper = definePrimitive({
             End: max,
           } as Record<string, number>
         )[event.key]
-        if (next === undefined) return
+        if (next === undefined) {
+          return
+        }
         event.preventDefault()
         set(next, "keyboard", event)
       },
@@ -1440,16 +1464,24 @@ const rating = definePrimitive({
       claims: (state, item) =>
         state.value ? Number(item.key) === state.value : item.key === "1",
       move(event, { from, items, rtl }) {
-        if (event.ctrlKey || event.metaKey || event.altKey) return
-        if (event.key === "Home") return items[0]?.key
-        if (event.key === "End") return items[items.length - 1]?.key
+        if (event.ctrlKey || event.metaKey || event.altKey) {
+          return
+        }
+        if (event.key === "Home") {
+          return items[0]?.key
+        }
+        if (event.key === "End") {
+          return items[items.length - 1]?.key
+        }
         const up =
           event.key === "ArrowUp" ||
           event.key === (rtl ? "ArrowLeft" : "ArrowRight")
         const down =
           event.key === "ArrowDown" ||
           event.key === (rtl ? "ArrowRight" : "ArrowLeft")
-        if (!up && !down) return
+        if (!up && !down) {
+          return
+        }
         const index = items.indexOf(from) + (up ? 1 : -1)
         return items[Math.max(0, Math.min(items.length - 1, index))]?.key
       },
@@ -1466,11 +1498,12 @@ const rating = definePrimitive({
       rate,
       keydown(event: KeyboardEvent, el: HTMLElement) {
         const moved = roving.keydown(event, el)
-        if (moved)
+        if (moved) {
           change("value", Number(moved.key), {
             reason: "list-navigation",
             event,
           })
+        }
       },
     }
   },
@@ -1501,14 +1534,17 @@ const rating = definePrimitive({
       },
       on: {
         pointerenter: (event, { api, key }) => {
-          if (event.pointerType === "mouse")
+          if (event.pointerType === "mouse") {
             api.preview.show(key, { reason: "item-hover", event })
+          }
         },
         pointerleave: (event, { api }) => {
           api.preview.clear({ reason: "item-hover", event })
         },
         keydown: (event, { el, api }) => {
-          if (el) api.keydown(event, el)
+          if (el) {
+            api.keydown(event, el)
+          }
         },
       },
       bind: (el, part) => part.api.roving.bind(el, part),
@@ -1588,7 +1624,9 @@ function CityMap() {
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
     const direction = DIRECTIONS[event.key]
-    if (!direction) return
+    if (!direction) {
+      return
+    }
     event.preventDefault()
     const next = nearestInDirection(
       rect(pin),
@@ -1598,7 +1636,9 @@ function CityMap() {
       })),
       direction
     )
-    if (next) setCurrent(next)
+    if (next) {
+      setCurrent(next)
+    }
   }
 
   return (
@@ -1659,11 +1699,13 @@ const keyboard = definePrimitive({
       roving,
       press(key: string) {
         const { typed } = context.store.get()
-        if (key === "back") context.store.set({ typed: typed.slice(0, -1) })
-        else
+        if (key === "back") {
+          context.store.set({ typed: typed.slice(0, -1) })
+        } else {
           context.store.set({
             typed: (typed.length >= 12 ? "" : typed) + key.toLowerCase(),
           })
+        }
       },
     }
   },
@@ -1681,7 +1723,9 @@ const keyboard = definePrimitive({
       press: ({ api, key }) => api.press(key),
       on: {
         keydown: (event, { el, api }) => {
-          if (el) api.roving.keydown(event, el)
+          if (el) {
+            api.roving.keydown(event, el)
+          }
         },
       },
       bind: (el, part) => part.api.roving.bind(el, part),
@@ -1778,7 +1822,9 @@ const stopList = definePrimitive({
       }),
       on: {
         keydown: (event, { el, api, key }) => {
-          if (el) api.keydown(event, el, key)
+          if (el) {
+            api.keydown(event, el, key)
+          }
         },
       },
       bind: (el, part) => {
@@ -1965,7 +2011,9 @@ function Shortcuts() {
     const match = SHORTCUTS.find((item) =>
       matchesShortcut(event.nativeEvent, item.keys, apple)
     )
-    if (!match) return
+    if (!match) {
+      return
+    }
     event.preventDefault()
     flash(match.label)
   }
@@ -2060,12 +2108,17 @@ function Announce() {
   function clear() {
     const lines = [...(logRef.current?.children ?? [])] as HTMLElement[]
     let left = lines.length
-    if (!left) return
-    for (const line of lines)
+    if (!left) {
+      return
+    }
+    for (const line of lines) {
       animateOut(line, () => {
         left -= 1
-        if (!left) setLog([])
+        if (!left) {
+          setLog([])
+        }
       })
+    }
   }
 
   return (
@@ -2179,7 +2232,9 @@ function Phrasebook() {
 
   // pageLocale reads the nearest lang attribute, so the fare follows the card's language.
   useLayoutEffect(() => {
-    if (!fare.current) return
+    if (!fare.current) {
+      return
+    }
     fare.current.textContent = formatNumber(
       phrase.fare,
       pageLocale(fare.current),
@@ -2191,7 +2246,9 @@ function Phrasebook() {
   }, [phrase])
 
   function onKeyDown(event: ReactKeyboardEvent<HTMLDivElement>) {
-    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
+    if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") {
+      return
+    }
     event.preventDefault()
     const forward = isRTL(event.currentTarget) ? "ArrowLeft" : "ArrowRight"
     go(event.key === forward ? 1 : -1)
@@ -2288,8 +2345,9 @@ const schemePicker = definePrimitive({
         change("value", value, { reason: "item-press", event }),
       keydown(event: KeyboardEvent, el: HTMLElement) {
         const moved = roving.keydown(event, el)
-        if (moved)
+        if (moved) {
           change("value", moved.key, { reason: "list-navigation", event })
+        }
       },
     }
   },
@@ -2309,7 +2367,9 @@ const schemePicker = definePrimitive({
       },
       on: {
         keydown: (event, { el, api }) => {
-          if (el) api.keydown(event, el)
+          if (el) {
+            api.keydown(event, el)
+          }
         },
       },
       bind: (el, part) => part.api.roving.bind(el, part),
