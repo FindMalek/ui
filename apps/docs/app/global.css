@@ -1,6 +1,16 @@
 @layer ui-sdk;
 @import "tailwindcss";
 
+/* /sink brings its own stylesheets, drawn over the browser's defaults: its
+class names stay out of the utilities, and Preflight steps aside for it. */
+@source not "./sink";
+
+@layer base {
+  .sink :where(*, *::before, *::after) {
+    all: revert-layer;
+  }
+}
+
 @custom-variant dark {
   &:where(
     .dark,
@@ -176,10 +186,11 @@ svg.lucide {
   color: var(--selection-foreground);
 }
 
-/* The site is square: only marked shapes, like a pill or a drawn circle, keep their curve. */
-:not([data-round]),
-:not([data-round])::before,
-:not([data-round])::after {
+/* The site is square: only marked shapes, like a pill or a drawn circle, keep
+   their curve, and /sink, which draws its own. */
+:not([data-round], .sink *),
+:not([data-round], .sink *)::before,
+:not([data-round], .sink *)::after {
   border-radius: 0 !important;
 }
 
