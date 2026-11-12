@@ -1996,7 +1996,7 @@ export const tiles: Tile[] = [
   {
     id: "drag-lasso",
     title: "Lasso a few photos.",
-    blurb: "Locked ones stay out; Shift adds more.",
+    blurb: "Locked ones stay out, and Shift adds more.",
     Demo: LassoDemo,
   },
   {

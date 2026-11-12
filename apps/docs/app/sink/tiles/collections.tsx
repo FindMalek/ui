@@ -2403,14 +2403,14 @@ export const tiles: Tile[] = [
   {
     id: "collections-offline-sync",
     title: "Pick what syncs.",
-    blurb: "Mixed when partly checked.",
+    blurb: "A folder shows a dash when only some of it is checked.",
     tone: "sage",
     Demo: OfflineSync,
   },
   {
     id: "collections-book-contents",
-    title: "Contents, flattened.",
-    blurb: "Nested chapters rendered as flat rows.",
+    title: "Browse the chapters.",
+    blurb: "A nested contents page, drawn as one flat list.",
     tone: "paper",
     Demo: BookContents,
   },
@@ -2423,7 +2423,7 @@ export const tiles: Tile[] = [
   {
     id: "collections-credits",
     title: "Read the credits.",
-    blurb: "Liner notes fold away; initials stand in.",
+    blurb: "The liner notes fold away, and initials stand in for photos.",
     tone: "butter",
     Demo: Credits,
   },
@@ -2436,7 +2436,7 @@ export const tiles: Tile[] = [
   {
     id: "collections-lyrics",
     title: "Scroll the lyrics.",
-    blurb: "Custom thumb, fades at both edges.",
+    blurb: "A custom scrollbar, with fades at both edges.",
     tone: "ink",
     Demo: Lyrics,
   },
@@ -2450,14 +2450,14 @@ export const tiles: Tile[] = [
   },
   {
     id: "collections-folder-import",
-    title: "Import in progress.",
-    blurb: "Known sizes fill; unknown ones pulse.",
+    title: "Import a folder.",
+    blurb: "Bars fill when the size is known, and pulse when it isn't.",
     tone: "blueprint",
     Demo: FolderImport,
   },
   {
     id: "collections-reading-goal",
-    title: "Reading goal.",
+    title: "Track a reading goal.",
     blurb: "A meter drawn as a ring.",
     tone: "signal",
     Demo: ReadingGoal,
@@ -2490,8 +2490,8 @@ export const tiles: Tile[] = [
   },
   {
     id: "collections-sync-log",
-    title: "Follows the tail.",
-    blurb: "New lines stay in view until you scroll.",
+    title: "Watch the sync log.",
+    blurb: "New lines stay in view until you scroll up.",
     tone: "ink",
     Demo: SyncLog,
   },
@@ -2504,8 +2504,8 @@ export const tiles: Tile[] = [
   },
   {
     id: "collections-hidden-passage",
-    title: "Found when searched.",
-    blurb: "Find in page opens the hidden passage.",
+    title: "Find the hidden passage.",
+    blurb: "Find in page opens it for you.",
     Demo: HiddenPassage,
   },
 ]

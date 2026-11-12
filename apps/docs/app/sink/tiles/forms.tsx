@@ -1720,13 +1720,13 @@ export const tiles: Tile[] = [
   {
     id: "forms-cabin",
     title: "Choose your cabin.",
-    blurb: "Whole cards select, arrows included.",
+    blurb: "Click a whole card, or use the arrow keys.",
     Demo: Cabin,
   },
   {
     id: "forms-verify",
-    title: "Prove it’s you.",
-    blurb: "Paste or type; it checks itself.",
+    title: "Enter the code.",
+    blurb: "Paste it or type it, and it checks itself.",
     tone: "sky",
     Demo: Verify,
   },
@@ -1775,8 +1775,8 @@ export const tiles: Tile[] = [
   },
   {
     id: "forms-requests",
-    title: "Note for the hotel.",
-    blurb: "Grows with your text and counts it.",
+    title: "Leave a note for the hotel.",
+    blurb: "The box grows with your text and counts it.",
     Demo: Requests,
   },
   {
@@ -1788,7 +1788,7 @@ export const tiles: Tile[] = [
   {
     id: "forms-amenities",
     title: "Must-haves only.",
-    blurb: "Pick several; the trigger sums them up.",
+    blurb: "Pick several, and the button sums them up.",
     tone: "sage",
     Demo: Amenities,
   },

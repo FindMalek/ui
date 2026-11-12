@@ -40,12 +40,14 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
+  /* Room for the shadow, which the stage would otherwise clip. */
+  margin-bottom: 16px;
   border-radius: 16px;
   background: var(--tile-surface);
   box-shadow:
     0 0 0 1px color-mix(in oklab, var(--tile-ink) 9%, transparent),
     0 1px 2px oklch(0.2 0.02 60 / 0.06),
-    0 28px 56px -30px oklch(0.2 0.02 60 / 0.38);
+    0 12px 24px -14px oklch(0.2 0.02 60 / 0.3);
   user-select: none;
   -webkit-user-select: none;
   transition: --dg-side 260ms var(--ease-out);

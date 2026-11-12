@@ -2913,7 +2913,7 @@ export const tiles: Tile[] = [
   {
     id: "motion-color",
     title: "Pick a shade.",
-    blurb: "Saturation across, brightness up.",
+    blurb: "Saturation runs across, brightness runs up.",
     tone: "ink",
     Demo: ColorPad,
   },
