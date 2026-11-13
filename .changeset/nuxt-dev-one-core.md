@@ -2,4 +2,4 @@
 "@ui-sdk/vue": patch
 ---
 
-The Nuxt module keeps `@ui-sdk/core` out of Vite's dependency pre-bundling, so an app that imports from `@ui-sdk/core` no longer loads a second copy of it in `nuxt dev`.
+The Nuxt module pre-bundles every `@ui-sdk/core` entry in one pass, so an app that imports from `@ui-sdk/core` or one of its entries no longer loads a second copy of it in `nuxt dev`.
