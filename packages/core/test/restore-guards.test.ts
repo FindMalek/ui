@@ -134,6 +134,23 @@ describe("the browser's restore", () => {
     }
   }
 
+  for (const [name, create] of lists) {
+    for (const multiple of [false, true]) {
+      for (const saved of ["5", "{}", "null", '"ab"']) {
+        test(`ignores the non-array ${saved} on a ${name}, multiple: ${multiple}`, () => {
+          const instance = create({ multiple })
+          instance.api.internal.restore(saved)
+          expect(instance.get().value).toEqual(multiple ? [] : null)
+        })
+      }
+      test(`keeps only the string keys of a saved list on a ${name}, multiple: ${multiple}`, () => {
+        const instance = create({ multiple })
+        instance.api.internal.restore(JSON.stringify([1, null, "b"]))
+        expect(instance.get().value).toEqual(multiple ? ["b"] : "b")
+      })
+    }
+  }
+
   for (const [name, create] of toggles) {
     for (const guard of ["disabled", "readOnly", "formDisabled"] as const) {
       test(`lands on a ${guard} ${name}`, () => {

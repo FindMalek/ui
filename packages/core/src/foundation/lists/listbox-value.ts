@@ -299,10 +299,13 @@ function createValueSelection(config: {
     // do, unless something sets the value first.
     restore(saved: string, write: (value: unknown) => void) {
       stopRestoring()
-      let keys: string[] = []
+      let parsed: unknown
       try {
-        keys = JSON.parse(saved)
+        parsed = JSON.parse(saved)
       } catch {}
+      let keys = Array.isArray(parsed)
+        ? parsed.filter((key): key is string => typeof key === "string")
+        : []
       const { multiple } = store.get()
       if (!multiple) {
         keys = keys.slice(0, 1)
